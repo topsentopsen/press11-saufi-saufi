@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var G = Saufi.Gfx, P = G.P, hash = G.hash, r = G.r, rr = G.rr, kreis = G.kreis, ellipse = G.ellipse, poly = G.poly, linie = G.linie, vlauf = G.vlauf, text = G.text;
+  var G = Saufi.Gfx, P = G.P, hash = G.hash, r = G.r, rr = G.rr, kreis = G.kreis, ellipse = G.ellipse, poly = G.poly, linie = G.linie, vlauf = G.vlauf, text = G.text, textInBox = G.textInBox;
   var K = 16;
   var TANZ_FARBEN = [P.neonPink, P.neonCyan, P.neonGelb, P.neonLila];
 
@@ -12,22 +12,22 @@
   // ---------- Boeden ----------
   function boden(c, id, x, y, sx, sy) {
     var hs = hash(x, y), fl = (x + y) % 2 === 0, i;
-    if (id === 'hotel') {                         // Parkett
-      var farben = ['#e3b186', '#d9a578', '#e8b98e'];
+    if (id === 'hotel') {                         // Parkett (waermere Palette)
+      var farben = ['#e6b78c', '#d9a578', '#efc29a'];
       for (i = 0; i < 4; i++) {
         var o = ((x + i) % 2) * 5, py = sy + i * 4, hh = hash(x, y * 4 + i);
         r(c, sx, py, K, 4, farben[hh % 3]);
-        r(c, sx, py + 3.4, K, 0.6, 'rgba(100,60,40,0.35)'); r(c, sx + ((o + 3) % 16), py, 0.6, 4, 'rgba(100,60,40,0.3)');
-        r(c, sx, py, K, 0.5, 'rgba(255,240,220,0.25)');
+        r(c, sx, py + 3.4, K, 0.6, 'rgba(100,60,40,0.28)'); r(c, sx + ((o + 3) % 16), py, 0.6, 4, 'rgba(100,60,40,0.22)');
+        r(c, sx, py, K, 0.5, 'rgba(255,240,220,0.28)');
       }
     } else if (id === 'restaurant') {             // Fliesen im Schachbrett
-      r(c, sx, sy, K, K, fl ? '#f7efe2' : '#c9dde8');
+      r(c, sx, sy, K, K, fl ? '#f8f1e6' : '#cfe0ea');
       r(c, sx, sy, K, 0.7, 'rgba(255,255,255,0.7)'); r(c, sx, sy, 0.7, K, 'rgba(255,255,255,0.5)');
-      r(c, sx, sy + K - 0.5, K, 0.5, 'rgba(70,60,90,0.18)'); r(c, sx + K - 0.5, sy, 0.5, K, 'rgba(70,60,90,0.18)');
+      r(c, sx, sy + K - 0.5, K, 0.5, 'rgba(70,60,90,0.16)'); r(c, sx + K - 0.5, sy, 0.5, K, 'rgba(70,60,90,0.16)');
     } else if (id === 'kneipe') {                 // Dielen
       for (i = 0; i < 3; i++) {
         var py2 = sy + i * 5.34, hh2 = hash(x * 3 + i, y), dun = hh2 % 2;
-        r(c, sx, py2, K, 5.4, dun ? '#a1704a' : '#ad7a52');
+        r(c, sx, py2, K, 5.4, dun ? '#9e6c48' : '#b07f56');
         r(c, sx, py2 + 4.8, K, 0.6, 'rgba(60,30,20,0.5)'); r(c, sx + ((hh2 >> 3) % 14) + 1, py2, 0.6, 5.4, 'rgba(60,30,20,0.4)');
         if (hh2 % 5 === 0) ellipse(c, sx + 3 + (hh2 >> 5) % 10, py2 + 2.6, 1.2, 0.8, 'rgba(70,40,25,0.5)');
         r(c, sx, py2, K, 0.5, 'rgba(255,220,180,0.18)');
@@ -259,7 +259,7 @@
     rr(c, sx + (links ? 1 : -1), sy + 1.5, K + 0 + (links ? 0 : 1), K - 1.5, '#c98b5e', 1.4, '#5a3328', 0.8);
     rr(c, sx + (links ? 3 : 1.6), sy + 3, links ? 11 : 11, 11, '#b87a50', 1.4); r(c, sx + (links ? 3 : 1.6), sy + 7, 11, 0.6, 'rgba(60,30,20,0.4)');
     kreis(c, links ? sx + 13.4 : sx + 2.6, sy + 8.4, 0.9, P.gold);
-    rr(c, sx + 1, sy + 0.2, 14, 8, '#1f7a42', 1.4, '#0e4a26', 0.6); text(c, 'EXIT', sx + 8, sy + 4.2, '#eaffe8', 11, 'center');
+    rr(c, sx + 1, sy + 0.2, 14, 8, '#1f7a42', 1.4, '#0e4a26', 0.6); textInBox(c, 'EXIT', sx + 1, sy + 0.4, 14, 7.6, 9, { col: '#eaffe8', ausr: 'center', min: 6 });
   }
   function bodenGeraet(c, karte, t, x, y, sx, sy) {
     var T = Saufi.Karte.T, hs = hash(x, y);
@@ -319,15 +319,15 @@
     if (id === 'hotel') {
       rr(c, 2 * K + 2, 8, 4 * K - 4, 14, '#5a3a28', 1.6, '#2e1c14', 0.6);               // Schluesselbrett
       for (i = 0; i < 8; i++) { kreis(c, 2 * K + 7 + i * 6.8, 13, 0.7, '#e8c46a'); r(c, 2 * K + 6.6 + i * 6.8, 14, 0.8, 4, '#e8c46a'); kreis(c, 2 * K + 7 + i * 6.8, 19, 1, i % 3 ? '#c9a64a' : '#e0504a'); }
-      rr(c, 2 * K + 8, 1.2, 48, 10, '#c9a64a', 1.6); text(c, 'REZEPTION', 2 * K + 32, 6.2, '#4a2f12', 11, 'center');
+      rr(c, 2 * K + 8, 1.2, 48, 10, '#c9a64a', 1.6); textInBox(c, 'REZEPTION', 2 * K + 10, 1.4, 44, 9.2, 9, { col: '#4a2f12', ausr: 'center', min: 6 });
       bilderRahmen(c, 6 * K + 4, 8, 12, 9, 0); bilderRahmen(c, 13 * K + 3, 8, 9, 11, 1);
       uhrWand(c, 8 * K + 8, 9, 5);
-      rr(c, 9 * K + 4, 2, 3 * K + 10, 12, '#f6efe0', 1.6, '#8a5a3a', 0.7); text(c, 'FRÜHSTÜCK', 10.5 * K + 6, 8, '#6a3f2a', 11, 'center');
-      rr(c, 14 * K, 1.5, 14, 10, '#4fb0d6', 1.2); text(c, 'H2O', 14 * K + 7, 6.5, '#fff', 11, 'center');
+      rr(c, 9 * K + 4, 2, 3 * K + 10, 12, '#f6efe0', 1.6, '#8a5a3a', 0.7); textInBox(c, 'FRÜHSTÜCK', 9 * K + 6, 3, 3 * K + 6, 10, 9, { col: '#6a3f2a', ausr: 'center', min: 6 });
+      rr(c, 14 * K, 1.5, 14, 10, '#4fb0d6', 1.2); textInBox(c, 'H2O', 14 * K, 2, 14, 9, 9, { col: '#fff', ausr: 'center', min: 6 });
     } else if (id === 'restaurant') {
       flaschenRegal(c, 2 * K + 2, 12, 5 * K - 4, 9);
-      rr(c, 8 * K + 2, 2, 2 * K - 4, 24, '#2f3a34', 1.6, '#8a5a3a', 1); text(c, 'KARTE', 9 * K, 8, '#fff8ee', 11, 'center');
-      text(c, 'Spätzle!', 9 * K, 18, '#ffe9a8', 11, 'center');
+      rr(c, 8 * K + 2, 2, 2 * K - 4, 24, '#2f3a34', 1.6, '#8a5a3a', 1); textInBox(c, 'KARTE', 8 * K + 3, 3, 2 * K - 6, 10, 9, { col: '#fff8ee', ausr: 'center', min: 6 });
+      textInBox(c, 'Spätzle!', 8 * K + 3, 13, 2 * K - 6, 10, 9, { col: '#ffe9a8', ausr: 'center', min: 6 });
       ['Maultaschen', 'Spätzle', 'Zwiebelrostbraten'].forEach(function (s, k) { linie(c, 8 * K + 8, 11 + k * 4.4, 10 * K - 8, 11 + k * 4.4, 'rgba(255,248,238,' + (0.8 - k * 0.1) + ')', 0.7); });
       for (i = 0; i < 5; i++) {                                                              // Pfannen und Toepfe in der Kueche
         var px = 10 * K + 6 + i * 12.5, pr = i % 2 ? 3.4 : 4.4;
@@ -340,7 +340,7 @@
       vlauf(c, 2 * K + 5, 4, 8 * K - 10, 18, 'rgba(180,200,220,0.45)', 'rgba(120,140,170,0.3)');
       flaschenRegal(c, 2 * K + 4, 8, 8 * K - 8, 18);
       zielscheibe(c, 10.5 * K, 14, 8);
-      rr(c, 11.7 * K, 2, 1.5 * K, 12, '#2a2342', 1.4, P.neonGelb, 0.8); text(c, 'BIER', 12.45 * K, 8, P.neonGelb, 11, 'center');
+      rr(c, 11.7 * K, 2, 1.5 * K, 12, '#2a2342', 1.4, P.neonGelb, 0.8); textInBox(c, 'BIER', 11.7 * K + 1, 3, 1.5 * K - 2, 10, 9, { col: P.neonGelb, ausr: 'center', min: 6 });
       for (i = 0; i < 10; i++) {                                                           // Wimpelkette
         var wx = 6 + i * 20; poly(c, [[wx, 0], [wx + 7, 0], [wx + 3.5, 6]], ['#e0504a', '#ffc233', '#4fa86a', '#4a7ad8'][i % 4]);
       }
@@ -349,7 +349,7 @@
       rr(c, 6 * K + 4, 3, 6 * K - 8, 22, '#0e0a1e', 2, '#4a3d72', 0.9);                  // Videowand
       var gr = c.createLinearGradient(6 * K + 6, 0, 12 * K - 6, 0); gr.addColorStop(0, P.neonPink); gr.addColorStop(0.5, P.neonLila); gr.addColorStop(1, P.neonCyan);
       c.globalAlpha = 0.55; c.fillStyle = gr; c.fillRect(6 * K + 6, 5, 6 * K - 12, 18); c.globalAlpha = 1;
-      text(c, 'UNTERGRUND 07', 9 * K, 14, '#fff8ee', 11, 'center', 'rgba(20,10,50,0.8)');
+      textInBox(c, 'UNTERGRUND 07', 6 * K + 8, 8, 6 * K - 16, 12, 10, { col: '#fff8ee', ausr: 'center', kontur: 'rgba(20,10,50,0.8)', min: 6 });
       [1.1 * K, 15.6 * K].forEach(function (lx) {                                         // Lautsprecher
         rr(c, lx - 5.5, 3, 11, 26, '#1a1530', 2, '#0e0a1e', 0.6); kreis(c, lx, 10, 3.8, '#2c2548', '#0e0a1e', 0.5); kreis(c, lx, 10, 1.4, '#5a4a8a'); kreis(c, lx, 21, 3, '#2c2548', '#0e0a1e', 0.5); kreis(c, lx, 21, 1.1, '#5a4a8a');
       });

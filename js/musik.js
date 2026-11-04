@@ -123,6 +123,21 @@
       m.fehler = 'player';
       zurueckZumBeat(hinweisYoutube({ protokoll: m.protokoll(), online: m.online(), fehler: m.fehler }));
     }
+    // iOS: playsinline am iframe (playerVars allein reicht nicht immer)
+    function setzePlaysinline() {
+      var host = el('yt-player'), iframe = null;
+      if (host) {
+        if (host.tagName && String(host.tagName).toUpperCase() === 'IFRAME') iframe = host;
+        else if (host.querySelector) iframe = host.querySelector('iframe');
+      }
+      if (!iframe && doc && doc.querySelector) iframe = doc.querySelector('#yt-rahmen iframe, #yt-player iframe');
+      if (!iframe) return;
+      try {
+        iframe.setAttribute('playsinline', '1');
+        iframe.setAttribute('webkit-playsinline', '1');
+        iframe.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture; fullscreen');
+      } catch (e) { /* egal */ }
+    }
     function spieleYoutube(anlass) {
       m.videoIndex = anlass === 'disko' || anlass === 'boost' || anlass === 'playlist' ? 0 : m.videoIndex;
       m.aktiv = 'youtube'; m.spielt = true; m.zu = false;
@@ -137,13 +152,19 @@
             width: FENSTER_B, height: FENSTER_H, videoId: VIDEOS[m.videoIndex].id,
             playerVars: { playsinline: 1, rel: 0, modestbranding: 1 },
             events: {
-              onReady: function (e) { if (m.stumm && e.target.mute) e.target.mute(); if (e.target.playVideo) e.target.playVideo(); },
+              onReady: function (e) {
+                setzePlaysinline();
+                // Nur nach Nutzergeste (Playlist-Knopf); kein stilles Autoplay ohne Geste
+                if (m.stumm && e.target.mute) e.target.mute();
+                if (m.spielt && e.target.playVideo) e.target.playVideo();
+              },
               onStateChange: function (e) {
                 if (e.data === 0 && m.aktiv === 'youtube') { m.videoIndex = (m.videoIndex + 1) % VIDEOS.length; player.loadVideoById(VIDEOS[m.videoIndex].id); }
               },
               onError: function () { player = null; ytFehler(); }
             }
           });
+          setzePlaysinline();
         } catch (e) { player = null; ytFehler(); }
       });
     }

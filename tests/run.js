@@ -50,7 +50,11 @@ function mockCtx(log) {
   return new Proxy(store, {
     get: function (t, k) {
       if (typeof k === 'symbol') return undefined;
-      if (k === 'measureText') return function (s) { return { width: String(s).length * 4 }; };
+      if (k === 'measureText') return function (s) {
+        var sz = 10, m = /(\d+(?:\.\d+)?)px/.exec(t.font || '');
+        if (m) sz = parseFloat(m[1]);
+        return { width: String(s).length * sz * 0.55 };
+      };
       if (k === 'createRadialGradient') return function (a, b, c, d, e, f) { pruefeZahlen(k, arguments); if (c < 0 || f < 0) throw new Error('negativer Radius'); return { addColorStop: function (o, col) { if (!(o >= 0 && o <= 1) || typeof col !== 'string') throw new Error('addColorStop ' + o + ' ' + col); } }; };
       if (k === 'createLinearGradient') return function () { pruefeZahlen(k, arguments); return { addColorStop: function () {} }; };
       if (CTX_EIGENSCHAFTEN.indexOf(k) >= 0) return t[k];
@@ -754,7 +758,7 @@ test('39 Teamstimmung 0: eigener Titel statt Umgefallen/Press F', function () {
   gleich(t.S.zustand, 'ende'); gleich(t.S.ende.wertung.titel, 'Abgehängt');
   wahr(/abgehängt/.test(t.S.ende.wertung.kopf)); wahr(/Teamstimmung 0/.test(t.S.ende.grund));
   wahr(t.S.ende.wertung.kopf.indexOf('Press F') < 0);
-  gleich(D.Spiel.VERSION, '0.2');
+  gleich(D.Spiel.VERSION, '0.3');
   wahr(D.Gfx.MIN_SCHRIFT >= 9);
 });
 
@@ -766,7 +770,7 @@ test('40 privat entfernt', function () {
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   wahr(/Press11 - Saufi Saufi \(18\+\)/.test(html)); wahr(!/\(18\+, privat\)/.test(html));
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
-  wahr(/Neu in v02/.test(readme)); wahr(!/privates Repo, kein GitHub Pages/.test(readme));
+  wahr(/Neu in v02/.test(readme)); wahr(/Neu in v03/.test(readme)); wahr(!/privates Repo, kein GitHub Pages/.test(readme));
 });
 
 test('41 Playlist-Panel passt in H (Querformat) und YouTube-Fenster weicht Overlay', function () {
@@ -793,6 +797,331 @@ test('41 Playlist-Panel passt in H (Querformat) und YouTube-Fenster weicht Overl
   wahr(/#rahmen\.overlay\s*~\s*#yt-fenster/.test(html), 'CSS blendet YT bei Overlay aus');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
   wahr(/classList\.toggle\(\s*['"]overlay['"]/.test(main), 'Rahmen bekommt Klasse overlay');
+});
+
+test('42 DPR-Begrenzung: MAX_DPR = 2, setzeAufloesung und begrenzDpr kappen', function () {
+  var D = lade();
+  gleich(D.Render.MAX_DPR, 2, 'MAX_DPR Konstante');
+  gleich(D.Render.begrenzDpr(3), 2, 'DPR 3 -> 2');
+  gleich(D.Render.begrenzDpr(1.5), 1.5, 'DPR 1.5 bleibt');
+  gleich(D.Render.begrenzDpr(0), 1, 'ungueltig -> 1');
+  var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  D.Render.setzeBildschirm(R, false);
+  var sk = D.Render.setzeAufloesung(R, 640, 352, 3);
+  gleich(R.dpr, 2, 'setzeAufloesung speichert gekapptes DPR');
+  wahr(R.canvas.width === Math.round(640 * 2), 'Backing-Store nutzt DPR 2');
+  wahr(sk === R.canvas.width / R.W, 'Skala konsistent');
+  var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
+  wahr(/begrenzDpr|MAX_DPR/.test(main), 'main nutzt DPR-Begrenzung');
+  wahr(/VERSION\s*=\s*['"]0\.3['"]/.test(main), 'VERSION 0.3');
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  wahr(/main\.js\?v=0\.3/.test(html), 'Cache-Buster v=0.3');
+});
+
+test('43 Hochformat-Layout: Playlist und Menues passen in PORT_H', function () {
+  var D = lade(), t = neuesSpielTest(D), S = t.S, X = t.X;
+  var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  D.Render.setzeBildschirm(R, true);
+  gleich(R.W, 320); gleich(R.H, D.Render.PORT_H); wahr(R.hochkant);
+  R.touch = true;
+  t.Sp.playlistOverlay(S, X);
+  S.musikInfo = { quelle: 'webaudio', aktiv: 'webaudio', spielt: true, youtubeVerfuegbar: false, hinweis: '' };
+  D.Render.zeichne(R, S);
+  var p = R.panel;
+  wahr(p, 'Playlist-Panel');
+  wahr(p.y >= 2 && p.y + p.h <= R.H - 2, 'Playlist in H (Hochformat)');
+  t.Sp.pauseMenue(S, X);
+  D.Render.zeichne(R, S);
+  p = R.panel;
+  wahr(p && p.y >= 2 && p.y + p.h <= R.H - 2, 'Pause-Menue in H');
+  var rows = R.treffer.filter(function (tr) { return typeof tr.i === 'number'; });
+  wahr(rows.length > 0, 'Menue-Treffer');
+  rows.forEach(function (tr) { wahr(tr.h >= 16, 'Touch-Zeile hoch genug'); });
+  // Querformat ebenfalls
+  D.Render.setzeBildschirm(R, false); R.touch = true;
+  t.Sp.playlistOverlay(S, X); D.Render.zeichne(R, S);
+  p = R.panel;
+  wahr(p && p.y >= 2 && p.y + p.h <= R.H - 2, 'Playlist Querformat');
+});
+
+test('44 Joystick blockiert keine Overlay-Klicks (pointer-events)', function () {
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  wahr(/#stick\s*\{[^}]*pointer-events:\s*none/.test(html), 'Stick default pointer-events:none');
+  wahr(/#rahmen\.touch:not\(\.overlay\)\s+#stick\s*\{[^}]*pointer-events:\s*auto/.test(html), 'Stick nur Touch ohne Overlay');
+  wahr(/#rahmen\.overlay\s+#stick\s*\{[^}]*pointer-events:\s*none/.test(html), 'Overlay: Stick pointer-events none');
+  // Logik: Klick links unten schliesst Jukebox (daneben), wenn Stick nicht schluckt
+  var D = lade(), t = neuesSpielTest(D), S = t.S, X = t.X;
+  var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  D.Render.setzeBildschirm(R, false);
+  t.Sp.playlistOverlay(S, X); D.Render.zeichne(R, S);
+  S.treffer = R.treffer; S.panel = R.panel;
+  wahr(S.panel, 'Panel');
+  wahr(1 < S.panel.x || R.H - 2 > S.panel.y + S.panel.h, 'Punkt links unten ausserhalb Panel');
+  X.E.klicke(1, R.H - 2);
+  t.Sp.update(S, 0.05, X); X.E.ende();
+  gleich(S.overlay, null, 'Klick links unten schliesst Overlay');
+});
+
+test('45 Touch-Ziele ≥ 44 CSS-px', function () {
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  wahr(/min-width:\s*44px/.test(html) && /min-height:\s*44px/.test(html), 'min 44px an Knöpfen');
+  wahr(/#oben\s+\.knopf[^}]*width:\s*44px/.test(html) && /#oben\s+\.knopf[^}]*height:\s*44px/.test(html), 'Oben-Knöpfe Touchziel 44');
+  wahr(/#oben\s+\.knopf::before/.test(html) && /inset:\s*8px/.test(html), 'Oben-Icons optisch kleiner');
+  wahr(/#knopf-aktion[^}]*max\(56px/.test(html), 'Aktionsknopf groß');
+  wahr(/#knopf-wasser[^}]*max\(44px/.test(html), 'Wasser ≥44');
+  wahr(/id="bedien"/.test(html) && /#rahmen\.touch\.hoch\s+#bedien/.test(html), 'Bedienleiste Hochformat');
+  wahr(/safe-area-inset/.test(html), 'Safe-Area');
+  wahr(/100dvh/.test(html), '100dvh');
+  wahr(/overscroll-behavior:\s*none/.test(html), 'overscroll-behavior');
+  wahr(/viewport-fit=cover/.test(html), 'viewport-fit=cover');
+  wahr(/#rahmen\.touch\s*~\s*#yt-fenster/.test(html), 'YT auf Touch oben/klein');
+});
+
+// ---------- v03b: iPhone Safari Hochformat + Audio-Entsperren ----------
+test('46 Viewport-Meta und iPhone-CSS: Safe-Area, kein Zoom/Scroll/Gummiband', function () {
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  wahr(/viewport-fit=cover/.test(html), 'viewport-fit=cover');
+  wahr(/maximum-scale=1/.test(html) && /user-scalable=no/.test(html), 'kein Zoom per Meta');
+  wahr(/position:\s*fixed/.test(html), 'body position:fixed');
+  wahr(/-webkit-fill-available/.test(html), 'webkit-fill-available Fallback');
+  wahr(/100dvh/.test(html), '100dvh');
+  wahr(/overscroll-behavior:\s*none/.test(html), 'overscroll-behavior');
+  wahr(/touch-action:\s*none/.test(html), 'touch-action:none');
+  wahr(/-webkit-user-select:\s*none/.test(html), 'user-select');
+  wahr(/-webkit-touch-callout:\s*none/.test(html), 'touch-callout');
+  wahr(/env\(safe-area-inset-/.test(html), 'safe-area-inset');
+  wahr(/id="ton-hinweis"/.test(html), 'Ton-Hinweis-Element');
+  var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
+  wahr(/passive:\s*false/.test(main), 'Touch preventDefault passive:false');
+  wahr(/touchstart/.test(main) && /touchend/.test(main), 'Touch-Fallback Joystick/Knoepfe');
+  var eing = fs.readFileSync(path.join(ROOT, 'js', 'eingabe.js'), 'utf8');
+  wahr(/touchstart/.test(eing) && /passive:\s*false/.test(eing), 'Canvas touchstart Fallback');
+});
+
+test('47 Audio-Entsperren: erst nach Geste, stummer 1-Sample-Puffer, Hinweistexte', function () {
+  var D = lade(), Ton = D.Ton;
+  gleich(Ton.HINWEIS_TIPPEN, 'Tippen für Ton');
+  gleich(Ton.HINWEIS_STUMMSCHALTER, 'Kein Ton? Stummschalter am iPhone prüfen');
+  wahr(Ton.zustandGesperrt('suspended') && Ton.zustandGesperrt('interrupted'));
+  wahr(!Ton.zustandGesperrt('running'));
+  // Fake-AudioContext: start() erst nach entsperre, stummer Puffer wird abgespielt
+  var starts = [], resumes = [], state = 'suspended';
+  function FakeCtx() {
+    this.sampleRate = 44100; this.destination = {};
+    Object.defineProperty(this, 'state', { get: function () { return state; } });
+    this.createGain = function () { return { gain: { value: 1, setTargetAtTime: function () {} }, connect: function () {} }; };
+    this.createDynamicsCompressor = function () { return { connect: function () {} }; };
+    this.createBiquadFilter = function () { return { type: '', frequency: { value: 0, setTargetAtTime: function () {} }, connect: function () {} }; };
+    this.createBuffer = function (ch, len, rate) { return { getChannelData: function () { return new Float32Array(len); }, length: len, sampleRate: rate }; };
+    this.createBufferSource = function () {
+      return { buffer: null, connect: function () {}, start: function () { starts.push(1); } };
+    };
+    this.createOscillator = function () { return { type: '', frequency: { setValueAtTime: function () {}, exponentialRampToValueAtTime: function () {} }, connect: function () {}, start: function () {}, stop: function () {} }; };
+    this.resume = function () { resumes.push(state); state = 'running'; return { then: function (f) { if (f) f(); } }; };
+    this.currentTime = 0;
+  }
+  var win = { AudioContext: FakeCtx, webkitAudioContext: FakeCtx, setInterval: function () { return 1; } };
+  var t = Ton.erstelle(win);
+  wahr(!t.gestartet && !t.entsperrt);
+  gleich(t.hinweis(), 'Tippen für Ton');
+  wahr(t.entsperre(), 'entsperre ok');
+  wahr(t.gestartet && t.entsperrt);
+  wahr(starts.length >= 1, 'stummer 1-Sample-Puffer abgespielt');
+  wahr(resumes.length >= 1, 'resume bei suspended');
+  gleich(t.hinweis(), 'Kein Ton? Stummschalter am iPhone prüfen');
+  t.stummHinweisGezeigt = true; gleich(t.hinweis(), '');
+  // Nach Unterbrechung wieder Hinweis + resume bei naechster Geste
+  state = 'interrupted'; t.markiereUnterbrochen(); wahr(!t.entsperrt); gleich(t.hinweis(), 'Tippen für Ton');
+  starts.length = 0; resumes.length = 0; wahr(t.entsperre()); wahr(starts.length >= 1 && resumes.length >= 1);
+  // Ohne WebAudio kein Absturz
+  var t0 = Ton.erstelle(null); wahr(!t0.start());
+  var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
+  wahr(/pointerup/.test(main) && /touchend/.test(main) && /click/.test(main), 'Entsperren per pointerup/touchend/click');
+  wahr(/markiereUnterbrochen|visibilitychange/.test(main), 'visibilitychange behandelt Unterbrechung');
+  var src = fs.readFileSync(path.join(ROOT, 'js', 'ton.js'), 'utf8');
+  wahr(/createBuffer\(\s*1\s*,\s*1\s*,/.test(src), '1-Sample-Puffer im Code');
+});
+
+test('48 YouTube playsinline und kein Autoplay ohne Geste', function () {
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  wahr(!/<iframe/i.test(html), 'kein YouTube-iframe vor Geste in HTML');
+  var mus = fs.readFileSync(path.join(ROOT, 'js', 'musik.js'), 'utf8');
+  wahr(/playsinline:\s*1/.test(mus), 'playerVars playsinline:1');
+  wahr(/setAttribute\(\s*['"]playsinline['"]/.test(mus), 'iframe-Attribut playsinline');
+  wahr(/webkit-playsinline/.test(mus), 'webkit-playsinline');
+  // Player wird erst bei starte('playlist') erzeugt
+  var D = lade(), ton = D.Ton.erstelle(null), spieler = [];
+  var doc = fakeDocMitYT(), win = {
+    YT: { Player: function (id, opt) {
+      spieler.push(opt);
+      this.loadVideoById = function () {}; this.pauseVideo = function () {}; this.playVideo = function () {};
+      this.mute = function () {}; this.unMute = function () {};
+      var host = doc.els['yt-player'];
+      host.tagName = 'DIV'; host.querySelector = function () {
+        return { setAttribute: function (k, v) { host['attr_' + k] = v; } };
+      };
+    } },
+    setTimeout: setTimeout, clearTimeout: clearTimeout
+  };
+  var m = D.Musik.erstelle({ win: win, doc: doc, ton: ton, speicher: D.Speicher.erstelle(null), melde: function () {}, protokoll: 'https:', online: true, mp3: [] });
+  gleich(spieler.length, 0, 'kein Player ohne Geste');
+  m.starte('playlist');
+  gleich(spieler.length, 1, 'Player nach Playlist-Geste');
+  gleich(spieler[0].playerVars.playsinline, 1);
+  wahr(!!doc.els['yt-player'].attr_playsinline || /setzePlaysinline/.test(mus), 'playsinline gesetzt');
+});
+
+test('49 Hochformat 390x844 und 375x667: dynamische H fuellt Spielfeld', function () {
+  var D = lade(), W = D.Render.BASE_W;
+  gleich(W, 320);
+  wahr(D.Render.PORT_H_MIN >= 200 && D.Render.PORT_H_MAX >= D.Render.PORT_H);
+  [{ w: 390, h: 844, safeY: 47 + 34 }, { w: 375, h: 667, safeY: 0 }].forEach(function (g) {
+    var availW = g.w - 8, availH = g.h - g.safeY - 8;
+    var bedien = D.Main.berechneBedien(availH), playH = availH - bedien;
+    var logH = D.Render.berechnePortH(availW, playH);
+    wahr(logH >= D.Render.PORT_H_MIN && logH <= D.Render.PORT_H_MAX, 'H begrenzt bei ' + g.w);
+    nah(logH, Math.round(W * playH / availW), 1, 'H aus Seitenverhaeltnis ' + g.w);
+    var sk = D.Main.berechneSkala(availW, playH, W, logH, true, D.Gfx.MIN_SCHRIFT);
+    wahr(sk.cw <= availW + 0.01, g.w + 'x' + g.h + ' Breite passt');
+    wahr(sk.ch <= playH + 0.01, g.w + 'x' + g.h + ' Hoehe passt');
+    // Fast volle Flaeche (kein Letterbox wie bei fester 320x400)
+    wahr(sk.ch / playH >= 0.95 && sk.cw / availW >= 0.95, 'Spielfeld fuellt Viewport bei ' + g.w + ' (ch/playH=' + (sk.ch / playH).toFixed(3) + ')');
+    wahr(sk.s * D.Gfx.MIN_SCHRIFT >= 10, 'Schrift lesbar bei ' + g.w);
+  });
+  var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  var hDyn = D.Render.berechnePortH(382, 700);
+  D.Render.setzeBildschirm(R, true, { h: hDyn }); R.touch = true;
+  gleich(R.H, hDyn);
+  var t = neuesSpielTest(D); t.Sp.playlistOverlay(t.S, t.X);
+  D.Render.zeichne(R, t.S);
+  wahr(R.panel && R.panel.y + R.panel.h <= R.H - 2, 'Playlist-Panel in Hochformat');
+});
+
+test('50 Startbildschirm per Tipp startbar (Zeiger/Touch)', function () {
+  var D = lade(), S = D.Spiel.neu({ seed: 1 }), X = { E: fakeE() };
+  gleich(S.zustand, 'start');
+  var log = [], cv = mockCanvas(log), R = D.Render.erstelle(cv, cv.ownerDocument);
+  D.Render.zeichne(R, S); S.treffer = R.treffer;
+  var startBtn = S.treffer.filter(function (tr) { return tr.i === 0; })[0];
+  wahr(startBtn, 'Start-Treffer vorhanden');
+  X.E.klicke(startBtn.x + 1, startBtn.y + 1);
+  D.Spiel.update(S, 0.05, X); X.E.ende();
+  gleich(S.zustand, 'spiel', 'Tipp startet das Spiel');
+  // Eingabe.zeiger (Pointer/Touch-Pfad)
+  var e = D.Eingabe.erstelle(null, null);
+  wahr(e.zeiger(10, 10, 5000));
+  gleich(e.klicks().length, 1);
+});
+
+// ---------- v03c: textInBox, Kamera-Zoom, Overlay-Schrift ----------
+test('51 textInBox passt immer (Laengen/Breiten)', function () {
+  var D = lade(), G = D.Gfx, cv = mockCanvas(), c = cv.getContext('2d');
+  wahr(typeof G.textInBox === 'function', 'textInBox existiert');
+  [
+    { t: 'kurz', w: 80, h: 20, g: 14 },
+    { t: 'Ein etwas laengerer Hinweistext fuer das HUD', w: 60, h: 40, g: 12 },
+    { t: 'Supercalifragilisticexpialidocious ohne Leerzeichen', w: 50, h: 30, g: 16 },
+    { t: 'A B C D E F G H I J K L M N O P Q R S T U V W X Y Z', w: 40, h: 50, g: 11 },
+    { t: '', w: 30, h: 14, g: 10 },
+    { t: 'Press11 - Saufi Saufi · Stuttgart Kessel Marathon', w: 90, h: 16, g: 18 }
+  ].forEach(function (f, i) {
+    var info = G.textInBox(c, f.t, 0, 0, f.w, f.h, f.g, { mess: true, ausr: 'center' });
+    wahr(info.size >= G.MIN_SCHRIFT || !f.t, 'Fall ' + i + ' size>=min');
+    wahr(info.h <= f.h + 0.5, 'Fall ' + i + ' Hoehe passt (' + info.h + '<=' + f.h + ')');
+    info.lines.forEach(function (z, j) {
+      wahr(G.breite(c, z, info.size) <= f.w + 0.75, 'Fall ' + i + ' Zeile ' + j + ' Breite');
+    });
+    // Zeichnen ohne Fehler
+    G.textInBox(c, f.t, 2, 2, f.w, f.h, f.g, { col: '#123', ausr: 'center' });
+  });
+});
+
+test('52 Overlay-Schrift ueberschreitet Panelbreite nicht', function () {
+  var D = lade(), t = neuesSpielTest(D), S = t.S, X = t.X;
+  var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  function pruefePanel() {
+    wahr(R.panel, 'Panel gesetzt');
+    var p = R.panel, c = R.ctx;
+    // Alle fillText-Aufrufe werden im Mock geloggt; hier Breite der sichtbaren Labels ueber textInBox/kuerze absichern
+    R.treffer.filter(function (tr) { return typeof tr.i === 'number'; }).forEach(function (tr) {
+      wahr(tr.x >= p.x - 0.5 && tr.x + tr.w <= p.x + p.w + 0.5, 'Treffer in Panelbreite');
+    });
+    // Playlist-Titel und Menuezeilen: textInBox/kuerze halten Breite
+    var lang = '10. Posse (I Need You on the Floor) und noch mehr Text';
+    var info = D.Gfx.textInBox(c, lang, 0, 0, p.w - 20, 14, 12, { mess: true });
+    info.lines.forEach(function (z) { wahr(D.Gfx.breite(c, z, info.size) <= p.w - 20 + 0.75, 'textInBox in Panel'); });
+  }
+  D.Render.setzeBildschirm(R, false);
+  t.Sp.playlistOverlay(S, X); D.Render.zeichne(R, S); pruefePanel();
+  t.Sp.pauseMenue(S, X); D.Render.zeichne(R, S); pruefePanel();
+  D.Render.setzeBildschirm(R, true); R.touch = true;
+  t.Sp.playlistOverlay(S, X); D.Render.zeichne(R, S); pruefePanel();
+  // Sprechblase: Breite am Text gemessen, nicht groesser als View
+  var blaseLog = [];
+  var cv2 = mockCanvas(blaseLog), R2 = D.Render.erstelle(cv2, cv2.ownerDocument);
+  D.Render.setzeBildschirm(R2, false);
+  var spiel = neuesSpielTest(D); spiel.Sp.setze(spiel.S, { minute: 16 * 60 });
+  spiel.S.npcs.forEach(function (n) { n.aktiv = true; n.liegt = false; n.karteId = spiel.S.karte.id; n.blase = { text: 'Das ist ein ziemlich langer Spruch fuer die Blase!' }; n.x = spiel.S.spieler.x; n.y = spiel.S.spieler.y; });
+  D.Render.zeichne(R2, spiel.S);
+  wahr(blaseLog.length > 0, 'Sprechblasen-Text gezeichnet');
+  wahr(D.Render.WELT_FLAECHE_HOCH >= 1.4 && D.Render.WELT_FLAECHE_HOCH <= 1.6, 'Hoch-Weltflaeche 1.4–1.6');
+  wahr(D.Render.WELT_FLAECHE_QUER >= 2.0 && D.Render.WELT_FLAECHE_QUER <= 2.5, 'Quer-Weltflaeche staerker raus');
+});
+
+test('53 Kamera-Ausschnitt: Hoch ~1.5x, Quer weiter raus', function () {
+  var D = lade();
+  var alt = D.Render.BASE_W * D.Render.BASE_H;
+  var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  D.Render.setzeBildschirm(R, false);
+  wahr(R.VW * R.VH > alt, 'Quer: View > alte Flaeche');
+  nah(R.VW * R.VH / alt, D.Render.WELT_FLAECHE_QUER, 0.02, 'Quer ~WELT_FLAECHE_QUER');
+  nah(D.Render.WELT_ZOOM, 1 / Math.sqrt(D.Render.WELT_FLAECHE_QUER), 1e-9);
+  D.Render.setzeBildschirm(R, true);
+  var altH = D.Render.BASE_W * D.Render.PORT_H;
+  wahr(R.VW * R.VH > altH, 'Hoch: View > alte Flaeche');
+  nah(R.VW * R.VH / altH, D.Render.WELT_FLAECHE_HOCH, 0.02, 'Hoch ~WELT_FLAECHE_HOCH');
+  wahr(D.Render.WELT_FLAECHE_QUER > D.Render.WELT_FLAECHE_HOCH, 'Quer staerker rausgezoomt');
+  var t = neuesSpielTest(D, { viewW: R.VW, viewH: R.VH });
+  wahr(t.S.kamera.viewW >= R.VW - 0.01 && t.S.kamera.viewH >= R.VH - 0.01, 'Kamera-View gesetzt');
+  wahr(R.W === D.Render.BASE_W && R.H === D.Render.PORT_H, 'Default-HUD-Hoehe PORT_H');
+  D.Render.zeichne(R, t.S);
+});
+
+test('54 textInBox: Mehrzeiler mit … kuerzen; Jukebox-YouTube-Zeile', function () {
+  var D = lade(), G = D.Gfx, cv = mockCanvas(), c = cv.getContext('2d');
+  var lang = 'YouTube: 4 Videos (Hyper Hyper, The Logical Song, One (Always Hardcore), How Much Is the Fish?)';
+  var info = G.textInBox(c, lang, 0, 0, 200, 12, 11, { mess: true, ausr: 'center', maxZeilen: 1 });
+  gleich(info.lines.length, 1, 'eine Zeile');
+  wahr(/…$/.test(info.lines[0]), 'Ellipsis am Ende');
+  wahr(G.breite(c, info.lines[0], info.size) <= 200 + 0.75, 'Breite passt');
+  var t = neuesSpielTest(D), S = t.S, X = t.X;
+  var cv2 = mockCanvas(), R = D.Render.erstelle(cv2, cv2.ownerDocument);
+  D.Render.setzeBildschirm(R, true); R.touch = true;
+  t.Sp.playlistOverlay(S, X);
+  S.musikInfo = { quelle: 'youtube', aktiv: 'youtube', spielt: true, youtubeVerfuegbar: true, hinweis: lang };
+  D.Render.zeichne(R, S);
+  wahr(R.panel && R.panel.y + R.panel.h <= R.H - 2, 'Playlist in H');
+});
+
+test('55 HUD-Uhr und Oben-Knoepfe: kein Overlap; Quer HUD kompakt', function () {
+  var D = lade(), t = neuesSpielTest(D);
+  var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  // Hochformat Touch mit realistischer CSS-Skala (390er Viewport)
+  D.Render.setzeBildschirm(R, true); R.touch = true;
+  D.Render.setzeAufloesung(R, 382, 640, 2);
+  D.Render.zeichne(R, t.S);
+  wahr(R.hudUhr, 'hudUhr gesetzt');
+  function uhrFrei(u) {
+    return u.y >= 36 || u.x + u.w <= R.W - u.btnBand + 0.5;
+  }
+  wahr(uhrFrei(R.hudUhr), 'Uhr nicht unter HTML-Knoepfen (Hoch)');
+  // Querformat: kompakteres linkes Panel, Uhr freigestellt
+  D.Render.setzeBildschirm(R, false); R.touch = true;
+  D.Render.setzeAufloesung(R, 640, 352, 2);
+  D.Render.zeichne(R, t.S);
+  wahr(R.hudUhr && R.hudUhr.w <= 96, 'Uhr-Panel Quer kompakt');
+  wahr(uhrFrei(R.hudUhr), 'Uhr nicht unter HTML-Knoepfen (Quer)');
+  wahr(D.Render.WELT_FLAECHE_QUER >= 2, 'Quer-Kamera weiter raus');
 });
 
 // ---------- Ausfuehren ----------

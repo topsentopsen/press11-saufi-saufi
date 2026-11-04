@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.2';
+  var K = 16, VERSION = '0.3';
 
   // ---------------------------------------------------------------- Neues Spiel
   function neuesSpiel(opt) {
@@ -11,7 +11,8 @@
     var seed = opt.seed !== undefined && isFinite(opt.seed) ? opt.seed >>> 0 : 1, tempo = opt.tempo > 0 ? opt.tempo : 1;
     var welt = Saufi.Karte.erstelleWelt(Saufi.RNG.erstelle(seed)), char = Saufi.Charaktere.holen(opt.figur || 'tobi') || Saufi.Charaktere.holen('tobi');
     var sp = Saufi.Spieler.erstelle(welt.stadt.spawn.x, welt.stadt.spawn.y);
-    var viewW = opt.viewW || 320, viewH = opt.viewH || 176;
+    var z = (Saufi.Render && Saufi.Render.WELT_ZOOM) || 1;
+    var viewW = opt.viewW || (320 / z), viewH = opt.viewH || (176 / z);
     var S = {
       version: VERSION, seed: seed, tempo: tempo, rng: Saufi.RNG.erstelle(seed + 1000), welt: welt, ort: 'stadt', karte: welt.stadt, char: char,
       fig: Saufi.Pegel.neu(char), uhr: Saufi.Uhr.erstelle(tempo), spieler: sp, kamera: Saufi.Kamera.erstelle(viewW, viewH, welt.stadt.pxW, welt.stadt.pxH),
@@ -700,9 +701,19 @@
     function melde(text) { if (S) sag(S, text, 5, 'info'); }
     M = Saufi.Musik.erstelle({ win: win, doc: doc, ton: T, speicher: speicher, melde: melde });
     function neuStarten() {
-      var mobilHoch = !!(E.touch || (win.matchMedia && win.matchMedia('(pointer: coarse)').matches)) && win.innerHeight > win.innerWidth;
-      Saufi.Render.setzeBildschirm(R, mobilHoch); E.setzeMass(R.W, R.H);
-      S = neuesSpiel({ seed: par.seed, tempo: par.tempo, figur: par.figur, viewW: R.W, viewH: R.H, best: speicher.zahl('best', 0), speicher: speicher, ruhig: speicher.bool('ruhig', false) });
+      var isTouch = !!(E.touch || (win.matchMedia && win.matchMedia('(pointer: coarse)').matches));
+      var mobilHoch = isTouch && win.innerHeight > win.innerWidth;
+      var padX0 = 0, padY0 = 0;
+      if (win.getComputedStyle && doc.body) {
+        var cs0 = win.getComputedStyle(doc.body);
+        padX0 = (parseFloat(cs0.paddingLeft) || 0) + (parseFloat(cs0.paddingRight) || 0);
+        padY0 = (parseFloat(cs0.paddingTop) || 0) + (parseFloat(cs0.paddingBottom) || 0);
+      }
+      var aw0 = Math.max(1, win.innerWidth - padX0 - 8), ah0 = Math.max(1, win.innerHeight - padY0 - 8);
+      var bedien0 = (isTouch && mobilHoch) ? Math.round(Math.min(140, Math.max(100, ah0 * 0.155))) : 0;
+      var logH0 = mobilHoch ? Saufi.Render.berechnePortH(aw0, Math.max(1, ah0 - bedien0)) : Saufi.Render.BASE_H;
+      Saufi.Render.setzeBildschirm(R, mobilHoch, { h: logH0 }); E.setzeMass(R.W, R.H); R.touch = isTouch;
+      S = neuesSpiel({ seed: par.seed, tempo: par.tempo, figur: par.figur, viewW: R.VW || R.W, viewH: R.VH || R.H, best: speicher.zahl('best', 0), speicher: speicher, ruhig: speicher.bool('ruhig', false) });
       S.stummAn = speicher.bool('stumm', false); T.setzeStumm(S.stummAn); M.setzeStumm(S.stummAn);
     }
     X = { E: E, M: M, T: T };
@@ -719,21 +730,80 @@
     dbg.musik = function () { return M.zustand(); };
     Saufi.debug = dbg;
 
-    // Groesse: stufenlos, hochaufloesend
+    // Groesse: Hochformat = Spielfeld oben + Bedienleiste unten, R.H aus Viewport-Seitenverhaeltnis;
+    // Quer = 320x176. Safe-Area am Body abziehen.
     function groesse() {
-      var hoch = !!(E.touch || (win.matchMedia && win.matchMedia('(pointer: coarse)').matches)) && win.innerHeight > win.innerWidth;
-      if (hoch !== R.hochkant) { Saufi.Render.setzeBildschirm(R, hoch); E.setzeMass(R.W, R.H); S.kamera.viewW = R.W; S.kamera.viewH = R.H; }
-      // stufenlos skalieren, Backing-Store in Geraete-Pixeln (devicePixelRatio) -> scharf statt pixelig
-      var s = Math.max(1, Math.min((win.innerWidth - 16) / R.W, (win.innerHeight - 16) / R.H));
-      var cw = Math.round(R.W * s), ch = Math.round(R.H * s);
+      var isTouch = !!(E.touch || (win.matchMedia && win.matchMedia('(pointer: coarse)').matches));
+      var hoch = isTouch && win.innerHeight > win.innerWidth;
+      var padX = 0, padY = 0;
+      if (win.getComputedStyle && doc.body) {
+        var cs = win.getComputedStyle(doc.body);
+        padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+        padY = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+      }
+      var availW = Math.max(1, win.innerWidth - padX - 8), availH = Math.max(1, win.innerHeight - padY - 8);
+      // Bedienleiste nur Hochformat+Touch: Joystick/E/Wasser unter dem Spielfeld
+      var bedienCss = (isTouch && hoch) ? Math.round(Math.min(140, Math.max(100, availH * 0.155))) : 0;
+      var playH = Math.max(1, availH - bedienCss);
+      var logH = hoch ? Saufi.Render.berechnePortH(availW, playH) : Saufi.Render.BASE_H;
+      if (hoch !== R.hochkant || R.H !== logH) {
+        Saufi.Render.setzeBildschirm(R, hoch, { h: logH });
+        E.setzeMass(R.W, R.H);
+        if (S && S.kamera) { S.kamera.viewW = R.VW || R.W; S.kamera.viewH = R.VH || R.H; }
+      }
+      var sk = berechneSkala(availW, playH, R.W, R.H, isTouch, Saufi.Gfx.MIN_SCHRIFT || 9);
+      var s = sk.s, cw = sk.cw, ch = sk.ch;
       canvas.style.width = cw + 'px'; canvas.style.height = ch + 'px';
-      Saufi.Render.setzeAufloesung(R, cw, ch, win.devicePixelRatio || 1);
-      rahmen.style.setProperty('--s', String(s)); rahmen.classList.toggle('touch', !!(E.touch || (win.matchMedia && win.matchMedia('(pointer: coarse)').matches)));
+      var dpr = Saufi.Render.begrenzDpr(win.devicePixelRatio || 1);
+      Saufi.Render.setzeAufloesung(R, cw, ch, dpr);
+      R.touch = isTouch;
+      rahmen.style.setProperty('--s', String(s));
+      rahmen.style.setProperty('--bedien', bedienCss + 'px');
+      rahmen.classList.toggle('touch', isTouch);
+      rahmen.classList.toggle('hoch', !!hoch);
     }
     win.addEventListener('resize', groesse); win.addEventListener('orientationchange', groesse); groesse();
 
-    function geste() { if (!T.gestartet) { T.start(); T.setzeMusik(S.zustand !== 'start' && M.aktiv === 'webaudio'); } }
-    win.addEventListener('keydown', geste); canvas.addEventListener('pointerdown', geste);
+    // Audio erst bei touchend/pointerup/click entsperren (iOS: nicht nur pointerdown/keydown)
+    var tonEl = doc.getElementById('ton-hinweis');
+    function tonHinweisAktualisieren() {
+      if (!tonEl) return;
+      var text = T.hinweis ? T.hinweis() : '';
+      if (!text) { tonEl.hidden = true; return; }
+      tonEl.textContent = text; tonEl.hidden = false;
+      if (text === Saufi.Ton.HINWEIS_STUMMSCHALTER) {
+        T.stummHinweisGezeigt = true;
+        win.setTimeout(function () { if (tonEl && T.stummHinweisGezeigt) tonEl.hidden = true; }, 5000);
+      }
+    }
+    var ctxLauscht = false;
+    function lauscheCtx() {
+      if (ctxLauscht || !T.ctx || typeof T.ctx.addEventListener !== 'function') return;
+      ctxLauscht = true;
+      T.ctx.addEventListener('statechange', function () {
+        if (T.markiereUnterbrochen) T.markiereUnterbrochen();
+        tonHinweisAktualisieren();
+      });
+    }
+    function geste() {
+      T.start();
+      lauscheCtx();
+      if (S.zustand !== 'start' && M.aktiv === 'webaudio') T.setzeMusik(true);
+      tonHinweisAktualisieren();
+    }
+    function anGeste(ziel, typ) {
+      if (!ziel || !ziel.addEventListener) return;
+      ziel.addEventListener(typ, function (ev) { geste(); }, typ.indexOf('touch') === 0 ? { passive: false } : false);
+    }
+    // iOS: Entsperren in touchend/pointerup/click (nicht nur pointerdown). keydown zusaetzlich fuer Desktop.
+    anGeste(win, 'pointerup'); anGeste(win, 'touchend'); anGeste(doc, 'click');
+    // Doppeltipp-Zoom auf iOS verhindern
+    var lastTouchEnd = 0;
+    doc.addEventListener('touchend', function (ev) {
+      var now = Date.now();
+      if (now - lastTouchEnd <= 300) { if (ev.preventDefault) ev.preventDefault(); }
+      lastTouchEnd = now;
+    }, { passive: false });
     canvas.tabIndex = 0;
     canvas.addEventListener('pointerdown', function () { try { canvas.focus(); } catch (err) { /* egal */ } });
     win.addEventListener('blur', function () {
@@ -746,7 +816,11 @@
       var t = ev && ev.target, tag = t && t.tagName ? String(t.tagName).toUpperCase() : '';
       if (tag === 'IFRAME') { try { canvas.focus(); } catch (err3) { /* egal */ } }
     });
-    win.addEventListener('keydown', function (ev) { if (ev.code === 'Backquote') { var d = doc.getElementById('debug'); if (d) d.hidden = !d.hidden; } });
+    win.addEventListener('keydown', function (ev) {
+      if (ev.code === 'Backquote') { var d = doc.getElementById('debug'); if (d) d.hidden = !d.hidden; }
+      geste();
+    });
+    tonHinweisAktualisieren();
     // Knoepfe
     function knopf(id, fn) { var b = doc.getElementById(id); if (!b) return; b.addEventListener('click', function (ev) { ev.preventDefault(); geste(); fn(b); }); return b; }
     knopf('ton-knopf', function (b) { toggleTon(S, X); b.classList.toggle('aus', S.stummAn); });
@@ -756,28 +830,71 @@
     knopf('yt-klapp', function (b) { var zu = M.klappe(); b.textContent = zu ? '▶ Scooter' : '– Scooter'; });
     function tippKnopf(id, aktion2) {
       var b = doc.getElementById(id); if (!b) return;
-      b.addEventListener('pointerdown', function (ev) { ev.preventDefault(); E.touch = true; geste(); E.tippe(aktion2); });
+      var pointerMs = -1;
+      function feuer(ev) {
+        if (ev && ev.preventDefault) ev.preventDefault();
+        E.touch = true; E.tippe(aktion2);
+      }
+      b.addEventListener('pointerdown', function (ev) {
+        pointerMs = typeof ev.timeStamp === 'number' ? ev.timeStamp : Date.now();
+        feuer(ev);
+      });
+      b.addEventListener('touchstart', function (ev) {
+        var ts = typeof ev.timeStamp === 'number' ? ev.timeStamp : Date.now();
+        if (pointerMs >= 0 && Math.abs(ts - pointerMs) < 80) { if (ev.preventDefault) ev.preventDefault(); return; }
+        feuer(ev);
+      }, { passive: false });
+      b.addEventListener('touchend', function (ev) { if (ev.preventDefault) ev.preventDefault(); }, { passive: false });
     }
     tippKnopf('knopf-aktion', 'aktion'); tippKnopf('knopf-wasser', 'wasser'); tippKnopf('knopf-item', 'item'); tippKnopf('knopf-f', 'pressF');
 
     // Virtueller Joystick (links unten, erscheint dort, wo der Daumen aufsetzt)
-    var zone = doc.getElementById('stick'), basis = doc.getElementById('stick-basis'), dau = doc.getElementById('stick-dau'), stickId = null, o0 = null;
+    var zone = doc.getElementById('stick'), basis = doc.getElementById('stick-basis'), dau = doc.getElementById('stick-dau'), stickId = null, o0 = null, stickTouch = false;
+    function stickStart(clientX, clientY, id) {
+      E.touch = true; if (stickId !== null) return false;
+      stickId = id; var r0 = zone.getBoundingClientRect(); o0 = { x: clientX, y: clientY };
+      if (basis) { basis.style.display = 'block'; basis.style.left = (o0.x - r0.left) + 'px'; basis.style.top = (o0.y - r0.top) + 'px'; }
+      return true;
+    }
+    function stickMove(clientX, clientY) {
+      if (stickId === null || !o0) return;
+      var dx = clientX - o0.x, dy = clientY - o0.y, rad = 40, l = Math.hypot(dx, dy);
+      if (l > rad) { dx = dx / l * rad; dy = dy / l * rad; }
+      E.stick.x = Math.abs(dx) < 6 ? 0 : dx / rad; E.stick.y = Math.abs(dy) < 6 ? 0 : dy / rad;
+      if (dau) dau.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+    }
+    function stickEnde() {
+      stickId = null; stickTouch = false; E.stick.x = 0; E.stick.y = 0;
+      if (basis) basis.style.display = 'none'; if (dau) dau.style.transform = '';
+    }
     if (zone) {
       zone.addEventListener('pointerdown', function (ev) {
-        ev.preventDefault(); E.touch = true; geste(); if (stickId !== null) return;
-        stickId = ev.pointerId; var r0 = zone.getBoundingClientRect(); o0 = { x: ev.clientX, y: ev.clientY };
-        if (basis) { basis.style.display = 'block'; basis.style.left = (o0.x - r0.left) + 'px'; basis.style.top = (o0.y - r0.top) + 'px'; }
+        ev.preventDefault();
+        if (!stickStart(ev.clientX, ev.clientY, ev.pointerId)) return;
         if (zone.setPointerCapture) { try { zone.setPointerCapture(ev.pointerId); } catch (e) { /* egal */ } }
       });
       zone.addEventListener('pointermove', function (ev) {
-        if (ev.pointerId !== stickId) return; ev.preventDefault();
-        var dx = ev.clientX - o0.x, dy = ev.clientY - o0.y, rad = 40, l = Math.hypot(dx, dy);
-        if (l > rad) { dx = dx / l * rad; dy = dy / l * rad; }
-        E.stick.x = Math.abs(dx) < 6 ? 0 : dx / rad; E.stick.y = Math.abs(dy) < 6 ? 0 : dy / rad;
-        if (dau) dau.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+        if (ev.pointerId !== stickId) return; ev.preventDefault(); stickMove(ev.clientX, ev.clientY);
       });
-      var ende = function (ev) { if (ev.pointerId !== stickId) return; stickId = null; E.stick.x = 0; E.stick.y = 0; if (basis) basis.style.display = 'none'; if (dau) dau.style.transform = ''; };
+      var ende = function (ev) { if (ev.pointerId !== stickId) return; stickEnde(); };
       zone.addEventListener('pointerup', ende); zone.addEventListener('pointercancel', ende);
+      // Touch-Fallback mit preventDefault ({passive:false}) fuer aeltere/iOS-WebKit-Pfade
+      zone.addEventListener('touchstart', function (ev) {
+        if (ev.preventDefault) ev.preventDefault();
+        if (stickId !== null && !stickTouch) return; // Pointer hat schon gegriffen
+        var t0 = ev.changedTouches && ev.changedTouches[0]; if (!t0) return;
+        stickTouch = true; stickStart(t0.clientX, t0.clientY, 'touch');
+      }, { passive: false });
+      zone.addEventListener('touchmove', function (ev) {
+        if (!stickTouch) return; if (ev.preventDefault) ev.preventDefault();
+        var t0 = ev.changedTouches && ev.changedTouches[0]; if (!t0) return;
+        stickMove(t0.clientX, t0.clientY);
+      }, { passive: false });
+      zone.addEventListener('touchend', function (ev) {
+        if (ev.preventDefault) ev.preventDefault();
+        if (stickTouch) stickEnde();
+      }, { passive: false });
+      zone.addEventListener('touchcancel', function () { if (stickTouch) stickEnde(); }, { passive: false });
     }
 
     // Touch-Knoepfe nur zeigen, wenn passend
@@ -788,15 +905,23 @@
       var dbgEl = doc.getElementById('debug'); if (dbgEl && !dbgEl.hidden) dbgEl.textContent = JSON.stringify(schnappschuss(S), null, 1);
     }
 
-    // Tab im Hintergrund: automatisch Pause
-    doc.addEventListener('visibilitychange', function () { if (doc.hidden && S.zustand === 'spiel' && !S.overlay) pauseMenue(S, X); });
+    // Tab im Hintergrund: Pause; Audio nach Unterbrechung (suspended/interrupted) bei naechster Geste resume
+    doc.addEventListener('visibilitychange', function () {
+      if (doc.hidden) {
+        if (S.zustand === 'spiel' && !S.overlay) pauseMenue(S, X);
+      }
+      if (T.markiereUnterbrochen) T.markiereUnterbrochen();
+      tonHinweisAktualisieren();
+    });
 
     var letzte = null;
     function frame(ms) {
       if (letzte === null) letzte = ms;
       var dt = Math.min(0.05, (ms - letzte) / 1000); letzte = ms;
-      if (E.touch !== undefined && E.touch) rahmen.classList.add('touch');
+      if (E.touch !== undefined && E.touch) { rahmen.classList.add('touch'); R.touch = true; }
       if (rahmen && rahmen.classList) rahmen.classList.toggle('overlay', !!S.overlay);
+      // Overlay offen: Stick-Geste abbrechen (Zone hat pointer-events:none, Restbewegung loeschen)
+      if (S.overlay && stickId !== null) stickEnde();
       S.treffer = R.treffer; S.panel = R.panel || null;
       update(S, dt, X);
       if (S.neustart) { neuStarten(); starteSpiel(S, X); }
@@ -813,7 +938,26 @@
     return { S: function () { return S; }, R: R, E: E, M: M, T: T };
   }
 
-  Saufi.Main = { parameter: parameter, starte: starte };
+  // Pure Skalenrechnung (auch fuer Tests: 390x844, 375x667 Hochformat komplett sichtbar)
+  function berechneSkala(availW, availH, logW, logH, touch, minSchrift) {
+    logW = logW || 320; logH = logH || 176;
+    var s = Math.min(availW / logW, availH / logH);
+    if (!(s > 0) || !isFinite(s)) s = 1;
+    if (touch) {
+      var minS = 11 / (minSchrift || (Saufi.Gfx && Saufi.Gfx.MIN_SCHRIFT) || 9);
+      s = Math.max(s, Math.min(minS, availW / logW, availH / logH));
+    }
+    var cw = Math.round(logW * s), ch = Math.round(logH * s);
+    if (cw > availW) { s = availW / logW; cw = Math.round(logW * s); ch = Math.round(logH * s); }
+    if (ch > availH) { s = Math.min(s, availH / logH); cw = Math.round(logW * s); ch = Math.round(logH * s); }
+    return { s: s, cw: cw, ch: ch };
+  }
+  // Bedienleisten-Hoehe (CSS-px) fuer Hochformat-Touch
+  function berechneBedien(availH) {
+    return Math.round(Math.min(140, Math.max(100, (availH || 0) * 0.155)));
+  }
+
+  Saufi.Main = { parameter: parameter, starte: starte, berechneSkala: berechneSkala, berechneBedien: berechneBedien };
 
   if (g.document && g.document.getElementById && g.document.getElementById('spiel') && !g.__SAUFI_OHNE_START) {
     starte(g, g.document);

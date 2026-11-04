@@ -4,6 +4,20 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v03
+
+- Handy-Optimierung Hoch- und Querformat: `viewport-fit=cover`, Safe-Area, `100dvh`, kein Scrollen/Zoomen.
+- Skalierung: Hochformat logisch 320×400 (Spielfeld oben, Bedienung unten), Quer volle Breite; Schrift auf Touch ≥ ~11 CSS-px.
+- Touch-Ziele ≥ 44 CSS-px; Menü-/Jukebox-Zeilen auf Touch höher; Joystick links unten, Aktionen rechts unten.
+- Joystick-Zone schluckt keine Overlay-Klicks mehr (`pointer-events` bei Overlay und ohne Touch aus).
+- Jukebox/Menüs passen in beide Orientierungen (kürzen statt abschneiden); YouTube auf dem Handy klein oben, bei Overlay aus.
+- `devicePixelRatio` auf max. 2 begrenzt (Performance).
+- **iPhone/Safari (v03b):** `position:fixed` + `-webkit-fill-available`, Doppeltipp-Zoom aus, Touch-Fallback (`touchstart`/`touchend`, `passive: false`) für Joystick und Knöpfe; Start per Tipp.
+- **Ton auf iOS:** AudioContext erst bei `touchend`/`pointerup`/`click`, stummer 1-Sample-Puffer, Resume nach Unterbrechung; Hinweis „Tippen für Ton“ / einmalig „Kein Ton? Stummschalter am iPhone prüfen“. YouTube nur nach Geste, `playsinline`.
+- **Textfit (v03c):** `Gfx.textInBox` – Text misst, umbricht, verkleinert und kürzt mit `…`, damit nichts aus Panels/Blasen/HUD/Menüs/Schildern läuft; Sprechblasen-Breite am Text.
+- **Kamera (v03c):** ~1,5× mehr sichtbare Weltfläche (Hoch- und Querformat); HUD bleibt in Bildschirmkoordinaten lesbar.
+- **Grafik (v03c):** sauberere Figuren (Umrisse, Schatten, Laufanimation), detailreichere Fassaden/Innenräume, weichere Licht-/Schattenübergänge.
+
 ## Neu in v02
 
 - Schärfere Grafik (hohe Canvas-Auflösung × DPR), lesbare Schriften (mind. ~11 px logisch).
@@ -46,7 +60,7 @@ Am Startbildschirm Hinweis 18+ bestätigen (E, Enter, Leertaste oder Tippen).
 | Menüs | Pfeile hoch/runter, E; Tasten 1 bis 3; Antippen | Antippen |
 | Debug-Anzeige | ^ (Taste links neben der 1) | – |
 
-Handy: Hochformat. Oben rechts liegen Scooter-Playlist, Ton, Vollbild und Info (Hinweis 18+).
+Handy: Hoch- und Querformat. Joystick links unten, Aktion/Wasser rechts unten (Safe-Area). Oben rechts: Scooter-Playlist, Ton, Vollbild und Info (Hinweis 18+).
 
 ## Spielziel
 
