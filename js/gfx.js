@@ -74,7 +74,7 @@
   }
 
   // ---------- Text ----------
-  // Mindestgroesse ~9 px logisch (Canvas ist hochaufgeloest; kompakte Panels brauchen 9–10).
+  // Mindestgroesse ~9 px logisch; auf Touch skaliert main.js so, dass daraus ≥ ~11 CSS-px werden.
   var MIN_SCHRIFT = 9;
   function schriftGroesse(size) { return Math.max(MIN_SCHRIFT, size || MIN_SCHRIFT); }
   function text(c, s, x, y, col, size, ausr, kontur) {

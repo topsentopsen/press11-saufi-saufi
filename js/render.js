@@ -1,5 +1,5 @@
 /* Zeichnen: Welt (gecachter Vektor-Hintergrund, Props, Figuren, Licht), HUD, Menues und Bildschirme.
-   Spiellogik und Eingabe rechnen in logischen Koordinaten (320x176, Hochkant 320x400). Der Canvas hat CSS-Groesse * devicePixelRatio
+   Spiellogik und Eingabe rechnen in logischen Koordinaten (320x176, Hochkant 320x400). Der Canvas hat CSS-Groesse * min(devicePixelRatio, MAX_DPR)
    Pixel; jedes Bild beginnt mit ctx.setTransform(skala,...). Alles per Code, keine fremden Grafiken (Details: gfx.js, szene.js, innen.js). */
 (function (g) {
   'use strict';
@@ -8,7 +8,7 @@
   var P = G.P, hash = G.hash, r = G.r, rr = G.rr, box = G.box, kreis = G.kreis, ellipse = G.ellipse, poly = G.poly, linie = G.linie, vlauf = G.vlauf, herz = G.herz;
   var text = G.text, breite = G.breite, umbruch = G.umbruch, kuerze = G.kuerze, panel = G.panel, rgb = G.rgb, mix = G.mix;
   var BASE_W = 320, BASE_H = 176, PORT_H = 400, K = 16;
-  var MAX_BREITE = 4096, MAX_BG_SKALA = 6;
+  var MAX_BREITE = 4096, MAX_BG_SKALA = 6, MAX_DPR = 2;
   var W = BASE_W, H = BASE_H;
   var SH = { dx: 0, lang: 0.6, a: 0 };           // Schatten der aktuellen Uhrzeit
 
@@ -19,7 +19,7 @@
     var neueLeinwand = (doc && typeof doc.createElement === 'function') ? function (w, h) {
       try { var cv = doc.createElement('canvas'); if (!cv || !cv.getContext) return null; cv.width = w; cv.height = h; return cv; } catch (e) { return null; }
     } : null;
-    var R = { canvas: canvas, ctx: ctx, neueLeinwand: neueLeinwand, hg: {}, spr: {}, props: {}, treffer: [], panel: null, W: W, H: H, hochkant: false, sk: 1, spSk: 1, cssW: 0, cssH: 0, dpr: 1 };
+    var R = { canvas: canvas, ctx: ctx, neueLeinwand: neueLeinwand, hg: {}, spr: {}, props: {}, treffer: [], panel: null, W: W, H: H, hochkant: false, touch: false, sk: 1, spSk: 1, cssW: 0, cssH: 0, dpr: 1 };
     glaettung(R);
     return R;
   }
@@ -28,16 +28,18 @@
     if ('imageSmoothingEnabled' in c) c.imageSmoothingEnabled = true;
     if ('imageSmoothingQuality' in c) c.imageSmoothingQuality = 'high';
   }
-  // Backing-Store = CSS-Groesse * devicePixelRatio (hoechstens MAX_BREITE breit). Rueckgabe: Skala (Geraete-Pixel je logischem Pixel)
+  // devicePixelRatio auf MAX_DPR begrenzen (Performance auf Retina-Handys)
+  function begrenzDpr(dpr) { dpr = dpr > 0 ? dpr : 1; return Math.min(MAX_DPR, dpr); }
+  // Backing-Store = CSS-Groesse * begrenztes DPR (hoechstens MAX_BREITE breit). Rueckgabe: Skala (Geraete-Pixel je logischem Pixel)
   function setzeAufloesung(R, cssW, cssH, dpr) {
-    dpr = dpr > 0 ? dpr : 1;
+    dpr = begrenzDpr(dpr);
     var bw = Math.round((cssW > 0 ? cssW : W) * dpr);
     bw = Math.max(W, Math.min(MAX_BREITE, bw));
     var sk = bw / W, bh = Math.max(1, Math.round(H * sk));
     R.cssW = cssW; R.cssH = cssH; R.dpr = dpr;
     if (R.canvas) { if (R.canvas.width !== bw) R.canvas.width = bw; if (R.canvas.height !== bh) R.canvas.height = bh; glaettung(R); }
     R.sk = sk;
-    // Hintergrund und Sprites: gleiche (hohe) Skala, in Halbschritten, nur bei Wechsel neu bauen
+    // Hintergrund und Sprites: gleiche Skala, in Halbschritten, nur bei Wechsel neu bauen (keine unnoetigen Neuzeichnungen)
     var bg = Math.min(MAX_BG_SKALA, Math.max(1, Math.ceil(sk * 2) / 2));
     if (bg !== R.spSk) { R.spSk = bg; R.hg = {}; R.spr = {}; }
     return sk;
@@ -464,17 +466,25 @@
     if (rechts) text(c, rechts, x + w - 7, y + h / 2 + 0.3, P.uiTinteWeich, 11, 'right');
   }
   function schliessX(R, bx, by, bw) {
-    var c = R.ctx, x = bx + bw - 16, y = by + 4;
-    rr(c, x, y, 12, 12, '#ffd1da', 3, P.kontur, 0.7);
-    text(c, '×', x + 6, y + 6.2, P.bierRot, 12, 'center');
-    R.treffer.push({ x: x, y: y, w: 12, h: 12, i: 'x' });
+    var c = R.ctx, hit = R.touch ? 22 : 12, x = bx + bw - hit - 4, y = by + 4;
+    rr(c, x, y, hit, hit, '#ffd1da', 3, P.kontur, 0.7);
+    text(c, '×', x + hit / 2, y + hit / 2 + 0.2, P.bierRot, R.touch ? 14 : 12, 'center');
+    R.treffer.push({ x: x, y: y, w: hit, h: hit, i: 'x' });
+  }
+  // Panel immer in W×H halten (kuerzen statt abschneiden)
+  function panelPlatz(bh) {
+    bh = Math.min(bh, H - 4);
+    var by = Math.round(Math.max(2, (H - bh) / 2));
+    if (by + bh > H - 2) by = Math.max(2, H - 2 - bh);
+    return { by: by, bh: bh };
   }
   function zeichneListe(R, titel, kopf, eintraege, index, o) {
-    var c = R.ctx, bw = o && o.breite || 240, kopfH = kopf.length * 12;
-    var rowH = o && o.zeile || (R.hochkant ? 26 : 18);
+    var c = R.ctx, bw = o && o.breite || Math.min(260, W - 20), kopfH = kopf.length * 12;
+    // Touch: hoehere Zeilen (≥ lesbare Treffer); Platz begrenzt Zeilenhoehe
+    var rowH = o && o.zeile || (R.touch ? (R.hochkant ? 32 : 22) : (R.hochkant ? 26 : 18));
     var frei = H - 12 - 32 - kopfH;
-    rowH = Math.max(14, Math.min(rowH, Math.floor(frei / Math.max(1, eintraege.length))));
-    var bh = 32 + kopfH + eintraege.length * rowH + 6, bx = Math.round((W - bw) / 2), by = Math.round(Math.max(4, (H - bh) / 2));
+    rowH = Math.max(R.touch ? 18 : 14, Math.min(rowH, Math.floor(frei / Math.max(1, eintraege.length))));
+    var roh = 32 + kopfH + eintraege.length * rowH + 6, pl = panelPlatz(roh), bx = Math.round((W - bw) / 2), by = pl.by, bh = pl.bh;
     abdunkeln(c, 0.55);
     panel(c, bx, by, bw, bh, P.uiFlaeche, 8);
     R.panel = { x: bx, y: by, w: bw, h: bh };
@@ -484,6 +494,7 @@
     kopf.forEach(function (z, i) { text(c, z, bx + bw / 2, by + 27 + i * 12, P.uiTinteWeich, 11, 'center'); });
     eintraege.forEach(function (e, i) {
       var ey = by + 28 + kopfH + i * rowH;
+      if (ey + rowH - 2 > by + bh - 2) return; // kein Abschneiden: ueberzaehlige Zeilen weglassen
       knopfZeile(c, bx + 9, ey, bw - 18, rowH - 2, i === index, e.label, e.aktiv, e.rechts);
       R.treffer.push({ x: bx + 9, y: ey, w: bw - 18, h: rowH - 2, i: i });
     });
@@ -546,31 +557,36 @@
   }
 
   function textFeld(R, titel, absaetze, fussEintraege, index) {
-    var c = R.ctx, bw = W - 28, zl = [], lz = 12;
+    var c = R.ctx, bw = W - 28, zl = [], lz = 12, fussH = R.touch ? 28 : 20;
     absaetze.forEach(function (a) { umbruch(c, a, bw - 26, 11).forEach(function (z) { zl.push(z); }); zl.push(''); });
-    var fh = fussEintraege.length * 20, bh = 34 + zl.length * lz + fh + 4, bx = 14;
-    if (bh > H - 6) { lz = (H - 6 - 36 - fh) / Math.max(1, zl.length); bh = H - 6; }
-    var by = Math.round(Math.max(3, (H - bh) / 2));
+    var fh = fussEintraege.length * fussH, bh = 34 + zl.length * lz + fh + 4, bx = 14;
+    if (bh > H - 6) { lz = Math.max(9, (H - 6 - 36 - fh) / Math.max(1, zl.length)); bh = H - 6; }
+    var pl = panelPlatz(bh); bh = pl.bh;
+    var by = pl.by;
     abdunkeln(c, 0.6); panel(c, bx, by, bw, bh, P.uiFlaeche, 8);
     R.panel = { x: bx, y: by, w: bw, h: bh };
     R.treffer = [];
     text(c, titel, W / 2, by + 13, P.uiTinte, 12, 'center');
     schliessX(R, bx, by, bw);
-    zl.forEach(function (z, i) { text(c, z, bx + 13, by + 28 + i * lz, P.uiTinte, 11); });
+    var maxZl = Math.max(0, Math.floor((bh - 34 - fh) / Math.max(9, lz)));
+    zl.slice(0, maxZl).forEach(function (z, i) { text(c, z, bx + 13, by + 28 + i * lz, P.uiTinte, 11); });
     fussEintraege.forEach(function (e, i) {
-      var ey = by + 28 + zl.length * lz + i * 20, sel = i === index;
-      knopfZeile(c, bx + 50, ey, bw - 100, 17, sel, e.label, true); R.treffer.push({ x: bx + 50, y: ey, w: bw - 100, h: 17, i: i });
+      var ey = by + 28 + Math.min(zl.length, maxZl) * lz + i * fussH, sel = i === index, rh = fussH - 3;
+      if (ey + rh > by + bh - 2) return;
+      knopfZeile(c, bx + 50, ey, bw - 100, rh, sel, e.label, true); R.treffer.push({ x: bx + 50, y: ey, w: bw - 100, h: rh, i: i });
     });
   }
 
   // Playlist-Bild: Titelliste in zwei Spalten, Status, Knoepfe, X zum Schliessen.
-  // Panel muss immer in W×H passen (by >= 2, by + bh <= H - 2); Querformat kompakt (Schrift 9–10, Titel kürzen).
+  // Panel muss immer in W×H passen (Hoch- und Querformat); Touch: hoehere Zeilen; Titel kuerzen statt abschneiden.
   function playlistBild(R, S) {
     var c = R.ctx, o = S.overlay, Mu = Saufi.Musik, z = S.musikInfo || {};
     var bw = W - 20, bx = 10, tl = Mu.TITEL, zeilen = Math.ceil(tl.length / 2), nBtn = o.eintraege.length;
-    var maxBh = H - 4, hoch = R.hochkant;
+    var maxBh = H - 4, hoch = R.hochkant, touch = !!R.touch;
     var kopfH = hoch ? 26 : 20, songSz = hoch ? 11 : 9, lz = hoch ? 12 : 10;
-    var metaSz = hoch ? 11 : 9, metaLz = hoch ? 12 : 10, rowH = hoch ? 24 : 14;
+    var metaSz = hoch ? 11 : 9, metaLz = hoch ? 12 : 10;
+    var rowH = touch ? (hoch ? 28 : 18) : (hoch ? 24 : 14);
+    var minRow = touch ? 16 : 12;
     var qn = { mp3: 'Eigene MP3 (music/)', youtube: 'YouTube-Einbettung', webaudio: 'Eigener Spiel-Beat' }[z.quelle] || z.quelle;
     var quelleText = 'Quelle: ' + qn + (z.spielt ? ' (läuft: ' + ({ mp3: 'MP3', youtube: 'YouTube', webaudio: 'Beat' }[z.aktiv]) + ')' : '');
     var hint = z.hinweis || (z.youtubeVerfuegbar
@@ -578,17 +594,16 @@
       : 'YouTube nur über http://localhost, nicht file://');
     function bhVon(kH, lz2, mLz, rH) { return kH + zeilen * lz2 + 4 + 2 * mLz + 4 + nBtn * rH + 4; }
     var bh = bhVon(kopfH, lz, metaLz, rowH);
-    while (bh > maxBh && rowH > 12) { rowH--; bh = bhVon(kopfH, lz, metaLz, rowH); }
+    while (bh > maxBh && rowH > minRow) { rowH--; bh = bhVon(kopfH, lz, metaLz, rowH); }
     while (bh > maxBh && lz > 9) { lz--; bh = bhVon(kopfH, lz, metaLz, rowH); }
     while (bh > maxBh && metaLz > 9) { metaLz--; bh = bhVon(kopfH, lz, metaLz, rowH); }
     while (bh > maxBh && kopfH > 18) { kopfH--; bh = bhVon(kopfH, lz, metaLz, rowH); }
     if (bh > maxBh) {
       var rest = maxBh - (kopfH + zeilen * lz + 4 + 2 * metaLz + 4 + 4);
-      rowH = Math.max(12, Math.floor(rest / Math.max(1, nBtn)));
+      rowH = Math.max(minRow, Math.floor(rest / Math.max(1, nBtn)));
       bh = Math.min(maxBh, bhVon(kopfH, lz, metaLz, rowH));
     }
-    var by = Math.round(Math.max(2, (H - bh) / 2));
-    if (by + bh > H - 2) by = Math.max(2, H - 2 - bh);
+    var pl = panelPlatz(bh); bh = pl.bh; var by = pl.by;
     abdunkeln(c, 0.6); panel(c, bx, by, bw, bh, P.uiFlaeche, 8);
     R.panel = { x: bx, y: by, w: bw, h: bh };
     R.treffer = [];
@@ -605,6 +620,7 @@
     var ey0 = sy + 2 * metaLz + 2;
     o.eintraege.forEach(function (e, i) {
       var ey = ey0 + i * rowH;
+      if (ey + rowH - 2 > by + bh - 2) return;
       knopfZeile(c, bx + 8, ey, bw - 16, rowH - 2, i === o.index, e.label, true, e.rechts);
       R.treffer.push({ x: bx + 8, y: ey, w: bw - 16, h: rowH - 2, i: i });
     });
@@ -648,7 +664,7 @@
   }
 
   Saufi.Render = {
-    P: P, K: K, erstelle: erstelle, setzeBildschirm: setzeBildschirm, setzeAufloesung: setzeAufloesung, zeichne: zeichne, bauplan: bauplan, figur: figur,
-    W: BASE_W, H: BASE_H, BASE_W: BASE_W, BASE_H: BASE_H, PORT_H: PORT_H, MAX_BREITE: MAX_BREITE, MAX_BG_SKALA: MAX_BG_SKALA
+    P: P, K: K, erstelle: erstelle, setzeBildschirm: setzeBildschirm, setzeAufloesung: setzeAufloesung, begrenzDpr: begrenzDpr, zeichne: zeichne, bauplan: bauplan, figur: figur,
+    W: BASE_W, H: BASE_H, BASE_W: BASE_W, BASE_H: BASE_H, PORT_H: PORT_H, MAX_BREITE: MAX_BREITE, MAX_BG_SKALA: MAX_BG_SKALA, MAX_DPR: MAX_DPR
   };
 })(globalThis);

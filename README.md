@@ -4,6 +4,15 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v03
+
+- Handy-Optimierung Hoch- und Querformat: `viewport-fit=cover`, Safe-Area, `100dvh`, kein Scrollen/Zoomen.
+- Skalierung: Hochformat logisch 320×400 (Spielfeld oben, Bedienung unten), Quer volle Breite; Schrift auf Touch ≥ ~11 CSS-px.
+- Touch-Ziele ≥ 44 CSS-px; Menü-/Jukebox-Zeilen auf Touch höher; Joystick links unten, Aktionen rechts unten.
+- Joystick-Zone schluckt keine Overlay-Klicks mehr (`pointer-events` bei Overlay und ohne Touch aus).
+- Jukebox/Menüs passen in beide Orientierungen (kürzen statt abschneiden); YouTube auf dem Handy klein oben, bei Overlay aus.
+- `devicePixelRatio` auf max. 2 begrenzt (Performance).
+
 ## Neu in v02
 
 - Schärfere Grafik (hohe Canvas-Auflösung × DPR), lesbare Schriften (mind. ~11 px logisch).
@@ -46,7 +55,7 @@ Am Startbildschirm Hinweis 18+ bestätigen (E, Enter, Leertaste oder Tippen).
 | Menüs | Pfeile hoch/runter, E; Tasten 1 bis 3; Antippen | Antippen |
 | Debug-Anzeige | ^ (Taste links neben der 1) | – |
 
-Handy: Hochformat. Oben rechts liegen Scooter-Playlist, Ton, Vollbild und Info (Hinweis 18+).
+Handy: Hoch- und Querformat. Joystick links unten, Aktion/Wasser rechts unten (Safe-Area). Oben rechts: Scooter-Playlist, Ton, Vollbild und Info (Hinweis 18+).
 
 ## Spielziel
 

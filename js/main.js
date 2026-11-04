@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.2';
+  var K = 16, VERSION = '0.3';
 
   // ---------------------------------------------------------------- Neues Spiel
   function neuesSpiel(opt) {
@@ -700,8 +700,9 @@
     function melde(text) { if (S) sag(S, text, 5, 'info'); }
     M = Saufi.Musik.erstelle({ win: win, doc: doc, ton: T, speicher: speicher, melde: melde });
     function neuStarten() {
-      var mobilHoch = !!(E.touch || (win.matchMedia && win.matchMedia('(pointer: coarse)').matches)) && win.innerHeight > win.innerWidth;
-      Saufi.Render.setzeBildschirm(R, mobilHoch); E.setzeMass(R.W, R.H);
+      var isTouch = !!(E.touch || (win.matchMedia && win.matchMedia('(pointer: coarse)').matches));
+      var mobilHoch = isTouch && win.innerHeight > win.innerWidth;
+      Saufi.Render.setzeBildschirm(R, mobilHoch); E.setzeMass(R.W, R.H); R.touch = isTouch;
       S = neuesSpiel({ seed: par.seed, tempo: par.tempo, figur: par.figur, viewW: R.W, viewH: R.H, best: speicher.zahl('best', 0), speicher: speicher, ruhig: speicher.bool('ruhig', false) });
       S.stummAn = speicher.bool('stumm', false); T.setzeStumm(S.stummAn); M.setzeStumm(S.stummAn);
     }
@@ -719,16 +720,25 @@
     dbg.musik = function () { return M.zustand(); };
     Saufi.debug = dbg;
 
-    // Groesse: stufenlos, hochaufloesend
+    // Groesse: stufenlos; Hochformat = Spielfeld oben/Bedienung unten (320x400), Quer = volle Breite (320x176)
     function groesse() {
-      var hoch = !!(E.touch || (win.matchMedia && win.matchMedia('(pointer: coarse)').matches)) && win.innerHeight > win.innerWidth;
+      var isTouch = !!(E.touch || (win.matchMedia && win.matchMedia('(pointer: coarse)').matches));
+      var hoch = isTouch && win.innerHeight > win.innerWidth;
       if (hoch !== R.hochkant) { Saufi.Render.setzeBildschirm(R, hoch); E.setzeMass(R.W, R.H); S.kamera.viewW = R.W; S.kamera.viewH = R.H; }
-      // stufenlos skalieren, Backing-Store in Geraete-Pixeln (devicePixelRatio) -> scharf statt pixelig
-      var s = Math.max(1, Math.min((win.innerWidth - 16) / R.W, (win.innerHeight - 16) / R.H));
+      var availW = Math.max(1, win.innerWidth - 16), availH = Math.max(1, win.innerHeight - 16);
+      var s = Math.max(1, Math.min(availW / R.W, availH / R.H));
+      // Touch: Mindestschrift physisch ≥ ~11 CSS-px (MIN_SCHRIFT * s)
+      if (isTouch) {
+        var minS = 11 / (Saufi.Gfx.MIN_SCHRIFT || 9);
+        s = Math.max(s, Math.min(minS, availW / R.W, availH / R.H));
+      }
       var cw = Math.round(R.W * s), ch = Math.round(R.H * s);
       canvas.style.width = cw + 'px'; canvas.style.height = ch + 'px';
-      Saufi.Render.setzeAufloesung(R, cw, ch, win.devicePixelRatio || 1);
-      rahmen.style.setProperty('--s', String(s)); rahmen.classList.toggle('touch', !!(E.touch || (win.matchMedia && win.matchMedia('(pointer: coarse)').matches)));
+      // DPR auf MAX_DPR (2) begrenzen
+      var dpr = Saufi.Render.begrenzDpr(win.devicePixelRatio || 1);
+      Saufi.Render.setzeAufloesung(R, cw, ch, dpr);
+      R.touch = isTouch;
+      rahmen.style.setProperty('--s', String(s)); rahmen.classList.toggle('touch', isTouch);
     }
     win.addEventListener('resize', groesse); win.addEventListener('orientationchange', groesse); groesse();
 
@@ -795,8 +805,13 @@
     function frame(ms) {
       if (letzte === null) letzte = ms;
       var dt = Math.min(0.05, (ms - letzte) / 1000); letzte = ms;
-      if (E.touch !== undefined && E.touch) rahmen.classList.add('touch');
+      if (E.touch !== undefined && E.touch) { rahmen.classList.add('touch'); R.touch = true; }
       if (rahmen && rahmen.classList) rahmen.classList.toggle('overlay', !!S.overlay);
+      // Overlay offen: Stick-Geste abbrechen (Zone hat pointer-events:none, Restbewegung loeschen)
+      if (S.overlay && stickId !== null) {
+        stickId = null; E.stick.x = 0; E.stick.y = 0;
+        if (basis) basis.style.display = 'none'; if (dau) dau.style.transform = '';
+      }
       S.treffer = R.treffer; S.panel = R.panel || null;
       update(S, dt, X);
       if (S.neustart) { neuStarten(); starteSpiel(S, X); }

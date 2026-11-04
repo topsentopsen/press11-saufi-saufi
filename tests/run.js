@@ -754,7 +754,7 @@ test('39 Teamstimmung 0: eigener Titel statt Umgefallen/Press F', function () {
   gleich(t.S.zustand, 'ende'); gleich(t.S.ende.wertung.titel, 'Abgehängt');
   wahr(/abgehängt/.test(t.S.ende.wertung.kopf)); wahr(/Teamstimmung 0/.test(t.S.ende.grund));
   wahr(t.S.ende.wertung.kopf.indexOf('Press F') < 0);
-  gleich(D.Spiel.VERSION, '0.2');
+  gleich(D.Spiel.VERSION, '0.3');
   wahr(D.Gfx.MIN_SCHRIFT >= 9);
 });
 
@@ -766,7 +766,7 @@ test('40 privat entfernt', function () {
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   wahr(/Press11 - Saufi Saufi \(18\+\)/.test(html)); wahr(!/\(18\+, privat\)/.test(html));
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
-  wahr(/Neu in v02/.test(readme)); wahr(!/privates Repo, kein GitHub Pages/.test(readme));
+  wahr(/Neu in v02/.test(readme)); wahr(/Neu in v03/.test(readme)); wahr(!/privates Repo, kein GitHub Pages/.test(readme));
 });
 
 test('41 Playlist-Panel passt in H (Querformat) und YouTube-Fenster weicht Overlay', function () {
@@ -793,6 +793,82 @@ test('41 Playlist-Panel passt in H (Querformat) und YouTube-Fenster weicht Overl
   wahr(/#rahmen\.overlay\s*~\s*#yt-fenster/.test(html), 'CSS blendet YT bei Overlay aus');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
   wahr(/classList\.toggle\(\s*['"]overlay['"]/.test(main), 'Rahmen bekommt Klasse overlay');
+});
+
+test('42 DPR-Begrenzung: MAX_DPR = 2, setzeAufloesung und begrenzDpr kappen', function () {
+  var D = lade();
+  gleich(D.Render.MAX_DPR, 2, 'MAX_DPR Konstante');
+  gleich(D.Render.begrenzDpr(3), 2, 'DPR 3 -> 2');
+  gleich(D.Render.begrenzDpr(1.5), 1.5, 'DPR 1.5 bleibt');
+  gleich(D.Render.begrenzDpr(0), 1, 'ungueltig -> 1');
+  var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  D.Render.setzeBildschirm(R, false);
+  var sk = D.Render.setzeAufloesung(R, 640, 352, 3);
+  gleich(R.dpr, 2, 'setzeAufloesung speichert gekapptes DPR');
+  wahr(R.canvas.width === Math.round(640 * 2), 'Backing-Store nutzt DPR 2');
+  wahr(sk === R.canvas.width / R.W, 'Skala konsistent');
+  var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
+  wahr(/begrenzDpr|MAX_DPR/.test(main), 'main nutzt DPR-Begrenzung');
+  wahr(/VERSION\s*=\s*['"]0\.3['"]/.test(main), 'VERSION 0.3');
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  wahr(/main\.js\?v=0\.3/.test(html), 'Cache-Buster v=0.3');
+});
+
+test('43 Hochformat-Layout: Playlist und Menues passen in PORT_H', function () {
+  var D = lade(), t = neuesSpielTest(D), S = t.S, X = t.X;
+  var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  D.Render.setzeBildschirm(R, true);
+  gleich(R.W, 320); gleich(R.H, D.Render.PORT_H); wahr(R.hochkant);
+  R.touch = true;
+  t.Sp.playlistOverlay(S, X);
+  S.musikInfo = { quelle: 'webaudio', aktiv: 'webaudio', spielt: true, youtubeVerfuegbar: false, hinweis: '' };
+  D.Render.zeichne(R, S);
+  var p = R.panel;
+  wahr(p, 'Playlist-Panel');
+  wahr(p.y >= 2 && p.y + p.h <= R.H - 2, 'Playlist in H (Hochformat)');
+  t.Sp.pauseMenue(S, X);
+  D.Render.zeichne(R, S);
+  p = R.panel;
+  wahr(p && p.y >= 2 && p.y + p.h <= R.H - 2, 'Pause-Menue in H');
+  var rows = R.treffer.filter(function (tr) { return typeof tr.i === 'number'; });
+  wahr(rows.length > 0, 'Menue-Treffer');
+  rows.forEach(function (tr) { wahr(tr.h >= 16, 'Touch-Zeile hoch genug'); });
+  // Querformat ebenfalls
+  D.Render.setzeBildschirm(R, false); R.touch = true;
+  t.Sp.playlistOverlay(S, X); D.Render.zeichne(R, S);
+  p = R.panel;
+  wahr(p && p.y >= 2 && p.y + p.h <= R.H - 2, 'Playlist Querformat');
+});
+
+test('44 Joystick blockiert keine Overlay-Klicks (pointer-events)', function () {
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  wahr(/#stick\s*\{[^}]*pointer-events:\s*none/.test(html), 'Stick default pointer-events:none');
+  wahr(/#rahmen\.touch:not\(\.overlay\)\s+#stick\s*\{[^}]*pointer-events:\s*auto/.test(html), 'Stick nur Touch ohne Overlay');
+  wahr(/#rahmen\.overlay\s+#stick\s*\{[^}]*pointer-events:\s*none/.test(html), 'Overlay: Stick pointer-events none');
+  // Logik: Klick links unten schliesst Jukebox (daneben), wenn Stick nicht schluckt
+  var D = lade(), t = neuesSpielTest(D), S = t.S, X = t.X;
+  var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  D.Render.setzeBildschirm(R, false);
+  t.Sp.playlistOverlay(S, X); D.Render.zeichne(R, S);
+  S.treffer = R.treffer; S.panel = R.panel;
+  wahr(S.panel, 'Panel');
+  wahr(1 < S.panel.x || R.H - 2 > S.panel.y + S.panel.h, 'Punkt links unten ausserhalb Panel');
+  X.E.klicke(1, R.H - 2);
+  t.Sp.update(S, 0.05, X); X.E.ende();
+  gleich(S.overlay, null, 'Klick links unten schliesst Overlay');
+});
+
+test('45 Touch-Ziele ≥ 44 CSS-px', function () {
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  wahr(/min-width:\s*44px/.test(html) && /min-height:\s*44px/.test(html), 'min 44px an Knöpfen');
+  wahr(/#oben\s+\.knopf[^}]*max\(44px/.test(html) || /#oben \.knopf\s*\{[^}]*max\(44px/.test(html), 'Oben-Knöpfe ≥44');
+  wahr(/#knopf-aktion[^}]*max\(72px/.test(html), 'Aktionsknopf groß');
+  wahr(/#knopf-wasser[^}]*max\(4[48]px/.test(html), 'Wasser ≥44');
+  wahr(/safe-area-inset/.test(html), 'Safe-Area');
+  wahr(/100dvh/.test(html), '100dvh');
+  wahr(/overscroll-behavior:\s*none/.test(html), 'overscroll-behavior');
+  wahr(/viewport-fit=cover/.test(html), 'viewport-fit=cover');
+  wahr(/#rahmen\.touch\s*~\s*#yt-fenster/.test(html), 'YT auf Touch oben/klein');
 });
 
 // ---------- Ausfuehren ----------
