@@ -865,9 +865,11 @@ test('44 Joystick blockiert keine Overlay-Klicks (pointer-events)', function () 
 test('45 Touch-Ziele ≥ 44 CSS-px', function () {
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   wahr(/min-width:\s*44px/.test(html) && /min-height:\s*44px/.test(html), 'min 44px an Knöpfen');
-  wahr(/#oben\s+\.knopf[^}]*max\(44px/.test(html) || /#oben \.knopf\s*\{[^}]*max\(44px/.test(html), 'Oben-Knöpfe ≥44');
-  wahr(/#knopf-aktion[^}]*max\(72px/.test(html), 'Aktionsknopf groß');
-  wahr(/#knopf-wasser[^}]*max\(4[48]px/.test(html), 'Wasser ≥44');
+  wahr(/#oben\s+\.knopf[^}]*width:\s*44px/.test(html) && /#oben\s+\.knopf[^}]*height:\s*44px/.test(html), 'Oben-Knöpfe Touchziel 44');
+  wahr(/#oben\s+\.knopf::before/.test(html) && /inset:\s*8px/.test(html), 'Oben-Icons optisch kleiner');
+  wahr(/#knopf-aktion[^}]*max\(56px/.test(html), 'Aktionsknopf groß');
+  wahr(/#knopf-wasser[^}]*max\(44px/.test(html), 'Wasser ≥44');
+  wahr(/id="bedien"/.test(html) && /#rahmen\.touch\.hoch\s+#bedien/.test(html), 'Bedienleiste Hochformat');
   wahr(/safe-area-inset/.test(html), 'Safe-Area');
   wahr(/100dvh/.test(html), '100dvh');
   wahr(/overscroll-behavior:\s*none/.test(html), 'overscroll-behavior');
@@ -969,20 +971,27 @@ test('48 YouTube playsinline und kein Autoplay ohne Geste', function () {
   wahr(!!doc.els['yt-player'].attr_playsinline || /setzePlaysinline/.test(mus), 'playsinline gesetzt');
 });
 
-test('49 Hochformat 390x844 und 375x667 komplett sichtbar', function () {
-  var D = lade(), PortH = D.Render.PORT_H, W = D.Render.BASE_W;
-  gleich(PortH, 400); gleich(W, 320);
+test('49 Hochformat 390x844 und 375x667: dynamische H fuellt Spielfeld', function () {
+  var D = lade(), W = D.Render.BASE_W;
+  gleich(W, 320);
+  wahr(D.Render.PORT_H_MIN >= 200 && D.Render.PORT_H_MAX >= D.Render.PORT_H);
   [{ w: 390, h: 844, safeY: 47 + 34 }, { w: 375, h: 667, safeY: 0 }].forEach(function (g) {
     var availW = g.w - 8, availH = g.h - g.safeY - 8;
-    var sk = D.Main.berechneSkala(availW, availH, W, PortH, true, D.Gfx.MIN_SCHRIFT);
-    wahr(sk.cw <= availW + 0.01, g.w + 'x' + g.h + ' Breite passt (' + sk.cw + '<=' + availW + ')');
-    wahr(sk.ch <= availH + 0.01, g.w + 'x' + g.h + ' Hoehe passt (' + sk.ch + '<=' + availH + ')');
-    wahr(sk.s * D.Gfx.MIN_SCHRIFT >= 10, 'Schrift lesbar bei ' + g.w + ' (sk=' + sk.s + ')');
-    wahr(sk.cw >= W * 0.9 && sk.ch >= PortH * 0.9, 'kein starkes Schrumpfen bei ' + g.w);
+    var bedien = D.Main.berechneBedien(availH), playH = availH - bedien;
+    var logH = D.Render.berechnePortH(availW, playH);
+    wahr(logH >= D.Render.PORT_H_MIN && logH <= D.Render.PORT_H_MAX, 'H begrenzt bei ' + g.w);
+    nah(logH, Math.round(W * playH / availW), 1, 'H aus Seitenverhaeltnis ' + g.w);
+    var sk = D.Main.berechneSkala(availW, playH, W, logH, true, D.Gfx.MIN_SCHRIFT);
+    wahr(sk.cw <= availW + 0.01, g.w + 'x' + g.h + ' Breite passt');
+    wahr(sk.ch <= playH + 0.01, g.w + 'x' + g.h + ' Hoehe passt');
+    // Fast volle Flaeche (kein Letterbox wie bei fester 320x400)
+    wahr(sk.ch / playH >= 0.95 && sk.cw / availW >= 0.95, 'Spielfeld fuellt Viewport bei ' + g.w + ' (ch/playH=' + (sk.ch / playH).toFixed(3) + ')');
+    wahr(sk.s * D.Gfx.MIN_SCHRIFT >= 10, 'Schrift lesbar bei ' + g.w);
   });
   var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
-  D.Render.setzeBildschirm(R, true); R.touch = true;
-  gleich(R.H, 400);
+  var hDyn = D.Render.berechnePortH(382, 700);
+  D.Render.setzeBildschirm(R, true, { h: hDyn }); R.touch = true;
+  gleich(R.H, hDyn);
   var t = neuesSpielTest(D); t.Sp.playlistOverlay(t.S, t.X);
   D.Render.zeichne(R, t.S);
   wahr(R.panel && R.panel.y + R.panel.h <= R.H - 2, 'Playlist-Panel in Hochformat');
@@ -1055,27 +1064,64 @@ test('52 Overlay-Schrift ueberschreitet Panelbreite nicht', function () {
   spiel.S.npcs.forEach(function (n) { n.aktiv = true; n.liegt = false; n.karteId = spiel.S.karte.id; n.blase = { text: 'Das ist ein ziemlich langer Spruch fuer die Blase!' }; n.x = spiel.S.spieler.x; n.y = spiel.S.spieler.y; });
   D.Render.zeichne(R2, spiel.S);
   wahr(blaseLog.length > 0, 'Sprechblasen-Text gezeichnet');
-  wahr(D.Render.WELT_FLAECHE >= 1.4 && D.Render.WELT_FLAECHE <= 1.6, 'Weltflaeche 1.4–1.6');
+  wahr(D.Render.WELT_FLAECHE_HOCH >= 1.4 && D.Render.WELT_FLAECHE_HOCH <= 1.6, 'Hoch-Weltflaeche 1.4–1.6');
+  wahr(D.Render.WELT_FLAECHE_QUER >= 2.0 && D.Render.WELT_FLAECHE_QUER <= 2.5, 'Quer-Weltflaeche staerker raus');
 });
 
-test('53 Kamera-Ausschnitt groesser als vorher (1.4–1.6x Flaeche)', function () {
+test('53 Kamera-Ausschnitt: Hoch ~1.5x, Quer weiter raus', function () {
   var D = lade();
-  wahr(D.Render.WELT_FLAECHE >= 1.4 && D.Render.WELT_FLAECHE <= 1.6);
-  nah(D.Render.WELT_ZOOM, 1 / Math.sqrt(D.Render.WELT_FLAECHE), 1e-9);
   var alt = D.Render.BASE_W * D.Render.BASE_H;
   var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
   D.Render.setzeBildschirm(R, false);
   wahr(R.VW * R.VH > alt, 'Quer: View > alte Flaeche');
-  nah(R.VW * R.VH / alt, D.Render.WELT_FLAECHE, 0.02, 'Quer ~WELT_FLAECHE');
+  nah(R.VW * R.VH / alt, D.Render.WELT_FLAECHE_QUER, 0.02, 'Quer ~WELT_FLAECHE_QUER');
+  nah(D.Render.WELT_ZOOM, 1 / Math.sqrt(D.Render.WELT_FLAECHE_QUER), 1e-9);
   D.Render.setzeBildschirm(R, true);
   var altH = D.Render.BASE_W * D.Render.PORT_H;
   wahr(R.VW * R.VH > altH, 'Hoch: View > alte Flaeche');
-  nah(R.VW * R.VH / altH, D.Render.WELT_FLAECHE, 0.02, 'Hoch ~WELT_FLAECHE');
-  // HUD bleibt Bildschirm-W×H; Kamera nutzt VW×VH
+  nah(R.VW * R.VH / altH, D.Render.WELT_FLAECHE_HOCH, 0.02, 'Hoch ~WELT_FLAECHE_HOCH');
+  wahr(D.Render.WELT_FLAECHE_QUER > D.Render.WELT_FLAECHE_HOCH, 'Quer staerker rausgezoomt');
   var t = neuesSpielTest(D, { viewW: R.VW, viewH: R.VH });
   wahr(t.S.kamera.viewW >= R.VW - 0.01 && t.S.kamera.viewH >= R.VH - 0.01, 'Kamera-View gesetzt');
-  wahr(R.W === D.Render.BASE_W && R.H === D.Render.PORT_H, 'HUD-Aufloesung unveraendert');
-  D.Render.zeichne(R, t.S); // ohne Fehler inkl. HUD
+  wahr(R.W === D.Render.BASE_W && R.H === D.Render.PORT_H, 'Default-HUD-Hoehe PORT_H');
+  D.Render.zeichne(R, t.S);
+});
+
+test('54 textInBox: Mehrzeiler mit … kuerzen; Jukebox-YouTube-Zeile', function () {
+  var D = lade(), G = D.Gfx, cv = mockCanvas(), c = cv.getContext('2d');
+  var lang = 'YouTube: 4 Videos (Hyper Hyper, The Logical Song, One (Always Hardcore), How Much Is the Fish?)';
+  var info = G.textInBox(c, lang, 0, 0, 200, 12, 11, { mess: true, ausr: 'center', maxZeilen: 1 });
+  gleich(info.lines.length, 1, 'eine Zeile');
+  wahr(/…$/.test(info.lines[0]), 'Ellipsis am Ende');
+  wahr(G.breite(c, info.lines[0], info.size) <= 200 + 0.75, 'Breite passt');
+  var t = neuesSpielTest(D), S = t.S, X = t.X;
+  var cv2 = mockCanvas(), R = D.Render.erstelle(cv2, cv2.ownerDocument);
+  D.Render.setzeBildschirm(R, true); R.touch = true;
+  t.Sp.playlistOverlay(S, X);
+  S.musikInfo = { quelle: 'youtube', aktiv: 'youtube', spielt: true, youtubeVerfuegbar: true, hinweis: lang };
+  D.Render.zeichne(R, S);
+  wahr(R.panel && R.panel.y + R.panel.h <= R.H - 2, 'Playlist in H');
+});
+
+test('55 HUD-Uhr und Oben-Knoepfe: kein Overlap; Quer HUD kompakt', function () {
+  var D = lade(), t = neuesSpielTest(D);
+  var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  // Hochformat Touch mit realistischer CSS-Skala (390er Viewport)
+  D.Render.setzeBildschirm(R, true); R.touch = true;
+  D.Render.setzeAufloesung(R, 382, 640, 2);
+  D.Render.zeichne(R, t.S);
+  wahr(R.hudUhr, 'hudUhr gesetzt');
+  function uhrFrei(u) {
+    return u.y >= 36 || u.x + u.w <= R.W - u.btnBand + 0.5;
+  }
+  wahr(uhrFrei(R.hudUhr), 'Uhr nicht unter HTML-Knoepfen (Hoch)');
+  // Querformat: kompakteres linkes Panel, Uhr freigestellt
+  D.Render.setzeBildschirm(R, false); R.touch = true;
+  D.Render.setzeAufloesung(R, 640, 352, 2);
+  D.Render.zeichne(R, t.S);
+  wahr(R.hudUhr && R.hudUhr.w <= 96, 'Uhr-Panel Quer kompakt');
+  wahr(uhrFrei(R.hudUhr), 'Uhr nicht unter HTML-Knoepfen (Quer)');
+  wahr(D.Render.WELT_FLAECHE_QUER >= 2, 'Quer-Kamera weiter raus');
 });
 
 // ---------- Ausfuehren ----------

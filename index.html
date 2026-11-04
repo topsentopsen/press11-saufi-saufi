@@ -17,10 +17,11 @@
     padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
     font-family: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif; }
   #rahmen { position: relative; line-height: 0; box-shadow: 0 0 0 4px #ff4fa0, 0 0 0 7px #4fe6ff, 0 8px 30px rgba(0,0,0,.55); border-radius: 6px;
-    padding: 0; touch-action: none; /* Safe-Area an Body + an Stick/Knoepfen (Vollbild) */ }
+    padding: 0; touch-action: none; display: flex; flex-direction: column; align-items: stretch;
+    /* Safe-Area an Body + an Stick/Knoepfen (Vollbild) */ }
   canvas { display: block; }
   #spiel { image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
-    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; flex: 0 0 auto; }
   .knopf { border: 0; padding: 0; margin: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: none; line-height: 1;
     font: bold 15px ui-rounded, "Trebuchet MS", system-ui, sans-serif; color: #4a3560; min-width: 44px; min-height: 44px;
     -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -30,25 +31,38 @@
     box-shadow: 0 0 0 2px #ff4fa0; max-width: min(92vw, 320px); }
   #ton-hinweis[hidden] { display: none; }
   .knopf:focus-visible { outline: 3px solid #ffd36e; outline-offset: 1px; }
-  #oben { position: absolute; top: calc(var(--s, 3) * 1px + env(safe-area-inset-top, 0px)); right: calc(var(--s, 3) * 2px + env(safe-area-inset-right, 0px)); display: flex; gap: calc(var(--s, 3) * 2px); z-index: 2; }
-  #oben .knopf { width: max(44px, calc(var(--s, 3) * 8px)); height: max(44px, calc(var(--s, 3) * 8px)); border-radius: 50%; background: #fff8ee;
-    box-shadow: 0 0 0 2px #4a3560; font-size: max(12px, calc(var(--s, 3) * 4px)); }
-  #rahmen.touch #oben .knopf { width: max(44px, calc(var(--s, 3) * 10px)); height: max(44px, calc(var(--s, 3) * 10px)); }
-  #ton-knopf.aus { background: #e3dbea; text-decoration: line-through; }
-  /* Touch: Joystick links unten (Daumen), Aktionsknoepfe rechts unten; Safe-Area; ohne Touch / bei Overlay keine Pointer-Events */
-  #stick { display: none; position: absolute; left: env(safe-area-inset-left, 0px); bottom: env(safe-area-inset-bottom, 0px); width: 46%; height: 46%;
+  /* Oben-rechts: 44px Touchziel, sichtbarer Kreis kleiner (~28px), damit HUD-Uhr frei bleibt */
+  #oben { position: absolute; top: calc(var(--s, 3) * 1px); right: calc(var(--s, 3) * 1px); display: flex; gap: 2px; z-index: 2; }
+  #oben .knopf { width: 44px; height: 44px; border-radius: 50%; background: transparent; box-shadow: none;
+    font-size: 13px; position: relative; color: #4a3560; isolation: isolate; }
+  #oben .knopf::before { content: ""; position: absolute; inset: 8px; border-radius: 50%; background: #fff8ee;
+    box-shadow: 0 0 0 1.5px #4a3560; z-index: -1; pointer-events: none; }
+  #ton-knopf.aus::before { background: #e3dbea; }
+  #ton-knopf.aus { text-decoration: line-through; }
+  /* Bedienleiste: Hochformat unter dem Spielfeld; Querformat Overlay unten am Canvas */
+  #bedien { display: none; position: relative; flex: 0 0 auto; width: 100%; height: 0; overflow: visible; z-index: 1; }
+  #rahmen.touch #bedien { display: block; }
+  #rahmen.touch.hoch #bedien { position: relative; height: var(--bedien, 112px); background: rgba(27, 21, 48, .92); border-radius: 0 0 6px 6px; }
+  /* Touch: Joystick links, Aktionsknoepfe rechts; ohne Touch / bei Overlay keine Pointer-Events */
+  #stick { display: none; position: absolute; left: 0; bottom: 0; width: 50%; height: 100%;
     touch-action: none; pointer-events: none; z-index: 1; }
   #rahmen.touch #stick { display: block; }
   #rahmen.touch:not(.overlay) #stick { pointer-events: auto; }
   #rahmen.overlay #stick { pointer-events: none; }
+  /* Querformat: Bedien als Overlay ueber der Canvas-Unterkante (kein eigener Streifen) */
+  #rahmen.touch:not(.hoch) #bedien {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 46%; pointer-events: none; background: transparent; }
+  #rahmen.touch:not(.hoch) #stick { width: 50%; height: 100%; }
+  #rahmen.touch:not(.hoch) #touch { bottom: calc(var(--s, 3) * 3px); right: calc(var(--s, 3) * 3px); }
   #stick-basis { display: none; position: absolute; width: 80px; height: 80px; margin: -40px 0 0 -40px; border-radius: 50%; background: rgba(255,248,238,.22); box-shadow: 0 0 0 2px rgba(74,53,96,.6); pointer-events: none; }
   #stick-dau { position: absolute; left: 25px; top: 25px; width: 30px; height: 30px; border-radius: 50%; background: rgba(255,248,238,.85); box-shadow: 0 0 0 2px #4a3560; }
-  #touch { display: none; position: absolute; right: calc(var(--s, 3) * 3px + env(safe-area-inset-right, 0px)); bottom: calc(var(--s, 3) * 3px + env(safe-area-inset-bottom, 0px)); z-index: 2; }
-  #rahmen.touch #touch { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+  #touch { display: none; position: absolute; right: 8px; bottom: 8px; z-index: 2; pointer-events: auto; }
+  #rahmen.touch #touch { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  #rahmen.touch.hoch #touch { top: 0; bottom: 0; right: 8px; flex-direction: row-reverse; align-items: center; }
   #touch .knopf { border-radius: 50%; background: #fff8ee; box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 5px #ffb037; min-width: 44px; min-height: 44px; }
-  #knopf-aktion { width: max(72px, calc(var(--s, 3) * 24px)); height: max(72px, calc(var(--s, 3) * 24px)); font-size: 22px; }
-  #knopf-wasser { width: max(48px, calc(var(--s, 3) * 15px)); height: max(48px, calc(var(--s, 3) * 15px)); box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 4px #7ec8e3 !important; font-size: 12px; }
-  #knopf-item, #knopf-f { display: none; width: max(48px, calc(var(--s, 3) * 15px)); height: max(48px, calc(var(--s, 3) * 15px)); box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 4px #ff4fa0 !important; font-size: 13px; }
+  #knopf-aktion { width: max(56px, calc(var(--s, 3) * 18px)); height: max(56px, calc(var(--s, 3) * 18px)); font-size: 18px; }
+  #knopf-wasser { width: max(44px, calc(var(--s, 3) * 13px)); height: max(44px, calc(var(--s, 3) * 13px)); box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 4px #7ec8e3 !important; font-size: 11px; }
+  #knopf-item, #knopf-f { display: none; width: max(44px, calc(var(--s, 3) * 13px)); height: max(44px, calc(var(--s, 3) * 13px)); box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 4px #ff4fa0 !important; font-size: 12px; }
   #touch .knopf:active { transform: translateY(3px); }
   /* YouTube-Fenster (Einbettung, ein-/ausklappbar, API mind. 200x113); Desktop unten links */
   #yt-fenster { position: fixed; left: max(8px, env(safe-area-inset-left, 0px)); bottom: max(8px, env(safe-area-inset-bottom, 0px)); width: 220px; background: #2a2342; border-radius: 8px; box-shadow: 0 0 0 2px #ff4fa0; z-index: 10; overflow: hidden; }
@@ -79,12 +93,14 @@
     <button id="vollbild-knopf" class="knopf" type="button" title="Vollbild" aria-label="Vollbild">&#9974;</button>
     <button id="info-knopf" class="knopf" type="button" title="Hinweis 18+" aria-label="Hinweis 18 plus">i</button>
   </div>
-  <div id="stick" aria-hidden="true"><div id="stick-basis"><div id="stick-dau"></div></div></div>
-  <div id="touch">
-    <button id="knopf-f" class="knopf" type="button" aria-label="Press F">F</button>
-    <button id="knopf-item" class="knopf" type="button" aria-label="Item benutzen">R</button>
-    <button id="knopf-wasser" class="knopf" type="button" aria-label="Wasser trinken">Wasser</button>
-    <button id="knopf-aktion" class="knopf" type="button" aria-label="Aktion">E</button>
+  <div id="bedien">
+    <div id="stick" aria-hidden="true"><div id="stick-basis"><div id="stick-dau"></div></div></div>
+    <div id="touch">
+      <button id="knopf-f" class="knopf" type="button" aria-label="Press F">F</button>
+      <button id="knopf-item" class="knopf" type="button" aria-label="Item benutzen">R</button>
+      <button id="knopf-wasser" class="knopf" type="button" aria-label="Wasser trinken">Wasser</button>
+      <button id="knopf-aktion" class="knopf" type="button" aria-label="Aktion">E</button>
+    </div>
   </div>
 </div>
 <!-- Kleines Fenster fuer die YouTube-Einbettung (Scooter-Playlist). Bleibt versteckt, bis YouTube wirklich gewaehlt und verfuegbar ist. -->

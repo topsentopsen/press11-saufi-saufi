@@ -703,7 +703,16 @@
     function neuStarten() {
       var isTouch = !!(E.touch || (win.matchMedia && win.matchMedia('(pointer: coarse)').matches));
       var mobilHoch = isTouch && win.innerHeight > win.innerWidth;
-      Saufi.Render.setzeBildschirm(R, mobilHoch); E.setzeMass(R.W, R.H); R.touch = isTouch;
+      var padX0 = 0, padY0 = 0;
+      if (win.getComputedStyle && doc.body) {
+        var cs0 = win.getComputedStyle(doc.body);
+        padX0 = (parseFloat(cs0.paddingLeft) || 0) + (parseFloat(cs0.paddingRight) || 0);
+        padY0 = (parseFloat(cs0.paddingTop) || 0) + (parseFloat(cs0.paddingBottom) || 0);
+      }
+      var aw0 = Math.max(1, win.innerWidth - padX0 - 8), ah0 = Math.max(1, win.innerHeight - padY0 - 8);
+      var bedien0 = (isTouch && mobilHoch) ? Math.round(Math.min(140, Math.max(100, ah0 * 0.155))) : 0;
+      var logH0 = mobilHoch ? Saufi.Render.berechnePortH(aw0, Math.max(1, ah0 - bedien0)) : Saufi.Render.BASE_H;
+      Saufi.Render.setzeBildschirm(R, mobilHoch, { h: logH0 }); E.setzeMass(R.W, R.H); R.touch = isTouch;
       S = neuesSpiel({ seed: par.seed, tempo: par.tempo, figur: par.figur, viewW: R.VW || R.W, viewH: R.VH || R.H, best: speicher.zahl('best', 0), speicher: speicher, ruhig: speicher.bool('ruhig', false) });
       S.stummAn = speicher.bool('stumm', false); T.setzeStumm(S.stummAn); M.setzeStumm(S.stummAn);
     }
@@ -721,12 +730,11 @@
     dbg.musik = function () { return M.zustand(); };
     Saufi.debug = dbg;
 
-    // Groesse: stufenlos; Hochformat = Spielfeld oben/Bedienung unten (320x400), Quer = volle Breite (320x176)
-    // Safe-Area am Body abziehen, damit 390x844 / 375x667 komplett sichtbar bleiben
+    // Groesse: Hochformat = Spielfeld oben + Bedienleiste unten, R.H aus Viewport-Seitenverhaeltnis;
+    // Quer = 320x176. Safe-Area am Body abziehen.
     function groesse() {
       var isTouch = !!(E.touch || (win.matchMedia && win.matchMedia('(pointer: coarse)').matches));
       var hoch = isTouch && win.innerHeight > win.innerWidth;
-      if (hoch !== R.hochkant) { Saufi.Render.setzeBildschirm(R, hoch); E.setzeMass(R.W, R.H); S.kamera.viewW = R.VW || R.W; S.kamera.viewH = R.VH || R.H; }
       var padX = 0, padY = 0;
       if (win.getComputedStyle && doc.body) {
         var cs = win.getComputedStyle(doc.body);
@@ -734,14 +742,25 @@
         padY = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
       }
       var availW = Math.max(1, win.innerWidth - padX - 8), availH = Math.max(1, win.innerHeight - padY - 8);
-      var sk = berechneSkala(availW, availH, R.W, R.H, isTouch, Saufi.Gfx.MIN_SCHRIFT || 9);
+      // Bedienleiste nur Hochformat+Touch: Joystick/E/Wasser unter dem Spielfeld
+      var bedienCss = (isTouch && hoch) ? Math.round(Math.min(140, Math.max(100, availH * 0.155))) : 0;
+      var playH = Math.max(1, availH - bedienCss);
+      var logH = hoch ? Saufi.Render.berechnePortH(availW, playH) : Saufi.Render.BASE_H;
+      if (hoch !== R.hochkant || R.H !== logH) {
+        Saufi.Render.setzeBildschirm(R, hoch, { h: logH });
+        E.setzeMass(R.W, R.H);
+        if (S && S.kamera) { S.kamera.viewW = R.VW || R.W; S.kamera.viewH = R.VH || R.H; }
+      }
+      var sk = berechneSkala(availW, playH, R.W, R.H, isTouch, Saufi.Gfx.MIN_SCHRIFT || 9);
       var s = sk.s, cw = sk.cw, ch = sk.ch;
       canvas.style.width = cw + 'px'; canvas.style.height = ch + 'px';
-      // DPR auf MAX_DPR (2) begrenzen (scharfe Schrift, Performance)
       var dpr = Saufi.Render.begrenzDpr(win.devicePixelRatio || 1);
       Saufi.Render.setzeAufloesung(R, cw, ch, dpr);
       R.touch = isTouch;
-      rahmen.style.setProperty('--s', String(s)); rahmen.classList.toggle('touch', isTouch);
+      rahmen.style.setProperty('--s', String(s));
+      rahmen.style.setProperty('--bedien', bedienCss + 'px');
+      rahmen.classList.toggle('touch', isTouch);
+      rahmen.classList.toggle('hoch', !!hoch);
     }
     win.addEventListener('resize', groesse); win.addEventListener('orientationchange', groesse); groesse();
 
@@ -933,8 +952,12 @@
     if (ch > availH) { s = Math.min(s, availH / logH); cw = Math.round(logW * s); ch = Math.round(logH * s); }
     return { s: s, cw: cw, ch: ch };
   }
+  // Bedienleisten-Hoehe (CSS-px) fuer Hochformat-Touch
+  function berechneBedien(availH) {
+    return Math.round(Math.min(140, Math.max(100, (availH || 0) * 0.155)));
+  }
 
-  Saufi.Main = { parameter: parameter, starte: starte, berechneSkala: berechneSkala };
+  Saufi.Main = { parameter: parameter, starte: starte, berechneSkala: berechneSkala, berechneBedien: berechneBedien };
 
   if (g.document && g.document.getElementById && g.document.getElementById('spiel') && !g.__SAUFI_OHNE_START) {
     starte(g, g.document);

@@ -158,8 +158,11 @@
       var raw = umbruchExakt(c, s, w, sz);
       if (raw.length <= maxZ) return raw;
       if (!hart) return raw;
-      var keep = raw.slice(0, maxZ);
-      keep[maxZ - 1] = kuerzeExakt(c, keep[maxZ - 1], w, sz);
+      // Zeilen verworfen: letzte sichtbare Zeile mit … kennzeichnen (auch wenn sie selbst passt)
+      var keep = raw.slice(0, maxZ), ell = '…', last = keep[maxZ - 1], ellW = breiteExakt(c, ell, sz);
+      var budget = Math.max(0, w - ellW);
+      var truncated = breiteExakt(c, last, sz) <= budget ? last : kuerzeExakt(c, last, budget, sz).replace(/…$/, '');
+      keep[maxZ - 1] = truncated + ell;
       return keep;
     }
     lines = layout(size, false);

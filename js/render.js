@@ -7,13 +7,19 @@
   var G = Saufi.Gfx, Sz = Saufi.Szene, In = Saufi.Innen;
   var P = G.P, hash = G.hash, r = G.r, rr = G.rr, box = G.box, kreis = G.kreis, ellipse = G.ellipse, poly = G.poly, linie = G.linie, vlauf = G.vlauf, herz = G.herz;
   var text = G.text, breite = G.breite, umbruch = G.umbruch, kuerze = G.kuerze, textInBox = G.textInBox, panel = G.panel, rgb = G.rgb, mix = G.mix;
-  var BASE_W = 320, BASE_H = 176, PORT_H = 400, K = 16;
-  // Kamera rausgezoomt: ~1.5x mehr sichtbare Weltflaeche; HUD bleibt in Bildschirmkoordinaten (W×H)
-  var WELT_FLAECHE = 1.5, WELT_ZOOM = 1 / Math.sqrt(WELT_FLAECHE);
+  var BASE_W = 320, BASE_H = 176, PORT_H = 400, PORT_H_MIN = 280, PORT_H_MAX = 720, K = 16;
+  // Kamera rausgezoomt; Querformat etwas staerker (niedrigeres VH). HUD bleibt in Bildschirmkoordinaten (W×H)
+  var WELT_FLAECHE_HOCH = 1.5, WELT_FLAECHE_QUER = 2.25;
+  var WELT_FLAECHE = WELT_FLAECHE_QUER, WELT_ZOOM = 1 / Math.sqrt(WELT_FLAECHE);
   var MAX_BREITE = 4096, MAX_BG_SKALA = 6, MAX_DPR = 2;
   var W = BASE_W, H = BASE_H, VW = BASE_W / WELT_ZOOM, VH = BASE_H / WELT_ZOOM;
   var SH = { dx: 0, lang: 0.6, a: 0 };           // Schatten der aktuellen Uhrzeit
   function weltView() { return { w: VW, h: VH, zoom: WELT_ZOOM, flaeche: WELT_FLAECHE }; }
+  // Logische Hochformat-Hoehe aus Viewport-Seitenverhaeltnis (W fest 320)
+  function berechnePortH(availW, availH) {
+    availW = Math.max(1, availW || 1); availH = Math.max(1, availH || 1);
+    return Math.max(PORT_H_MIN, Math.min(PORT_H_MAX, Math.round(BASE_W * availH / availW)));
+  }
 
   // ---------- Aufloesung ----------
   function erstelle(canvas, doc) {
@@ -47,8 +53,15 @@
     if (bg !== R.spSk) { R.spSk = bg; R.hg = {}; R.spr = {}; }
     return sk;
   }
-  function setzeBildschirm(R, hoch) {
-    R.hochkant = !!hoch; W = BASE_W; H = hoch ? PORT_H : BASE_H; R.W = W; R.H = H;
+  function setzeBildschirm(R, hoch, opt) {
+    R.hochkant = !!hoch; W = BASE_W;
+    if (hoch) {
+      var wunsch = opt && opt.h != null ? opt.h : PORT_H;
+      H = Math.max(PORT_H_MIN, Math.min(PORT_H_MAX, Math.round(wunsch)));
+    } else H = BASE_H;
+    WELT_FLAECHE = hoch ? WELT_FLAECHE_HOCH : WELT_FLAECHE_QUER;
+    WELT_ZOOM = 1 / Math.sqrt(WELT_FLAECHE);
+    R.W = W; R.H = H; R.weltFlaeche = WELT_FLAECHE;
     VW = W / WELT_ZOOM; VH = H / WELT_ZOOM; R.VW = VW; R.VH = VH; R.weltZoom = WELT_ZOOM;
     setzeAufloesung(R, R.cssW, R.cssH, R.dpr);
     return { w: W, h: H, vw: VW, vh: VH };
@@ -404,8 +417,11 @@
   }
   function hud(R, S) {
     var c = R.ctx, fig = S.fig, uhr = S.uhr, i;
-    // links oben: Pegel, Standfestigkeit, Teamstimmung (Bildschirmkoordinaten)
-    panel(c, 3, 3, 96, 62, 'rgba(255,248,238,0.94)', 6);
+    // Querformat: kompaktes Status-Panel (weniger Flaeche); Hochformat: volle Groesse
+    var kompakt = !R.hochkant, sk = kompakt ? 0.72 : 1;
+    var lpW = Math.round(96 * sk), lpH = Math.round(62 * sk), lx = 3, ly = 3;
+    panel(c, lx, ly, lpW, lpH, 'rgba(255,248,238,0.94)', kompakt ? 4 : 6);
+    c.save(); c.translate(lx, ly); c.scale(sk, sk);
     krug(c, 8, 7, fig.pegel);
     var pt = S.joint && Saufi.Ereignisse.Joint.schwammig(S.joint) ? '~' + Saufi.Pegel.anzeige(fig.pegel + Math.sin(S.t * 5) * 0.4) : Saufi.Pegel.anzeige(fig.pegel);
     textInBox(c, pt + ' ‰', 28, 7, 66, 16, 11, { col: fig.pegel >= 3 ? P.bierRot : P.uiTinte, ausr: 'left' });
@@ -416,22 +432,39 @@
     r(c, 8, 52.4, 3.6, 8.4, '#8fd4f0'); rr(c, 7.4, 51.4, 4.8, 3, '#4fb0d6', 1.2);
     textInBox(c, 'x' + S.flaschen, 14, 50, 22, 12, 9, { col: P.uiTinte });
     if (S.joint && (S.joint.hat || S.joint.doppelt)) textInBox(c, S.joint.doppelt ? 'x2!' : 'R: Tüte', 36, 50, 56, 12, 8, { col: '#d9701a' });
-    // Mitte oben: Uhr mit Himmelsfenster
-    var pw = 108, px = Math.round(W / 2 - pw / 2) + 2;
-    panel(c, px, 3, pw, 30, 'rgba(255,248,238,0.94)', 7);
-    Sz.himmelIcon(c, px + 17, 18, 11.5, uhr.minute / 60, S.t);
-    textInBox(c, Saufi.Uhr.text(uhr), px + 32, 4, 70, 14, 12, { col: P.uiTinte, ausr: 'center' });
-    textInBox(c, Saufi.Uhr.tag(uhr).slice(0, 2) + ' · ' + Saufi.Uhr.phase(uhr), px + 32, 17, 70, 12, 8, { col: P.uiTinteWeich, ausr: 'center' });
-    textInBox(c, '★ ' + S.punkte.punkte, px, 34, pw, 12, 9, { col: P.uiTinte, ausr: 'center', kontur: 'rgba(255,248,238,0.95)' });
+    c.restore();
+    // Uhr: HTML-Knoepfe oben rechts (4×44 CSS-px) — bei Touch oft kein Platz daneben → Uhr darunter
+    var pw = kompakt ? 88 : 100, ph = kompakt ? 24 : 30;
+    var sCss = (R.cssW > 0 && W > 0) ? (R.cssW / W) : 1;
+    var btnBand = R.touch ? Math.ceil((4 * 44 + 8) / Math.max(0.5, sCss)) : 40;
+    var freiL = lx + lpW + 4, freiR = W - btnBand - 2;
+    var py = 3, px;
+    if (R.touch && freiR - freiL < pw + 4) {
+      py = Math.ceil(44 / Math.max(0.5, sCss)) + 2;
+      pw = kompakt ? 88 : 100;
+      px = Math.round((W - pw) / 2);
+      px = Math.max(lx + 2, Math.min(px, W - btnBand - pw - 2));
+    } else {
+      px = Math.round((freiL + freiR - pw) / 2);
+      px = Math.max(freiL, Math.min(px, Math.max(freiL, freiR - pw)));
+    }
+    panel(c, px, py, pw, ph, 'rgba(255,248,238,0.94)', kompakt ? 5 : 7);
+    Sz.himmelIcon(c, px + (kompakt ? 13 : 15), py + (kompakt ? 11 : 15), kompakt ? 9 : 11.5, uhr.minute / 60, S.t);
+    textInBox(c, Saufi.Uhr.text(uhr), px + (kompakt ? 26 : 30), py + 1, pw - (kompakt ? 30 : 34), kompakt ? 11 : 14, kompakt ? 10 : 12, { col: P.uiTinte, ausr: 'center' });
+    textInBox(c, Saufi.Uhr.tag(uhr).slice(0, 2) + ' · ' + Saufi.Uhr.phase(uhr), px + (kompakt ? 26 : 30), py + (kompakt ? 12 : 16), pw - (kompakt ? 30 : 34), kompakt ? 10 : 12, 8, { col: P.uiTinteWeich, ausr: 'center' });
+    textInBox(c, '★ ' + S.punkte.punkte, px, py + ph, pw, 11, kompakt ? 8 : 9, { col: P.uiTinte, ausr: 'center', kontur: 'rgba(255,248,238,0.95)' });
+    R.hudUhr = { x: px, y: py, w: pw, h: ph, btnBand: btnBand };
     // Runde
     var nr = Saufi.Runden.naechste(S.runden);
     if (nr && (nr.status === 'warnung' || nr.status === 'aktiv')) {
       var aktiv = nr.status === 'aktiv', rest = aktiv ? nr.zeit + Saufi.Runden.FRIST_MIN - uhr.minute : nr.zeit - uhr.minute;
-      var rw = Math.min(196, W - 24), rx = Math.round(W / 2 - rw / 2) + 2, ry = 50, blink = aktiv && Math.floor(S.t * 3) % 2 === 0;
-      panel(c, rx, ry, rw, 22, aktiv ? (blink ? '#ff9fb0' : '#ffd1da') : '#fff0c8', 6);
-      textInBox(c, (aktiv ? 'RUNDE! ' : 'Runde ' + Saufi.Uhr.zeitText(nr.zeit) + ': ') + Saufi.Karte.NAMEN[nr.ort], rx + 6, ry + 1, rw - 12, 12, 8, { col: P.uiTinte, ausr: 'center' });
+      var rw = Math.min(kompakt ? 170 : 196, W - 24), rx = Math.round(W / 2 - rw / 2) + 2;
+      var ry = Math.max(kompakt ? 36 : 50, py + ph + 14), blink = aktiv && Math.floor(S.t * 3) % 2 === 0;
+      panel(c, rx, ry, rw, kompakt ? 18 : 22, aktiv ? (blink ? '#ff9fb0' : '#ffd1da') : '#fff0c8', 6);
+      textInBox(c, (aktiv ? 'RUNDE! ' : 'Runde ' + Saufi.Uhr.zeitText(nr.zeit) + ': ') + Saufi.Karte.NAMEN[nr.ort], rx + 6, ry + 1, rw - 12, kompakt ? 10 : 12, 8, { col: P.uiTinte, ausr: 'center' });
       var frac = Math.max(0, Math.min(1, rest / (aktiv ? Saufi.Runden.FRIST_MIN : Saufi.Runden.VORLAUF_MIN)));
-      rr(c, rx + 10, ry + 14, rw - 20, 4.4, 'rgba(74,53,96,0.25)', 2.2); if (frac > 0.01) rr(c, rx + 10, ry + 14, (rw - 20) * frac, 4.4, aktiv ? '#e0504a' : '#f0b030', 2.2);
+      var by2 = ry + (kompakt ? 11 : 14), bh2 = kompakt ? 3.5 : 4.4;
+      rr(c, rx + 10, by2, rw - 20, bh2, 'rgba(74,53,96,0.25)', 2.2); if (frac > 0.01) rr(c, rx + 10, by2, (rw - 20) * frac, bh2, aktiv ? '#e0504a' : '#f0b030', 2.2);
     }
     // Scooter-Leiste (nur in der Disko)
     if (S.ort === 'disko') {
@@ -629,16 +662,16 @@
     abdunkeln(c, 0.6); panel(c, bx, by, bw, bh, P.uiFlaeche, 8);
     R.panel = { x: bx, y: by, w: bw, h: bh };
     R.treffer = [];
-    textInBox(c, 'Scooter-Playlist', bx + 18, by + 2, bw - 36, kopfH - 2, hoch ? 11 : 10, { col: P.uiTinte, ausr: 'center' });
+    textInBox(c, 'Scooter-Playlist', bx + 18, by + 2, bw - 36, kopfH - 2, hoch ? 11 : 10, { col: P.uiTinte, ausr: 'center', maxZeilen: 1 });
     schliessX(R, bx, by, bw);
     var colW = (bw - 20) / 2;
     tl.forEach(function (t2, i) {
       var cx2 = bx + 10 + (i >= zeilen ? colW : 0), cy2 = by + kopfH + (i % zeilen) * lz;
-      textInBox(c, (i + 1) + '. ' + t2, cx2, cy2, colW - 4, lz, songSz, { col: P.uiTinte, ausr: 'left' });
+      textInBox(c, (i + 1) + '. ' + t2, cx2, cy2, colW - 4, lz, songSz, { col: P.uiTinte, ausr: 'left', maxZeilen: 1 });
     });
     var sy = by + kopfH + zeilen * lz + 2;
-    textInBox(c, quelleText, bx + 8, sy, bw - 16, metaLz, metaSz, { col: P.uiTinteWeich, ausr: 'center' });
-    textInBox(c, hint, bx + 8, sy + metaLz, bw - 16, metaLz, metaSz, { col: P.uiTinteWeich, ausr: 'center' });
+    textInBox(c, quelleText, bx + 8, sy, bw - 16, metaLz, metaSz, { col: P.uiTinteWeich, ausr: 'center', maxZeilen: 1 });
+    textInBox(c, hint, bx + 8, sy + metaLz, bw - 16, metaLz, metaSz, { col: P.uiTinteWeich, ausr: 'center', maxZeilen: 1 });
     var ey0 = sy + 2 * metaLz + 2;
     o.eintraege.forEach(function (e, i) {
       var ey = ey0 + i * rowH;
@@ -691,8 +724,10 @@
 
   Saufi.Render = {
     P: P, K: K, erstelle: erstelle, setzeBildschirm: setzeBildschirm, setzeAufloesung: setzeAufloesung, begrenzDpr: begrenzDpr, zeichne: zeichne, bauplan: bauplan, figur: figur,
-    kameraView: kameraView, weltView: weltView,
-    W: BASE_W, H: BASE_H, BASE_W: BASE_W, BASE_H: BASE_H, PORT_H: PORT_H, MAX_BREITE: MAX_BREITE, MAX_BG_SKALA: MAX_BG_SKALA, MAX_DPR: MAX_DPR,
-    WELT_FLAECHE: WELT_FLAECHE, WELT_ZOOM: WELT_ZOOM
+    kameraView: kameraView, weltView: weltView, berechnePortH: berechnePortH,
+    W: BASE_W, H: BASE_H, BASE_W: BASE_W, BASE_H: BASE_H, PORT_H: PORT_H, PORT_H_MIN: PORT_H_MIN, PORT_H_MAX: PORT_H_MAX,
+    MAX_BREITE: MAX_BREITE, MAX_BG_SKALA: MAX_BG_SKALA, MAX_DPR: MAX_DPR,
+    get WELT_FLAECHE() { return WELT_FLAECHE; }, get WELT_ZOOM() { return WELT_ZOOM; },
+    WELT_FLAECHE_HOCH: WELT_FLAECHE_HOCH, WELT_FLAECHE_QUER: WELT_FLAECHE_QUER
   };
 })(globalThis);
