@@ -1,5 +1,5 @@
-/* Karten: Stuttgart-Kessel-Stadtkarte (40x30 Kacheln) und vier Innenraeume (Hotel, Restaurant, Kneipe, Partykeller).
-   Orte, Strassen und Namen sind erfunden. Kachel = 16x16 Pixel. */
+/* Karten: Stuttgart-Kessel-Stadtkarte (40x48 Kacheln) und vier Innenraeume (Hotel, Restaurant, Kneipe, Partykeller).
+   Orte, Strassen und Namen sind erfunden. Kachel = 16x16 Pixel. Obere 30 Zeilen wie v04; y 30..47 = Suedstreifen. */
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
@@ -47,7 +47,7 @@
   }
 
   function erstelleStadt(rng) {
-    var k = neueKarte('stadt', 40, 30, T.GRAS, false), x, y;
+    var k = neueKarte('stadt', 40, 48, T.GRAS, false), x, y;
     // Hang mit Weinbergen und Trockenmauer
     k.rect(0, 0, 40, 5, T.REBEN);
     for (x = 0; x < 40; x++) if (rng.next() < 0.25) k.setze(x, 0, T.BAUM);
@@ -89,18 +89,41 @@
     [[4, 16], [12, 16], [20, 16], [26, 16], [38, 16], [3, 21], [15, 21], [23, 21], [38, 21], [29, 24], [24, 28], [38, 29]].forEach(function (p) {
       if (!k.blockiert(p[0], p[1])) k.setze(p[0], p[1], T.LATERNE);
     });
-    // Baeume und Buesche nur in freien Zonen, damit nichts zugestellt wird
+    // Baeume und Buesche nur in freien Zonen, damit nichts zugestellt wird (obere 30 Zeilen, rng-Reihenfolge wie v04)
     function streue(x0, y0, x1, y1, p, t) {
       for (var j = y0; j <= y1; j++) for (var i = x0; i <= x1; i++) if (k.tile(i, j) === T.GRAS && rng.next() < p) k.setze(i, j, t);
     }
     streue(0, 7, 1, 13, 0.5, T.BAUM); streue(0, 17, 9, 20, 0.14, T.BAUM); streue(11, 17, 25, 20, 0.10, T.BUSCH);
     streue(0, 24, 10, 28, 0.12, T.BAUM); streue(13, 25, 23, 28, 0.10, T.BUSCH); streue(37, 7, 39, 13, 0.4, T.BAUM);
     streue(30, 7, 36, 12, 0.10, T.BUSCH); streue(37, 24, 39, 28, 0.3, T.BAUM);
-    // Gras-Tupfer und Blumen (nur Optik)
+    // Suedstreifen y 30..47: fest (kein rng), schliesst an Weg (25,29) an
+    k.rect(25, 30, 1, 16, T.WEG);                                    // Suedweg bis y 45
+    k.rect(12, 38, 14, 1, T.WEG);                                    // Querweg
+    k.rect(12, 32, 1, 7, T.WEG);                                     // Park-Anschluss
+    k.rect(3, 32, 9, 7, T.PFLASTER);                                 // kleiner Park
+    k.setze(4, 33, T.BANK); k.setze(9, 33, T.BANK); k.setze(6, 37, T.BANK);
+    k.setze(6, 34, T.LATERNE);
+    k.rect(5, 35, 2, 2, T.WASSER);                                   // Teich
+    k.station('bank_park_a', 'bank', 4, 33, 1, 1, 'Bank im Südpark');
+    k.station('bank_park_b', 'bank', 9, 33, 1, 1, 'Bank am Teich');
+    k.station('bank_park_c', 'bank', 6, 37, 1, 1, 'Bank am Parkweg');
+    [[2, 32], [11, 32], [2, 38], [18, 38], [32, 40], [8, 44]].forEach(function (p) {
+      if (!k.blockiert(p[0], p[1]) && k.tile(p[0], p[1]) !== T.WEG) k.setze(p[0], p[1], T.LATERNE);
+    });
+    // Untere Kante: weiche Baum-/Mauerreihe (Umgebung, kein harter Kartenrand)
+    for (x = 0; x < 40; x++) {
+      if (x % 5 === 2) k.setze(x, 47, T.MAUER);
+      else k.setze(x, 47, T.BAUM);
+      if (x % 3 === 0 && k.tile(x, 46) === T.GRAS) k.setze(x, 46, T.BAUM);
+      else if (x % 3 === 1 && k.tile(x, 46) === T.GRAS) k.setze(x, 46, T.BUSCH);
+    }
+    // Gras-Tupfer und Blumen (nur Optik); y 0..29 unveraendert, weil Sued-Geometrie ohne rng davor lag
     var farben = ['#ff8fb4', '#ffe066', '#ffffff', '#b9a3f5'];
     for (y = 0; y < k.h; y++) for (x = 0; x < k.w; x++) {
       if (k.tile(x, y) === T.GRAS && rng.next() < 0.12) k.deco.push({ x: x * K + rng.int(2, 13), y: y * K + rng.int(2, 13), farbe: rng.pick(farben) });
     }
+    // Wiese im Sueden: Baeume/Buesche nach Blumen-rng, damit Seeds der oberen 30 Zeilen stabil bleiben
+    streue(0, 30, 39, 45, 0.11, T.BAUM); streue(0, 30, 39, 45, 0.09, T.BUSCH);
     k.spawn = { x: 25, y: 13 };
     return k;
   }

@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.4', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.5', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function neuesSpiel(opt) {
@@ -724,6 +724,9 @@
       var logH0 = mobilHoch ? Saufi.Render.berechnePortH(aw0, Math.max(1, ah0 - bedien0)) : Saufi.Render.BASE_H;
       Saufi.Render.setzeBildschirm(R, mobilHoch, { h: logH0 }); E.setzeMass(R.W, R.H); R.touch = isTouch;
       S = neuesSpiel({ seed: par.seed, tempo: par.tempo, figur: par.figur, viewW: R.VW || R.W, viewH: R.VH || R.H, best: speicher.zahl('best', 0), speicher: speicher, ruhig: speicher.bool('ruhig', false) });
+      R.stadtPxH = S.welt.stadt.pxH; R.hg = {}; R.props = {};
+      if (mobilHoch) Saufi.Render.setzeBildschirm(R, true, { h: logH0, stadtPxH: R.stadtPxH });
+      if (S.kamera) { S.kamera.viewW = R.VW || R.W; S.kamera.viewH = R.VH || R.H; Saufi.Kamera.sofort(S.kamera, S.spieler.x, S.spieler.y - 8); }
       S.stummAn = speicher.bool('stumm', false); T.setzeStumm(S.stummAn); M.setzeStumm(S.stummAn);
     }
     X = { E: E, M: M, T: T };
@@ -738,7 +741,7 @@
     dbg.schritte = function (sek, ds) { ds = ds || 1 / 30; for (var i = 0; i < sek / ds; i++) { update(S, ds, X); E.ende(); } return schnappschuss(S); };
     dbg.zustand = function () { return S; };
     dbg.musik = function () { return M.zustand(); };
-    dbg.mass = function () { return { W: R.W, H: R.H, VW: R.VW, VH: R.VH, zoom: R.weltZoom }; };
+    dbg.mass = function () { return { W: R.W, H: R.H, VW: R.VW, VH: R.VH, zoom: R.weltZoom, weltH: R.weltH }; };
     Saufi.debug = dbg;
 
     // Groesse: Hochformat = Spielfeld oben + Bedienleiste unten, R.H aus Viewport-Seitenverhaeltnis;
@@ -758,7 +761,7 @@
       var playH = Math.max(1, availH - bedienCss);
       var logH = hoch ? Saufi.Render.berechnePortH(availW, playH) : Saufi.Render.BASE_H;
       if (hoch !== R.hochkant || R.H !== logH) {
-        Saufi.Render.setzeBildschirm(R, hoch, { h: logH });
+        Saufi.Render.setzeBildschirm(R, hoch, { h: logH, stadtPxH: R.stadtPxH });
         E.setzeMass(R.W, R.H);
         if (S && S.kamera) { S.kamera.viewW = R.VW || R.W; S.kamera.viewH = R.VH || R.H; }
       }
@@ -787,6 +790,7 @@
         win.setTimeout(function () { if (tonEl && T.stummHinweisGezeigt) tonEl.hidden = true; }, 5000);
       }
     }
+    T.beiEntsperrt = function () { tonHinweisAktualisieren(); };
     var ctxLauscht = false;
     function lauscheCtx() {
       if (ctxLauscht || !T.ctx || typeof T.ctx.addEventListener !== 'function') return;

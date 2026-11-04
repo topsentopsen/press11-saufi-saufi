@@ -4,6 +4,12 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v05
+
+- **Stadtkarte 40×48:** nach Süden erweitert (pxH 768); obere 30 Zeilen unverändert (Türen, Orte, Seed). Südstreifen mit Weg, Park, Wiese, weicher Baum-/Mauer-Abschluss.
+- **Hoch-Welt voll:** Welt füllt ≥ 85 % der Canvashöhe; unten nur schmale UI-Reserve (`UI_RESERVE_HOCH`) für Hinweise/Hilfe; E/Wasser-Knöpfe darin/darüber.
+- **Debug:** `Saufi.debug.mass()` liefert zusätzlich `weltH`.
+
 ## Neu in v04
 
 - **Start per Tipp:** Tippen irgendwo auf dem Startbild startet; nur der Playlist-Eintrag öffnet die Jukebox. Zeile „Tippen zum Start“.

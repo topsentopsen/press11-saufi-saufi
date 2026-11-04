@@ -335,7 +335,7 @@ test('15 Karte: Tueren per A* erreichbar, keine eingesperrten Orte, alle vier Or
   var st1 = D.Karte.erstelleWelt(D.RNG.erstelle(1)).stadt, zaehl = {};
   for (var i = 0; i < st1.tiles.length; i++) zaehl[st1.tiles[i]] = (zaehl[st1.tiles[i]] || 0) + 1;
   wahr(zaehl[T.REBEN] > 40 && zaehl[T.WASSER] > 20 && zaehl[T.BRUNNEN] === 4 && zaehl[T.STAEFFELE] >= 4, 'Rebenhang, Fluss, Brunnen, Staeffele');
-  gleich(st1.w, 40); gleich(st1.h, 30);
+  gleich(st1.w, 40); gleich(st1.h, 48);
   // Nachbau der Begehbarkeit fuer die Truppe: A* findet den kuerzesten Weg um den Brunnen
   var p = D.Pfad.suche(st1, 13, 10, 17, 10); wahr(p && p.length - 1 === 6, 'um 2x2-Brunnen herum');
   gleich(D.Pfad.suche(st1, 25, 13, 5, 22), null, 'Ziel im Wasser');
@@ -758,7 +758,7 @@ test('39 Teamstimmung 0: eigener Titel statt Umgefallen/Press F', function () {
   gleich(t.S.zustand, 'ende'); gleich(t.S.ende.wertung.titel, 'Abgehängt');
   wahr(/abgehängt/.test(t.S.ende.wertung.kopf)); wahr(/Teamstimmung 0/.test(t.S.ende.grund));
   wahr(t.S.ende.wertung.kopf.indexOf('Press F') < 0);
-  gleich(D.Spiel.VERSION, '0.4');
+  gleich(D.Spiel.VERSION, '0.5');
   wahr(D.Gfx.MIN_SCHRIFT <= 7);
 });
 
@@ -813,9 +813,9 @@ test('42 DPR-Begrenzung: MAX_DPR = 2, setzeAufloesung und begrenzDpr kappen', fu
   wahr(sk === R.canvas.width / R.W, 'Skala konsistent');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
   wahr(/begrenzDpr|MAX_DPR/.test(main), 'main nutzt DPR-Begrenzung');
-  wahr(/VERSION\s*=\s*['"]0\.4['"]/.test(main), 'VERSION 0.4');
+  wahr(/VERSION\s*=\s*['"]0\.5['"]/.test(main), 'VERSION 0.5');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  wahr(/main\.js\?v=0\.4/.test(html), 'Cache-Buster v=0.4');
+  wahr(/main\.js\?v=0\.5/.test(html), 'Cache-Buster v=0.5');
 });
 
 test('43 Hochformat-Layout: Playlist und Menues passen in PORT_H', function () {
@@ -1078,10 +1078,11 @@ test('53 Kamera-Ausschnitt: Hoch ~1.5x, Quer weiter raus', function () {
   nah(D.Render.WELT_ZOOM, 1 / Math.sqrt(D.Render.WELT_FLAECHE_QUER), 1e-9);
   D.Render.setzeBildschirm(R, true);
   var altH = D.Render.BASE_W * D.Render.PORT_H;
-  wahr(R.VW * R.VH > altH * 0.9, 'Hoch: View ~alte Flaeche (Kartenhoehe gekappt)');
-  // v04: VH auf Stadtkartenhoehe 480 begrenzt → Flaeche etwas unter WELT_FLAECHE_HOCH
-  wahr(R.VH <= 480 + 0.01, 'Hoch VH <= Kartenhoehe');
-  wahr(R.VW * R.VH / altH >= D.Render.WELT_FLAECHE_HOCH * 0.9, 'Hoch-Weltflaeche nahe v03');
+  wahr(R.VW * R.VH > altH * 0.7, 'Hoch: View gross (UI-Reserve abgezogen)');
+  // v05: VH auf Stadtkartenhoehe 768 begrenzt; weltH = H - UI_RESERVE
+  wahr(R.VH <= (D.Render.STADT_PX_H || 768) + 0.01, 'Hoch VH <= Kartenhoehe');
+  wahr(R.weltH < R.H, 'UI-Reserve unter der Welt');
+  wahr(R.VW * R.VH / altH >= D.Render.WELT_FLAECHE_HOCH * 0.7, 'Hoch-Weltflaeche mit Reserve');
   wahr(D.Render.WELT_FLAECHE_QUER > D.Render.WELT_FLAECHE_HOCH, 'Quer staerker rausgezoomt');
   var t = neuesSpielTest(D, { viewW: R.VW, viewH: R.VH });
   wahr(t.S.kamera.viewW >= R.VW - 0.01 && t.S.kamera.viewH >= R.VH - 0.01, 'Kamera-View gesetzt');
@@ -1187,7 +1188,8 @@ test('64 Zoom: Quer >= 3; Hoch VH/weltH begrenzt, zoom >= 0.5', function () {
   var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
   [{ h: 693 }, { h: 570 }].forEach(function (opt) {
     D.Render.setzeBildschirm(R, true, opt);
-    wahr(R.VH <= 480 + 0.01 || (R.weltH != null && R.weltH > 0), 'Welt-Hoehe begrenzt bei h=' + opt.h);
+    wahr(R.VH <= (D.Render.STADT_PX_H || 768) + 0.01 || (R.weltH != null && R.weltH > 0), 'Welt-Hoehe begrenzt bei h=' + opt.h);
+    wahr(R.weltH <= R.H, 'weltH <= H bei h=' + opt.h);
     wahr(R.weltZoom >= 0.5, 'zoom >= 0.5 bei h=' + opt.h);
   });
 });
@@ -1227,6 +1229,112 @@ test('66 Versionen: ?v= == VERSION; README v04; Bau-Bericht', function () {
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v04/.test(readme), 'README Neu in v04');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v04.md')), 'bau-bericht-v04.md');
+});
+
+// ---------- v05: Karte 40x48, Hoch-Welt voll, UI-Reserve ----------
+test('67 Stadtkarte 40x48: Suedstreifen begehbar, Tueren/Stationen wie v04', function () {
+  var D = lade(), T = D.Karte.T, st = D.Karte.erstelleWelt(D.RNG.erstelle(1)).stadt;
+  gleich(st.w, 40); gleich(st.h, 48); gleich(st.pxH, 768);
+  var begehbar = 0;
+  for (var y = 30; y < 48; y++) for (var x = 0; x < 40; x++) if (!st.blockiert(x, y)) begehbar++;
+  wahr(begehbar > 40, 'Suedstreifen hat begehbare Kacheln');
+  wahr(!st.blockiert(25, 40), 'Suedweg (25,40) frei');
+  var tuere = { hotel: [25, 11], restaurant: [5, 12], kneipe: [33, 20], disko: [31, 28] };
+  Object.keys(tuere).forEach(function (id) {
+    var td = st.tueren.filter(function (t) { return t.id === id; })[0];
+    wahr(td, id + ' Tuer vorhanden');
+    gleich(td.x, tuere[id][0], id + ' Tuer-x');
+    gleich(td.y, tuere[id][1], id + ' Tuer-y');
+  });
+  var geb = { hotel: [22, 7, 8, 5], restaurant: [2, 8, 7, 5], kneipe: [30, 17, 7, 4], disko: [27, 25, 9, 4] };
+  st.gebaeude.forEach(function (b) {
+    var g = geb[b.id]; wahr(g, b.id + ' Gebaeude');
+    gleich(b.x, g[0]); gleich(b.y, g[1]); gleich(b.w, g[2]); gleich(b.h, g[3]);
+  });
+  wahr(st.tile(14, 10) === T.BRUNNEN && st.tile(25, 13) !== T.MAUER, 'Markt/Spawn unveraendert');
+});
+
+test('68 Erreichbarkeit: Hotel-Aussentuer zu Orten und Suedkachel, Seeds 1..5', function () {
+  var D = lade();
+  for (var seed = 1; seed <= 5; seed++) {
+    var st = D.Karte.erstelleWelt(D.RNG.erstelle(seed)).stadt;
+    var hotel = st.tueren.filter(function (t) { return t.id === 'hotel'; })[0];
+    wahr(hotel, 'Hotel-Tuer seed ' + seed);
+    ['hotel', 'restaurant', 'kneipe', 'disko'].forEach(function (id) {
+      var td = st.tueren.filter(function (t) { return t.id === id; })[0];
+      wahr(D.Pfad.suche(st, hotel.aussen.x, hotel.aussen.y, td.aussen.x, td.aussen.y), 'Seed ' + seed + ': Hotel→' + id);
+    });
+    wahr(D.Pfad.suche(st, hotel.aussen.x, hotel.aussen.y, 25, 40), 'Seed ' + seed + ': Hotel→Sued (25,40)');
+  }
+});
+
+test('69 Hoch-Weltanteil: 390x844 und 375x667 fuellen fast H', function () {
+  var D = lade(), cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  var h390 = D.Render.berechnePortH(390, 844);
+  D.Render.setzeBildschirm(R, true, { h: h390 });
+  wahr(R.VH >= 680, '390x844 VH >= 680 (ist ' + R.VH + ')');
+  wahr(R.weltH / R.H >= 0.85, '390x844 weltH/H >= 0.85');
+  wahr(R.weltH <= R.H, '390x844 weltH <= H');
+  wahr(R.VH <= 768 + 0.01, 'VH <= 768');
+  var h375 = D.Render.berechnePortH(375, 667);
+  D.Render.setzeBildschirm(R, true, { h: h375 });
+  wahr(R.weltH / R.H >= 0.82, '375x667 weltH/H >= 0.82');
+  wahr(R.VH <= 768 + 0.01, 'VH <= 768 (375)');
+});
+
+test('70 Kein Schwarz am Kartenrand: Kamera geklemmt', function () {
+  var D = lade(), t = neuesSpielTest(D), S = t.S, cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  D.Render.setzeBildschirm(R, true, { h: D.Render.berechnePortH(390, 844) });
+  S.kamera.viewW = R.VW; S.kamera.viewH = R.VH;
+  S.kamera.weltW = S.karte.pxW; S.kamera.weltH = S.karte.pxH;
+  // Suedrand
+  D.Spieler.setzeKachel(S.spieler, 20, 46);
+  D.Kamera.sofort(S.kamera, S.spieler.x, S.spieler.y - 8);
+  wahr(S.kamera.y + R.VH <= S.karte.pxH + 0.01, 'Sued: kamera.y+VH <= pxH');
+  wahr(S.kamera.y >= -0.01, 'Sued: kamera.y >= 0');
+  // Nordrand
+  D.Spieler.setzeKachel(S.spieler, 20, 1);
+  D.Kamera.sofort(S.kamera, S.spieler.x, S.spieler.y - 8);
+  wahr(S.kamera.y + R.VH <= S.karte.pxH + 0.01, 'Nord: kamera.y+VH <= pxH');
+  wahr(S.kamera.y >= -0.01, 'Nord: kamera.y >= 0');
+});
+
+test('71 debug.mass liefert W,H,VW,VH,zoom und weltH', function () {
+  var listeners = {}, rafs = [], els = {}, log = [];
+  function el(id) {
+    if (els[id]) return els[id];
+    var cv = mockCanvas(log), e = cv; e.id = id; e.classList = { add: function () {}, toggle: function () {}, remove: function () {} }; e.style = { setProperty: function () {} };
+    e.hidden = false; e.listeners = {}; e.addEventListener = function (t, f) { (e.listeners[t] = e.listeners[t] || []).push(f); }; e.setPointerCapture = function () {}; e.textContent = '';
+    return (els[id] = e);
+  }
+  var doc = { getElementById: el, createElement: function (t) { return t === 'audio' ? fakeAudio() : mockCanvas(log); }, addEventListener: function () {}, hidden: false, head: { appendChild: function () {} } };
+  var win = ladeKontext({ __SAUFI_OHNE_START: true, document: doc, location: { search: '', protocol: 'file:' }, navigator: { onLine: true },
+    addEventListener: function (t, f) { (listeners[t] = listeners[t] || []).push(f); }, requestAnimationFrame: function (f) { rafs.push(f); }, setInterval: function () { return 1; },
+    setTimeout: setTimeout, clearTimeout: clearTimeout, innerWidth: 1280, innerHeight: 720, getComputedStyle: function () { return { paddingLeft: '0', paddingRight: '0', paddingTop: '0', paddingBottom: '0' }; },
+    matchMedia: function () { return { matches: false }; } });
+  var Saufi = win.Saufi; Saufi.Main.starte(win, doc);
+  var m = Saufi.debug.mass();
+  ['W', 'H', 'VW', 'VH', 'zoom', 'weltH'].forEach(function (k) { wahr(m[k] != null && m[k] > 0, 'mass.' + k); });
+});
+
+test('72 Quer BASE 320x176: VH == H/zoom, Flaeche >= 3', function () {
+  var D = lade(), cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  D.Render.setzeBildschirm(R, false);
+  gleich(R.W, D.Render.BASE_W); gleich(R.H, D.Render.BASE_H);
+  nah(R.VH, R.H / R.weltZoom, 1e-9, 'Quer VH == H/zoom');
+  wahr(R.VW * R.VH / (D.Render.BASE_W * D.Render.BASE_H) >= 3 - 0.02, 'Quer Flaeche >= 3');
+});
+
+test('73 Versionen: VERSION 0.5, ?v=0.5, README v05, Bau-Bericht', function () {
+  var D = lade();
+  gleich(D.Spiel.VERSION, '0.5');
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  var vs = html.match(/\?v=([0-9.]+)/g) || [];
+  wahr(vs.length > 0, 'Cache-Buster vorhanden');
+  vs.forEach(function (v) { gleich(v, '?v=0.5', 'Cache-Buster ' + v); });
+  var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+  wahr(/Neu in v05/.test(readme), 'README Neu in v05');
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v05.md')), 'bau-bericht-v05.md');
 });
 
 // ---------- Ausfuehren ----------

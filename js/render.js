@@ -9,7 +9,8 @@
   var text = G.text, breite = G.breite, umbruch = G.umbruch, kuerze = G.kuerze, textInBox = G.textInBox, panel = G.panel, rgb = G.rgb, mix = G.mix;
   var BASE_W = 320, BASE_H = 176, PORT_H = 400, PORT_H_MIN = 280, PORT_H_MAX = 720, K = 16;
   // Kamera rausgezoomt; Querformat staerker (niedrigeres VH). HUD bleibt in Bildschirmkoordinaten (W×H)
-  var WELT_FLAECHE_HOCH = 1.5, WELT_FLAECHE_QUER = 3.0, MIN_WELT_ZOOM = 0.5, KARTE_PX_H = 480;
+  // UI_RESERVE_HOCH: schmales Dunkelfeld unten fuer Hinweise/Hilfe/E-Wasser; STADT_PX_H = 40×48 Kacheln
+  var WELT_FLAECHE_HOCH = 1.5, WELT_FLAECHE_QUER = 3.0, MIN_WELT_ZOOM = 0.5, UI_RESERVE_HOCH = 80, STADT_PX_H = 768;
   var WELT_FLAECHE = WELT_FLAECHE_QUER, WELT_ZOOM = 1 / Math.sqrt(WELT_FLAECHE);
   var MAX_BREITE = 4096, MAX_BG_SKALA = 6, MAX_DPR = 2;
   var W = BASE_W, H = BASE_H, VW = BASE_W / WELT_ZOOM, VH = BASE_H / WELT_ZOOM;
@@ -28,7 +29,7 @@
     var neueLeinwand = (doc && typeof doc.createElement === 'function') ? function (w, h) {
       try { var cv = doc.createElement('canvas'); if (!cv || !cv.getContext) return null; cv.width = w; cv.height = h; return cv; } catch (e) { return null; }
     } : null;
-    var R = { canvas: canvas, ctx: ctx, neueLeinwand: neueLeinwand, hg: {}, spr: {}, props: {}, treffer: [], panel: null, W: W, H: H, VW: VW, VH: VH, weltZoom: WELT_ZOOM, weltH: H, hochkant: false, touch: false, sk: 1, spSk: 1, cssW: 0, cssH: 0, dpr: 1 };
+    var R = { canvas: canvas, ctx: ctx, neueLeinwand: neueLeinwand, hg: {}, spr: {}, props: {}, treffer: [], panel: null, W: W, H: H, VW: VW, VH: VH, weltZoom: WELT_ZOOM, weltH: H, stadtPxH: STADT_PX_H, hochkant: false, touch: false, sk: 1, spSk: 1, cssW: 0, cssH: 0, dpr: 1 };
     glaettung(R);
     return R;
   }
@@ -63,9 +64,12 @@
     WELT_ZOOM = Math.max(MIN_WELT_ZOOM, 1 / Math.sqrt(WELT_FLAECHE));
     R.W = W; R.H = H; R.weltFlaeche = WELT_FLAECHE;
     VW = W / WELT_ZOOM;
-    // Hoch: Kamerahoehe auf Stadtkarte (40×30 = 640×480) begrenzen → kein sinnloser Schwarzstreifen
+    var stadtPxH = (opt && opt.stadtPxH != null) ? opt.stadtPxH : (R.stadtPxH != null ? R.stadtPxH : STADT_PX_H);
+    R.stadtPxH = stadtPxH;
+    // Hoch: Welt fuellt fast H, unten nur UI_RESERVE; VH an Stadtkartenhoehe (default 768) kappen
     if (hoch) {
-      VH = Math.min(H / WELT_ZOOM, KARTE_PX_H);
+      var weltHZiel = Math.max(1, H - UI_RESERVE_HOCH);
+      VH = Math.min(weltHZiel / WELT_ZOOM, stadtPxH);
       R.weltH = Math.round(VH * WELT_ZOOM);
     } else {
       VH = H / WELT_ZOOM;
@@ -481,13 +485,14 @@
       rr(c, rx + 10, by2, rw - 20, bh2, 'rgba(74,53,96,0.25)', 2.2); if (frac > 0.01) rr(c, rx + 10, by2, (rw - 20) * frac, bh2, aktiv ? '#e0504a' : '#f0b030', 2.2);
       R.hudRunde = { x: rx, y: ry, w: rw, h: rundenH };
     } else R.hudRunde = null;
-    // Safe-Zone unten: Quer = Stick/E (~120 CSS-px); Hoch = dunkles UI-Feld unter der Welt
+    // Safe-Zone unten: Quer = Stick/E (~120 CSS-px); Hoch = schmale UI-Reserve unter der Welt
     var weltH = (R.weltH != null && R.hochkant) ? R.weltH : H;
     var safeBot = R.touch && !R.hochkant ? Math.ceil(120 / Math.max(0.5, sCss)) : (R.hochkant && weltH < H ? Math.max(8, H - weltH) : 22);
+    var resTop = R.hochkant && weltH < H ? weltH + 2 : null;
     // Scooter-Leiste (nur in der Disko)
     if (S.ort === 'disko') {
       var bw = 150, bx = Math.round(W / 2 - bw / 2) + 2, by = H - safeBot - 18, b = S.boost, f = b.leiste, pulse = f >= 1 && Math.floor(S.t * 4) % 2 === 0;
-      if (R.hochkant && weltH < H) by = weltH + 29; // Hoch: unter der Hilfe-Zeile im UI-Feld
+      if (resTop != null) by = Math.min(H - 22, resTop + (S.hilfe ? 18 : 0)); // Hoch: in der UI-Reserve, unter Hilfe
       panel(c, bx - 6, by - 5, bw + 12, 21, 'rgba(42,35,66,0.92)', 7);
       rr(c, bx, by, bw, 11, 'rgba(255,255,255,0.12)', 5.5, P.kontur, 0.7); if (f > 0.02) rr(c, bx + 0.8, by + 0.8, (bw - 1.6) * f, 9.4, pulse ? '#ffffff' : P.neonPink, 4.7);
       textInBox(c, S.boostAktiv ? 'HYPER HYPER!' : (f >= 1 ? 'R: HYPER-BOOST!' : 'SCOOTER · E tanzen'), bx, by, bw, 11, 7, { col: S.boostAktiv ? P.neonGelb : '#ffffff', ausr: 'center', kontur: 'rgba(30,10,60,0.9)' });
@@ -500,25 +505,26 @@
       var a = Math.min(1, h.rest * 3);
       c.globalAlpha = a;
       if (h.art === 'gross') {
-        var y0 = R.hochkant && weltH < H ? Math.round(weltH * 0.42) : Math.round(H * 0.38);
+        // Hoch: in UI-Reserve, nicht mitten ueber dem Spieler
+        var y0 = resTop != null ? Math.min(H - 26, resTop + Math.max(0, Math.floor((H - weltH - 28) / 2))) : Math.round(H * 0.38);
         y0 += (Math.floor(S.t * 8) % 2);
         textInBox(c, h.text, 16, y0, W - 32, 24, 14, { col: '#ffe84f', ausr: 'center', kontur: P.kontur });
       } else {
         var boxW = Math.min(W - 40, 240), mess = textInBox(c, h.text, 0, 0, boxW - 16, 60, 8, { ausr: 'center', mess: true });
         var bw2 = Math.min(W - 40, Math.round(mess.w) + 20), hh2 = Math.round(mess.h) + 8;
         var wy, mx = Math.round(W / 2);
-        if (R.hochkant && weltH < H) wy = Math.min(H - hh2 - 4, weltH + 24 + (S.ort === 'disko' ? 26 : 0)); // Hoch: unter Hilfe (und Boost-Leiste), kein Overlap
+        if (resTop != null) wy = Math.min(H - hh2 - 2, resTop + (S.hilfe ? 16 : 0) + (S.ort === 'disko' ? 22 : 0));
         else wy = H - safeBot - hh2 - (S.ort === 'disko' ? 20 : 0);
         panel(c, mx - Math.round(bw2 / 2), wy, bw2, hh2, h.art === 'schlecht' ? '#ffd1da' : (h.art === 'gut' ? '#d8f5dc' : P.uiFlaeche), 7);
         textInBox(c, h.text, mx - Math.round(bw2 / 2) + 6, wy + 2, bw2 - 12, hh2 - 4, 8, { col: P.uiTinte, ausr: 'center' });
       }
       c.globalAlpha = 1;
     }
-    // Hilfe: Hoch im dunklen UI-Feld, Quer oberhalb Stick/E
+    // Hilfe: Hoch in UI-Reserve, Quer oberhalb Stick/E
     if (S.hilfe) {
       var hm = textInBox(c, S.hilfe, 0, 0, W - 40, 14, 8, { ausr: 'center', mess: true });
       var hw = Math.min(W - 20, Math.round(hm.w) + 18), hy;
-      if (R.hochkant && weltH < H) hy = Math.min(H - 20, weltH + 4);
+      if (resTop != null) hy = Math.min(H - 18, resTop);
       else hy = H - safeBot - 4;
       panel(c, Math.round(W / 2 - hw / 2), hy, hw, 16, 'rgba(255,248,238,0.96)', 7);
       textInBox(c, S.hilfe, Math.round(W / 2 - hw / 2) + 4, hy + 1, hw - 8, 14, 8, { col: P.uiTinte, ausr: 'center' });
@@ -760,6 +766,7 @@
     kameraView: kameraView, weltView: weltView, berechnePortH: berechnePortH,
     W: BASE_W, H: BASE_H, BASE_W: BASE_W, BASE_H: BASE_H, PORT_H: PORT_H, PORT_H_MIN: PORT_H_MIN, PORT_H_MAX: PORT_H_MAX,
     MAX_BREITE: MAX_BREITE, MAX_BG_SKALA: MAX_BG_SKALA, MAX_DPR: MAX_DPR,
+    UI_RESERVE_HOCH: UI_RESERVE_HOCH, STADT_PX_H: STADT_PX_H,
     get WELT_FLAECHE() { return WELT_FLAECHE; }, get WELT_ZOOM() { return WELT_ZOOM; },
     WELT_FLAECHE_HOCH: WELT_FLAECHE_HOCH, WELT_FLAECHE_QUER: WELT_FLAECHE_QUER
   };

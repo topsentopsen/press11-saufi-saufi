@@ -81,6 +81,7 @@
     t.markiereUnterbrochen = function () {
       if (!t.ctx) return;
       if (zustandGesperrt(t.ctx.state)) t.entsperrt = false;
+      else if (t.gestartet && t.ctx.state === 'running') t.entsperrt = true; // v05: spaetes resume()
     };
     t.hinweis = function () {
       if (!t.verfuegbar) return '';
@@ -93,7 +94,11 @@
       if (!init()) return false;
       var c = t.ctx;
       if (zustandGesperrt(c.state)) {
-        try { c.resume(); } catch (e) { /* egal */ }
+        try {
+          var pr = c.resume();
+          // v05: resume() ist asynchron, Flag erst nach Erfolg setzen und Listener informieren
+          if (pr && typeof pr.then === 'function') pr.then(function () { t.entsperrt = !zustandGesperrt(c.state); if (t.beiEntsperrt) t.beiEntsperrt(); }, function () {});
+        } catch (e) { /* egal */ }
       }
       spieleStumm(c);
       t.gestartet = true;
