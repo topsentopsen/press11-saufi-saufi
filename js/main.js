@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.5', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.6', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function neuesSpiel(opt) {
@@ -548,7 +548,12 @@
     var geklickt = null, daneben = false;
     E.klicks().forEach(function (k) {
       var hit = null;
-      S.treffer.forEach(function (t) { if (k.x >= t.x && k.x <= t.x + t.w && k.y >= t.y && k.y <= t.y + t.h) hit = t.i; });
+      S.treffer.forEach(function (t) {
+        if (k.x >= t.x && k.x <= t.x + t.w && k.y >= t.y && k.y <= t.y + t.h) {
+          if (t.i === 'x' || t.i === 'up' || t.i === 'down') hit = t.i;
+          else if (hit !== 'x' && hit !== 'up' && hit !== 'down') hit = t.i;
+        }
+      });
       if (hit !== null) geklickt = hit;
       else {
         var p = S.panel;
@@ -556,6 +561,8 @@
         else if (!p) daneben = true;
       }
     });
+    if (geklickt === 'up') { o.index = aktivIdx(-1); return; }
+    if (geklickt === 'down') { o.index = aktivIdx(1); return; }
     if (geklickt === 'x' || daneben) { if (o.art === 'minispiel') { S.overlay = null; return; } schliesse(S); return; }
     var wahlNr = E.neu('wahl1') ? 0 : (E.neu('wahl2') ? 1 : (E.neu('wahl3') ? 2 : -1));
     if (wahlNr >= 0 && wahlNr < n && (o.art === 'menue' || o.art === 'minispiel')) geklickt = wahlNr;
@@ -720,12 +727,13 @@
         padY0 = (parseFloat(cs0.paddingTop) || 0) + (parseFloat(cs0.paddingBottom) || 0);
       }
       var aw0 = Math.max(1, win.innerWidth - padX0 - 8), ah0 = Math.max(1, win.innerHeight - padY0 - 8);
-      var bedien0 = (isTouch && mobilHoch) ? Math.round(Math.min(140, Math.max(100, ah0 * 0.155))) : 0;
+      var bedien0 = (isTouch && mobilHoch) ? berechneBedien(ah0) : 0;
       var logH0 = mobilHoch ? Saufi.Render.berechnePortH(aw0, Math.max(1, ah0 - bedien0)) : Saufi.Render.BASE_H;
-      Saufi.Render.setzeBildschirm(R, mobilHoch, { h: logH0 }); E.setzeMass(R.W, R.H); R.touch = isTouch;
+      R.touch = isTouch;
+      Saufi.Render.setzeBildschirm(R, mobilHoch, { h: logH0, touch: isTouch }); E.setzeMass(R.W, R.H);
       S = neuesSpiel({ seed: par.seed, tempo: par.tempo, figur: par.figur, viewW: R.VW || R.W, viewH: R.VH || R.H, best: speicher.zahl('best', 0), speicher: speicher, ruhig: speicher.bool('ruhig', false) });
       R.stadtPxH = S.welt.stadt.pxH; R.hg = {}; R.props = {};
-      if (mobilHoch) Saufi.Render.setzeBildschirm(R, true, { h: logH0, stadtPxH: R.stadtPxH });
+      if (mobilHoch) Saufi.Render.setzeBildschirm(R, true, { h: logH0, stadtPxH: R.stadtPxH, touch: isTouch });
       if (S.kamera) { S.kamera.viewW = R.VW || R.W; S.kamera.viewH = R.VH || R.H; Saufi.Kamera.sofort(S.kamera, S.spieler.x, S.spieler.y - 8); }
       S.stummAn = speicher.bool('stumm', false); T.setzeStumm(S.stummAn); M.setzeStumm(S.stummAn);
     }
@@ -756,12 +764,14 @@
         padY = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
       }
       var availW = Math.max(1, win.innerWidth - padX - 8), availH = Math.max(1, win.innerHeight - padY - 8);
-      // Bedienleiste nur Hochformat+Touch: Joystick/E/Wasser unter dem Spielfeld
-      var bedienCss = (isTouch && hoch) ? Math.round(Math.min(140, Math.max(100, availH * 0.155))) : 0;
+      // Bedienleiste nur Hochformat+Touch: Joystick/E/Wasser unter dem Spielfeld (96–140 CSS-px)
+      var bedienCss = (isTouch && hoch) ? berechneBedien(availH) : 0;
       var playH = Math.max(1, availH - bedienCss);
       var logH = hoch ? Saufi.Render.berechnePortH(availW, playH) : Saufi.Render.BASE_H;
-      if (hoch !== R.hochkant || R.H !== logH) {
-        Saufi.Render.setzeBildschirm(R, hoch, { h: logH, stadtPxH: R.stadtPxH });
+      var touchWechsel = !!R.touch !== isTouch;
+      R.touch = isTouch;
+      if (hoch !== R.hochkant || R.H !== logH || touchWechsel) {
+        Saufi.Render.setzeBildschirm(R, hoch, { h: logH, stadtPxH: R.stadtPxH, touch: isTouch });
         E.setzeMass(R.W, R.H);
         if (S && S.kamera) { S.kamera.viewW = R.VW || R.W; S.kamera.viewH = R.VH || R.H; }
       }
@@ -776,18 +786,26 @@
       rahmen.classList.toggle('touch', isTouch);
       rahmen.classList.toggle('hoch', !!hoch);
     }
-    win.addEventListener('resize', groesse); win.addEventListener('orientationchange', groesse); groesse();
+    win.addEventListener('resize', groesse); win.addEventListener('orientationchange', groesse);
+    if (win.visualViewport && win.visualViewport.addEventListener) win.visualViewport.addEventListener('resize', groesse);
+    groesse();
 
     // Audio erst bei touchend/pointerup/click entsperren (iOS: nicht nur pointerdown/keydown)
     var tonEl = doc.getElementById('ton-hinweis');
     function tonHinweisAktualisieren() {
       if (!tonEl) return;
+      // Ende-Bild und offenes Overlay: Hinweis ausblenden (liegt sonst ueber dem Titel)
+      if (S && (S.zustand === 'ende' || S.overlay)) { tonEl.hidden = true; return; }
       var text = T.hinweis ? T.hinweis() : '';
       if (!text) { tonEl.hidden = true; return; }
       tonEl.textContent = text; tonEl.hidden = false;
-      if (text === Saufi.Ton.HINWEIS_STUMMSCHALTER) {
-        T.stummHinweisGezeigt = true;
-        win.setTimeout(function () { if (tonEl && T.stummHinweisGezeigt) tonEl.hidden = true; }, 5000);
+      // Stummschalter-Hinweis mind. 4 s: Flag erst im Timeout setzen (sonst verschwindet er beim naechsten Update)
+      if (text === Saufi.Ton.HINWEIS_STUMMSCHALTER && !T._stummTimer) {
+        T._stummTimer = win.setTimeout(function () {
+          T.stummHinweisGezeigt = true;
+          T._stummTimer = null;
+          if (tonEl) tonEl.hidden = true;
+        }, 4000);
       }
     }
     T.beiEntsperrt = function () { tonHinweisAktualisieren(); };
@@ -821,6 +839,7 @@
     }, { passive: false });
     canvas.tabIndex = 0;
     canvas.addEventListener('pointerdown', function () { try { canvas.focus(); } catch (err) { /* egal */ } });
+    var touchGemeldet = !!(E.touch);
     win.addEventListener('blur', function () {
       setTimeout(function () {
         var ae = doc.activeElement, tag = ae && ae.tagName ? String(ae.tagName).toUpperCase() : '';
@@ -848,7 +867,10 @@
       var pointerMs = -1;
       function feuer(ev) {
         if (ev && ev.preventDefault) ev.preventDefault();
-        E.touch = true; E.tippe(aktion2);
+        var warTouch = !!E.touch;
+        E.touch = true;
+        if (!warTouch || !R.touch) { touchGemeldet = true; groesse(); }
+        E.tippe(aktion2);
       }
       b.addEventListener('pointerdown', function (ev) {
         pointerMs = typeof ev.timeStamp === 'number' ? ev.timeStamp : Date.now();
@@ -866,7 +888,10 @@
     // Virtueller Joystick (links unten, erscheint dort, wo der Daumen aufsetzt)
     var zone = doc.getElementById('stick'), basis = doc.getElementById('stick-basis'), dau = doc.getElementById('stick-dau'), stickId = null, o0 = null, stickTouch = false;
     function stickStart(clientX, clientY, id) {
-      E.touch = true; if (stickId !== null) return false;
+      var warTouch = !!E.touch;
+      E.touch = true;
+      if (!warTouch || !R.touch) { touchGemeldet = true; groesse(); }
+      if (stickId !== null) return false; // zweiter Finger auf Stick-Zone ignorieren
       stickId = id; var r0 = zone.getBoundingClientRect(); o0 = { x: clientX, y: clientY };
       if (basis) { basis.style.display = 'block'; basis.style.left = (o0.x - r0.left) + 'px'; basis.style.top = (o0.y - r0.top) + 'px'; }
       return true;
@@ -874,8 +899,9 @@
     function stickMove(clientX, clientY) {
       if (stickId === null || !o0) return;
       var dx = clientX - o0.x, dy = clientY - o0.y, rad = 40, l = Math.hypot(dx, dy);
-      if (l > rad) { dx = dx / l * rad; dy = dy / l * rad; }
-      E.stick.x = Math.abs(dx) < 6 ? 0 : dx / rad; E.stick.y = Math.abs(dy) < 6 ? 0 : dy / rad;
+      if (l > rad) { dx = dx / l * rad; dy = dy / l * rad; l = rad; }
+      var aus = stickAuslenkung(dx, dy, rad);
+      E.stick.x = aus.x; E.stick.y = aus.y;
       if (dau) dau.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
     }
     function stickEnde() {
@@ -896,12 +922,12 @@
       // Touch-Fallback mit preventDefault ({passive:false}) fuer aeltere/iOS-WebKit-Pfade
       zone.addEventListener('touchstart', function (ev) {
         if (ev.preventDefault) ev.preventDefault();
-        if (stickId !== null && !stickTouch) return; // Pointer hat schon gegriffen
+        if (stickId !== null) return; // Pointer/erster Finger hat schon gegriffen — zweiten ignorieren
         var t0 = ev.changedTouches && ev.changedTouches[0]; if (!t0) return;
         stickTouch = true; stickStart(t0.clientX, t0.clientY, 'touch');
       }, { passive: false });
       zone.addEventListener('touchmove', function (ev) {
-        if (!stickTouch) return; if (ev.preventDefault) ev.preventDefault();
+        if (!stickTouch || stickId !== 'touch') return; if (ev.preventDefault) ev.preventDefault();
         var t0 = ev.changedTouches && ev.changedTouches[0]; if (!t0) return;
         stickMove(t0.clientX, t0.clientY);
       }, { passive: false });
@@ -909,8 +935,10 @@
         if (ev.preventDefault) ev.preventDefault();
         if (stickTouch) stickEnde();
       }, { passive: false });
-      zone.addEventListener('touchcancel', function () { if (stickTouch) stickEnde(); }, { passive: false });
+      zone.addEventListener('touchcancel', function () { stickEnde(); }, { passive: false });
     }
+    win.addEventListener('pointercancel', function () { stickEnde(); });
+    win.addEventListener('blur', function () { stickEnde(); });
 
     // Touch-Knoepfe nur zeigen, wenn passend
     function knoepfeAktualisieren() {
@@ -920,9 +948,10 @@
       var dbgEl = doc.getElementById('debug'); if (dbgEl && !dbgEl.hidden) dbgEl.textContent = JSON.stringify(schnappschuss(S), null, 1);
     }
 
-    // Tab im Hintergrund: Pause; Audio nach Unterbrechung (suspended/interrupted) bei naechster Geste resume
+    // Tab im Hintergrund: Pause; Stick zuruecksetzen; Audio nach Unterbrechung bei naechster Geste resume
     doc.addEventListener('visibilitychange', function () {
       if (doc.hidden) {
+        stickEnde();
         if (S.zustand === 'spiel' && !S.overlay) pauseMenue(S, X);
       }
       if (T.markiereUnterbrochen) T.markiereUnterbrochen();
@@ -933,6 +962,11 @@
     function frame(ms) {
       if (letzte === null) letzte = ms;
       var dt = Math.min(0.05, (ms - letzte) / 1000); letzte = ms;
+      // Touch erst spaeter erkannt: einmal Layout neu (Spielstand bleibt)
+      if (E.touch && (!touchGemeldet || !R.touch || R.touch !== E.touch)) {
+        touchGemeldet = true;
+        groesse();
+      }
       if (E.touch !== undefined && E.touch) { rahmen.classList.add('touch'); R.touch = true; }
       if (rahmen && rahmen.classList) rahmen.classList.toggle('overlay', !!S.overlay);
       // Overlay offen: Stick-Geste abbrechen (Zone hat pointer-events:none, Restbewegung loeschen)
@@ -944,6 +978,8 @@
       Saufi.Render.zeichne(R, S);
       S.treffer = R.treffer; S.panel = R.panel || null;
       if (rahmen && rahmen.classList) rahmen.classList.toggle('overlay', !!S.overlay);
+      // Ende/Overlay: Ton-Hinweis ausblenden (liegt sonst ueber Titel/Menue)
+      if (tonEl && (S.zustand === 'ende' || S.overlay)) tonEl.hidden = true;
       knoepfeAktualisieren();
       E.ende();
       win.requestAnimationFrame(frame);
@@ -967,12 +1003,23 @@
     if (ch > availH) { s = Math.min(s, availH / logH); cw = Math.round(logW * s); ch = Math.round(logH * s); }
     return { s: s, cw: cw, ch: ch };
   }
-  // Bedienleisten-Hoehe (CSS-px) fuer Hochformat-Touch
+  // Bedienleisten-Hoehe (CSS-px) fuer Hochformat-Touch: Stick 80 + E/Wasser, 96–140
   function berechneBedien(availH) {
-    return Math.round(Math.min(140, Math.max(100, (availH || 0) * 0.155)));
+    return Math.round(Math.min(140, Math.max(96, (availH || 0) * 0.14)));
+  }
+  // Stick-Totzone 0.18 (normiert), darueber linear; fuer Tests exportiert
+  function stickAuslenkung(dx, dy, rad) {
+    rad = rad > 0 ? rad : 40;
+    var l = Math.hypot(dx, dy);
+    if (l > rad) { dx = dx / l * rad; dy = dy / l * rad; l = rad; }
+    var n = l / rad;
+    if (n < 0.18) return { x: 0, y: 0 };
+    var f = (n - 0.18) / (1 - 0.18);
+    if (n < 1e-9) return { x: 0, y: 0 };
+    return { x: (dx / rad) * (f / n), y: (dy / rad) * (f / n) };
   }
 
-  Saufi.Main = { parameter: parameter, starte: starte, berechneSkala: berechneSkala, berechneBedien: berechneBedien };
+  Saufi.Main = { parameter: parameter, starte: starte, berechneSkala: berechneSkala, berechneBedien: berechneBedien, stickAuslenkung: stickAuslenkung };
 
   if (g.document && g.document.getElementById && g.document.getElementById('spiel') && !g.__SAUFI_OHNE_START) {
     starte(g, g.document);

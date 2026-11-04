@@ -4,6 +4,15 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v06
+
+- **Ende-Bild Hoch:** kompaktes Panel unter den Oben-Knöpfen, Kesselszene sichtbar; Neustart ≥ 44 CSS-px, Tippen irgendwo nach 0,8 s; Ton-Hinweis ausgeblendet.
+- **Wackel** nur im Welt-Ausschnitt; **Touch später** → einmal `groesse()` ohne Neustart.
+- **Schilder** „Kehrwoche ok“ / „Feinstaub drin“ ohne `…`; Jukebox-Hinweis `YouTube: N Videos`.
+- **Hoch+Touch:** `UI_RESERVE_HOCH_TOUCH` ≈ 48, DOM-Leiste 96–140 CSS-px; Overlay-Zeilen/X ≥ 44 CSS-px mit Scroll (▲/▼).
+- **Stick:** Totzone 0,18; Mehrfinger Stick+E; Cancel/Blur setzt zurück.
+- **Nachtrag:** Stumm-Hinweis ≥ 4 s; Disko/Innenräume füllen die Weltfläche; Zuruf „RUNDE!“ mit Abstand zur Scooter-Leiste.
+
 ## Neu in v05
 
 - **Stadtkarte 40×48:** nach Süden erweitert (pxH 768); obere 30 Zeilen unverändert (Türen, Orte, Seed). Südstreifen mit Weg, Park, Wiese, weicher Baum-/Mauer-Abschluss.

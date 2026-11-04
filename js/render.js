@@ -9,8 +9,8 @@
   var text = G.text, breite = G.breite, umbruch = G.umbruch, kuerze = G.kuerze, textInBox = G.textInBox, panel = G.panel, rgb = G.rgb, mix = G.mix;
   var BASE_W = 320, BASE_H = 176, PORT_H = 400, PORT_H_MIN = 280, PORT_H_MAX = 720, K = 16;
   // Kamera rausgezoomt; Querformat staerker (niedrigeres VH). HUD bleibt in Bildschirmkoordinaten (W×H)
-  // UI_RESERVE_HOCH: schmales Dunkelfeld unten fuer Hinweise/Hilfe/E-Wasser; STADT_PX_H = 40×48 Kacheln
-  var WELT_FLAECHE_HOCH = 1.5, WELT_FLAECHE_QUER = 3.0, MIN_WELT_ZOOM = 0.5, UI_RESERVE_HOCH = 80, STADT_PX_H = 768;
+  // UI_RESERVE_HOCH: Dunkelfeld unten ohne Touch; UI_RESERVE_HOCH_TOUCH schmaler (DOM-Leiste darunter); STADT_PX_H = 40×48
+  var WELT_FLAECHE_HOCH = 1.5, WELT_FLAECHE_QUER = 3.0, MIN_WELT_ZOOM = 0.5, UI_RESERVE_HOCH = 80, UI_RESERVE_HOCH_TOUCH = 48, STADT_PX_H = 768;
   var WELT_FLAECHE = WELT_FLAECHE_QUER, WELT_ZOOM = 1 / Math.sqrt(WELT_FLAECHE);
   var MAX_BREITE = 4096, MAX_BG_SKALA = 6, MAX_DPR = 2;
   var W = BASE_W, H = BASE_H, VW = BASE_W / WELT_ZOOM, VH = BASE_H / WELT_ZOOM;
@@ -66,11 +66,18 @@
     VW = W / WELT_ZOOM;
     var stadtPxH = (opt && opt.stadtPxH != null) ? opt.stadtPxH : (R.stadtPxH != null ? R.stadtPxH : STADT_PX_H);
     R.stadtPxH = stadtPxH;
-    // Hoch: Welt fuellt fast H, unten nur UI_RESERVE; VH an Stadtkartenhoehe (default 768) kappen
+    // Hoch: Welt fuellt fast H, unten nur UI_RESERVE (Touch: schmaler); VH an Stadtkartenhoehe kappen
     if (hoch) {
-      var weltHZiel = Math.max(1, H - UI_RESERVE_HOCH);
+      var touchModus = (opt && opt.touch != null) ? !!opt.touch : !!R.touch;
+      var reserve = touchModus ? UI_RESERVE_HOCH_TOUCH : UI_RESERVE_HOCH;
+      var weltHZiel = Math.max(1, H - reserve);
       VH = Math.min(weltHZiel / WELT_ZOOM, stadtPxH);
       R.weltH = Math.round(VH * WELT_ZOOM);
+      // Touch: Reserve darf nicht durch Stadtkappe groesser als UI_RESERVE_HOCH_TOUCH werden
+      if (touchModus && H - R.weltH > reserve) {
+        R.weltH = H - reserve;
+        VH = R.weltH / WELT_ZOOM;
+      }
     } else {
       VH = H / WELT_ZOOM;
       R.weltH = H;
@@ -492,31 +499,35 @@
     // Scooter-Leiste (nur in der Disko)
     if (S.ort === 'disko') {
       var bw = 150, bx = Math.round(W / 2 - bw / 2) + 2, by = H - safeBot - 18, b = S.boost, f = b.leiste, pulse = f >= 1 && Math.floor(S.t * 4) % 2 === 0;
-      if (resTop != null) by = Math.min(H - 22, resTop + (S.hilfe ? 18 : 0)); // Hoch: in der UI-Reserve, unter Hilfe
-      panel(c, bx - 6, by - 5, bw + 12, 21, 'rgba(42,35,66,0.92)', 7);
-      rr(c, bx, by, bw, 11, 'rgba(255,255,255,0.12)', 5.5, P.kontur, 0.7); if (f > 0.02) rr(c, bx + 0.8, by + 0.8, (bw - 1.6) * f, 9.4, pulse ? '#ffffff' : P.neonPink, 4.7);
-      textInBox(c, S.boostAktiv ? 'HYPER HYPER!' : (f >= 1 ? 'R: HYPER-BOOST!' : 'SCOOTER · E tanzen'), bx, by, bw, 11, 7, { col: S.boostAktiv ? P.neonGelb : '#ffffff', ausr: 'center', kontur: 'rgba(30,10,60,0.9)' });
+      // Hoch: einzeilig in der UI-Reserve (unter Hilfe)
+      if (resTop != null) by = Math.min(H - 14, resTop + (S.hilfe ? 14 : 0));
+      panel(c, bx - 6, by - 3, bw + 12, 15, 'rgba(42,35,66,0.92)', 6);
+      rr(c, bx, by, bw, 9, 'rgba(255,255,255,0.12)', 4.5, P.kontur, 0.7); if (f > 0.02) rr(c, bx + 0.8, by + 0.8, (bw - 1.6) * f, 7.4, pulse ? '#ffffff' : P.neonPink, 3.7);
+      textInBox(c, S.boostAktiv ? 'HYPER HYPER!' : (f >= 1 ? 'R: HYPER-BOOST!' : 'SCOOTER · E tanzen'), bx, by, bw, 9, 7, { col: S.boostAktiv ? P.neonGelb : '#ffffff', ausr: 'center', kontur: 'rgba(30,10,60,0.9)', maxZeilen: 1 });
     }
     // Navigationspfeil (Welt→Bildschirm); Label unter Uhr/Runde
-    if (S.pfeil) pfeil(R, S.pfeil.x * WELT_ZOOM, S.pfeil.y * WELT_ZOOM, ry + rundenH);
+    var pfeilZoom = R.aktuellerWeltZoom != null ? R.aktuellerWeltZoom : WELT_ZOOM;
+    if (S.pfeil) pfeil(R, S.pfeil.x * pfeilZoom, S.pfeil.y * pfeilZoom, ry + rundenH);
     // Banner / Hinweise
     var h = Saufi.Hinweise.aktuell(S.hinweise);
     if (h) {
       var a = Math.min(1, h.rest * 3);
       c.globalAlpha = a;
       if (h.art === 'gross') {
-        // Hoch: in UI-Reserve, nicht mitten ueber dem Spieler
-        var y0 = resTop != null ? Math.min(H - 26, resTop + Math.max(0, Math.floor((H - weltH - 28) / 2))) : Math.round(H * 0.38);
+        // Hoch: resTop+40 (≥4 px unter Scooter-Leiste), nicht mitten ueber dem Spieler
+        var y0 = resTop != null ? Math.min(H - 26, resTop + 40) : Math.round(H * 0.38);
         y0 += (Math.floor(S.t * 8) % 2);
         textInBox(c, h.text, 16, y0, W - 32, 24, 14, { col: '#ffe84f', ausr: 'center', kontur: P.kontur });
       } else {
-        var boxW = Math.min(W - 40, 240), mess = textInBox(c, h.text, 0, 0, boxW - 16, 60, 8, { ausr: 'center', mess: true });
+        var maxZ = resTop != null ? 2 : 4;
+        var boxW = Math.min(W - 40, 240), mess = textInBox(c, h.text, 0, 0, boxW - 16, resTop != null ? 28 : 60, 8, { ausr: 'center', mess: true, maxZeilen: maxZ });
         var bw2 = Math.min(W - 40, Math.round(mess.w) + 20), hh2 = Math.round(mess.h) + 8;
+        if (resTop != null) hh2 = Math.min(hh2, Math.max(16, H - weltH - (S.hilfe ? 16 : 0) - (S.ort === 'disko' ? 18 : 0) - 2));
         var wy, mx = Math.round(W / 2);
-        if (resTop != null) wy = Math.min(H - hh2 - 2, resTop + (S.hilfe ? 16 : 0) + (S.ort === 'disko' ? 22 : 0));
+        if (resTop != null) wy = Math.min(H - hh2 - 2, resTop + (S.hilfe ? 14 : 0) + (S.ort === 'disko' ? 16 : 0));
         else wy = H - safeBot - hh2 - (S.ort === 'disko' ? 20 : 0);
         panel(c, mx - Math.round(bw2 / 2), wy, bw2, hh2, h.art === 'schlecht' ? '#ffd1da' : (h.art === 'gut' ? '#d8f5dc' : P.uiFlaeche), 7);
-        textInBox(c, h.text, mx - Math.round(bw2 / 2) + 6, wy + 2, bw2 - 12, hh2 - 4, 8, { col: P.uiTinte, ausr: 'center' });
+        textInBox(c, h.text, mx - Math.round(bw2 / 2) + 6, wy + 2, bw2 - 12, hh2 - 4, 8, { col: P.uiTinte, ausr: 'center', maxZeilen: maxZ });
       }
       c.globalAlpha = 1;
     }
@@ -548,17 +559,24 @@
 
   // ---------- Menues und Bildschirme ----------
   function abdunkeln(c, a) { c.fillStyle = 'rgba(42,34,54,' + a + ')'; c.fillRect(0, 0, W, H); }
+  function cssSkala(R) { return (R.cssW > 0 && W > 0) ? (R.cssW / W) : 1; }
+  function touchZeile(R) { return Math.ceil(44 / Math.max(0.5, cssSkala(R))); }
   function knopfZeile(c, x, y, w, h, sel, label, aktiv, rechts, blink) {
     rr(c, x, y, w, h, sel ? (blink ? '#fff3b0' : '#ffe9a8') : P.uiFlaeche2, Math.min(6, h / 2.4), sel ? P.kontur : 'rgba(74,53,96,0.25)', sel ? 0.9 : 0.6);
     var padR = rechts ? Math.min(72, w * 0.38) : 0;
-    textInBox(c, label, x + 5, y + 1, w - 10 - padR, h - 2, Math.min(9, h - 4), { col: aktiv === false ? '#b3a5c2' : P.uiTinte, ausr: 'left' });
-    if (rechts) textInBox(c, rechts, x + w - padR - 2, y + 1, padR - 2, h - 2, Math.min(9, h - 4), { col: P.uiTinteWeich, ausr: 'right' });
+    textInBox(c, label, x + 5, y + 1, w - 10 - padR, h - 2, Math.min(9, h - 4), { col: aktiv === false ? '#b3a5c2' : P.uiTinte, ausr: 'left', maxZeilen: 1 });
+    if (rechts) textInBox(c, rechts, x + w - padR - 2, y + 1, padR - 2, h - 2, Math.min(9, h - 4), { col: P.uiTinteWeich, ausr: 'right', maxZeilen: 1 });
   }
-  function schliessX(R, bx, by, bw) {
-    var c = R.ctx, hit = R.touch ? 22 : 12, x = bx + bw - hit - 4, y = by + 4;
-    rr(c, x, y, hit, hit, '#ffd1da', 3, P.kontur, 0.7);
-    textInBox(c, '×', x, y, hit, hit, R.touch ? 14 : 12, { col: P.bierRot, ausr: 'center' });
-    R.treffer.push({ x: x, y: y, w: hit, h: hit, i: 'x' });
+  function schliessX(R, bx, by, bw, bh) {
+    var c = R.ctx, minHit = R.touch ? touchZeile(R) : 12, draw = R.touch ? Math.min(22, minHit) : 12;
+    var x = bx + bw - draw - 4, y = by + 4;
+    rr(c, x, y, draw, draw, '#ffd1da', 3, P.kontur, 0.7);
+    textInBox(c, '×', x, y, draw, draw, R.touch ? 14 : 12, { col: P.bierRot, ausr: 'center' });
+    // Treffer ≥ 44 CSS-px; Kästchen darf kleiner sein, Hit im Panel halten
+    var hx = Math.round(x + draw / 2 - minHit / 2), hy = Math.round(y + draw / 2 - minHit / 2);
+    hx = Math.max(bx + 2, Math.min(hx, bx + bw - minHit - 2));
+    hy = Math.max(by + 2, Math.min(hy, (bh != null ? by + bh : by + minHit + 4) - minHit - 2));
+    R.treffer.push({ x: hx, y: hy, w: minHit, h: minHit, i: 'x' });
   }
   // Panel immer in W×H halten (kuerzen statt abschneiden)
   function panelPlatz(bh) {
@@ -569,101 +587,155 @@
   }
   function zeichneListe(R, titel, kopf, eintraege, index, o) {
     var c = R.ctx, bw = o && o.breite || Math.min(260, W - 20), kopfH = kopf.length * 10;
-    // Touch: hoehere Zeilen (≥ lesbare Treffer); Platz begrenzt Zeilenhoehe
-    var rowH = o && o.zeile || (R.touch ? (R.hochkant ? 32 : 22) : (R.hochkant ? 26 : 18));
-    var frei = H - 12 - 28 - kopfH;
-    rowH = Math.max(R.touch ? 18 : 14, Math.min(rowH, Math.floor(frei / Math.max(1, eintraege.length))));
-    var roh = 28 + kopfH + eintraege.length * rowH + 6, pl = panelPlatz(roh), bx = Math.round((W - bw) / 2), by = pl.by, bh = pl.bh;
+    var minRow = R.touch ? touchZeile(R) : (R.hochkant ? 26 : 18);
+    var rowH = o && o.zeile != null ? o.zeile : minRow;
+    if (R.touch) rowH = Math.max(minRow, rowH);
+    var titelH = R.touch ? Math.max(touchZeile(R) + 4, 24) : 18;
+    var scrollH = R.touch ? touchZeile(R) : 14;
+    var freiMax = H - 4;
+    function chrome(mitScroll) { return titelH + 8 + kopfH + (mitScroll ? 2 * scrollH : 0) + 6; }
+    var maxSichtbar = Math.max(1, Math.floor((freiMax - chrome(false)) / rowH));
+    var scrollt = eintraege.length > maxSichtbar;
+    if (scrollt) maxSichtbar = Math.max(1, Math.floor((freiMax - chrome(true)) / rowH));
+    var start = 0;
+    if (scrollt) start = Math.max(0, Math.min(index - Math.floor((maxSichtbar - 1) / 2), eintraege.length - maxSichtbar));
+    var nSicht = scrollt ? maxSichtbar : eintraege.length;
+    var roh = chrome(scrollt) + nSicht * rowH;
+    var pl = panelPlatz(Math.min(roh, freiMax)), bx = Math.round((W - bw) / 2), by = pl.by, bh = pl.bh;
     abdunkeln(c, 0.55);
     panel(c, bx, by, bw, bh, P.uiFlaeche, 8);
     R.panel = { x: bx, y: by, w: bw, h: bh };
     R.treffer = [];
-    textInBox(c, titel, bx + 18, by + 3, bw - 36, 14, 9, { col: P.uiTinte, ausr: 'center' });
-    schliessX(R, bx, by, bw);
-    kopf.forEach(function (z, i) { textInBox(c, z, bx + 10, by + 18 + i * 10, bw - 20, 10, 8, { col: P.uiTinteWeich, ausr: 'center' }); });
-    eintraege.forEach(function (e, i) {
-      var ey = by + 24 + kopfH + i * rowH;
-      if (ey + rowH - 2 > by + bh - 2) return; // kein Abschneiden: ueberzaehlige Zeilen weglassen
-      knopfZeile(c, bx + 9, ey, bw - 18, rowH - 2, i === index, e.label, e.aktiv, e.rechts);
-      R.treffer.push({ x: bx + 9, y: ey, w: bw - 18, h: rowH - 2, i: i });
-    });
+    textInBox(c, titel, bx + 18, by + 3, bw - 36, titelH - 4, 9, { col: P.uiTinte, ausr: 'center', maxZeilen: 1 });
+    schliessX(R, bx, by, bw, bh);
+    var yKopf = by + titelH;
+    kopf.forEach(function (z, i) { textInBox(c, z, bx + 10, yKopf + i * 10, bw - 20, 10, 8, { col: P.uiTinteWeich, ausr: 'center', maxZeilen: 1 }); });
+    var y0 = yKopf + kopfH + 2;
+    if (scrollt && start > 0) {
+      knopfZeile(c, bx + 9, y0, bw - 18, scrollH - 2, false, '▲', true);
+      R.treffer.push({ x: bx + 9, y: y0, w: bw - 18, h: scrollH, i: 'up' });
+      y0 += scrollH;
+    }
+    var i;
+    for (i = 0; i < nSicht; i++) {
+      var ei = start + i, e = eintraege[ei], ey = y0 + i * rowH;
+      if (ey + rowH - 2 > by + bh - 2) break;
+      knopfZeile(c, bx + 9, ey, bw - 18, rowH - 2, ei === index, e.label, e.aktiv, e.rechts);
+      R.treffer.push({ x: bx + 9, y: ey, w: bw - 18, h: rowH, i: ei });
+    }
+    if (scrollt && start + nSicht < eintraege.length) {
+      var dy = Math.min(by + bh - scrollH - 2, y0 + nSicht * rowH);
+      knopfZeile(c, bx + 9, dy, bw - 18, scrollH - 2, false, '▼', true);
+      R.treffer.push({ x: bx + 9, y: dy, w: bw - 18, h: scrollH, i: 'down' });
+    }
   }
 
   function startBild(R, S) {
     var c = R.ctx, t = S.t;
     Sz.kesselSzene(c, W, H, 8 + (t * 0.35) % 20, t);                    // Tageslauf im Hintergrund
     var grd = c.createRadialGradient(W / 2, 28, 4, W / 2, 28, 130); grd.addColorStop(0, 'rgba(255,79,160,0.3)'); grd.addColorStop(1, 'rgba(255,79,160,0)'); c.fillStyle = grd; c.fillRect(0, 0, W, H);
-    var zeilen = Saufi.Hinweise.HINWEIS_START, lz = 9, bh = zeilen.length * lz + 10, gesamt = 42 + bh + 8 + 2 * 18 + 24;
+    var rowH = R.touch ? touchZeile(R) : 18, rowGap = R.touch ? 4 : 2, drawH = R.touch ? rowH : 16;
+    var zeilen = Saufi.Hinweise.HINWEIS_START, lz = 9, bh = zeilen.length * lz + 10;
+    var knopfBlock = 2 * (rowH + rowGap) + 24;
+    var gesamt = 42 + bh + 8 + knopfBlock;
     var y0 = Math.max(4, Math.round((H - gesamt) / 2));
-    textInBox(c, 'Press11 - Saufi Saufi', 16, y0, W - 32, 16, 13, { col: '#fff8ee', ausr: 'center', kontur: P.kontur });
-    textInBox(c, 'Stuttgart, Samstag 08:00 bis Sonntag 04:00', 20, y0 + 16, W - 40, 12, 8, { col: '#fff3c8', ausr: 'center', kontur: P.kontur });
+    textInBox(c, 'Press11 - Saufi Saufi', 16, y0, W - 32, 16, 13, { col: '#fff8ee', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
+    textInBox(c, 'Stuttgart, Samstag 08:00 bis Sonntag 04:00', 20, y0 + 16, W - 40, 12, 8, { col: '#fff3c8', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
     var by = y0 + 32;
     panel(c, 16, by, W - 32, bh, 'rgba(255,248,238,0.96)', 8);
-    zeilen.forEach(function (z, i) { textInBox(c, z, 24, by + 4 + i * lz, W - 48, lz, 7, { col: i === 0 ? P.bierRot : P.uiTinte, ausr: 'center' }); });
+    zeilen.forEach(function (z, i) { textInBox(c, z, 24, by + 4 + i * lz, W - 48, lz, 7, { col: i === 0 ? P.bierRot : P.uiTinte, ausr: 'center', maxZeilen: 1 }); });
     var ey = by + bh + 8;
     R.treffer = [];
     var eintraege = [{ label: 'Ich bin 18+. Los geht\'s! (E / Tippen)' }, { label: 'Scooter-Playlist (P)' }];
     eintraege.forEach(function (e, i) {
-      var sel = i === S.startIndex, ry = ey + i * 18, blink = sel && Math.floor(t * 2) % 2 === 0;
-      rr(c, 40, ry, W - 80, 16, sel ? (blink ? '#fff3b0' : '#ffe9a8') : P.uiFlaeche2, 7, sel ? P.kontur : 'rgba(74,53,96,0.3)', 0.9);
-      textInBox(c, e.label, 48, ry + 1, W - 96, 14, 8, { col: P.uiTinte, ausr: 'center' });
-      R.treffer.push({ x: 40, y: ry, w: W - 80, h: 16, i: i });
+      var sel = i === S.startIndex, ry = ey + i * (rowH + rowGap), blink = sel && Math.floor(t * 2) % 2 === 0;
+      rr(c, 40, ry, W - 80, drawH, sel ? (blink ? '#fff3b0' : '#ffe9a8') : P.uiFlaeche2, 7, sel ? P.kontur : 'rgba(74,53,96,0.3)', 0.9);
+      textInBox(c, e.label, 48, ry + 1, W - 96, drawH - 2, 8, { col: P.uiTinte, ausr: 'center', maxZeilen: 1 });
+      R.treffer.push({ x: 40, y: ry, w: W - 80, h: rowH, i: i });
     });
-    textInBox(c, S.best ? 'Bestwert: ' + S.best + ' Punkte' : 'Ab 18 · Fiktives Spaß-Spiel', 20, ey + 2 * 18, W - 40, 11, 7, { col: '#fff3c8', ausr: 'center', kontur: P.kontur });
-    textInBox(c, 'Tippen zum Start', 20, ey + 2 * 18 + 12, W - 40, 11, 7, { col: '#ffe9a8', ausr: 'center', kontur: P.kontur });
+    var footY = ey + 2 * (rowH + rowGap);
+    textInBox(c, S.best ? 'Bestwert: ' + S.best + ' Punkte' : 'Ab 18 · Fiktives Spaß-Spiel', 20, footY, W - 40, 11, 7, { col: '#fff3c8', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
+    textInBox(c, 'Tippen zum Start', 20, footY + 12, W - 40, 11, 7, { col: '#ffe9a8', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
   }
 
   function endeBild(R, S) {
     var c = R.ctx, e = S.ende, sieg = e.sieg, t = S.t;
     Sz.kesselSzene(c, W, H, sieg ? 28 : 26, t);
     if (sieg) { var sy = Math.round(H * 0.5) - Math.min(1, e.t / 6) * 8; G.glanz(c, W / 2, sy, 40, 'rgba(255,230,160,0.7)', 'rgba(255,230,160,0)'); kreis(c, W / 2, sy, 11, '#ffe58a'); kreis(c, W / 2, sy, 7.4, '#fff6c8'); }
-    var w = e.wertung, ph = H - 16, bx = 20, bw = W - 40;
-    panel(c, bx, 8, bw, ph, 'rgba(255,248,238,0.95)', 10);
+    var sCss = cssSkala(R);
+    var top = (R.hochkant && R.touch) ? Math.ceil(50 / Math.max(0.5, sCss)) : 8;
+    var bx = 20, bw = W - 40, innen = bw - 20, w = e.wertung;
     var kopf = w.kopf || (sieg ? 'Du stehst noch, Saufi.' : 'Press F to pay respects.');
-    textInBox(c, kopf, bx + 10, 12, bw - 20, 16, kopf.length > 28 ? 9 : 11, { col: sieg ? '#2f8a4a' : P.bierRot, ausr: 'center' });
-    textInBox(c, sieg ? 'Sonntag, 04:00. Sonnenaufgang überm Kessel. MS-Marathon geschafft.' : e.grund, bx + 12, 30, bw - 24, 26, 9, { col: P.uiTinteWeich, ausr: 'center', maxZeilen: 3 });
-    var y = 60;
-    textInBox(c, (w.medaille ? w.medaille + ': ' : '') + w.titel, bx + 10, y, bw - 20, 12, 9, { col: P.uiTinte, ausr: 'center' });
-    textInBox(c, 'Punkte: ' + S.punkte.punkte + (e.neuerBestwert ? '  (neuer Bestwert!)' : (S.best ? '  (Bestwert ' + S.best + ')' : '')), bx + 10, y + 13, bw - 20, 11, 8, { col: P.uiTinte, ausr: 'center' });
-    textInBox(c, 'Runden mitgetrunken: ' + S.runden.geschafft + ' von ' + S.runden.runden.length + ' · Team ' + S.runden.team + '/5', bx + 10, y + 24, bw - 20, 11, 7, { col: P.uiTinteWeich, ausr: 'center' });
-    textInBox(c, Saufi.Hinweise.DANKE, bx + 10, y + 36, bw - 20, 12, 8, { col: P.uiTinte, ausr: 'center' });
+    var grund = sieg ? 'Sonntag, 04:00. Sonnenaufgang überm Kessel. MS-Marathon geschafft.' : (e.grund || '');
+    var titelZ = (w.medaille ? w.medaille + ': ' : '') + w.titel;
+    var punkteZ = 'Punkte: ' + S.punkte.punkte + (e.neuerBestwert ? '  (neuer Bestwert!)' : (S.best ? '  (Bestwert ' + S.best + ')' : ''));
+    var rundenZ = 'Runden mitgetrunken: ' + S.runden.geschafft + ' von ' + S.runden.runden.length + ' · Team ' + S.runden.team + '/5';
+    var dankeZ = Saufi.Hinweise.DANKE;
+    var btnLabel = R.touch ? 'Tippen: Neustart' : 'E / Tippen: Neustart';
+    var btnH = R.touch ? Math.max(17, touchZeile(R)) : 17;
+    function mess(txt, boxH, sz, mz) { return textInBox(c, txt, 0, 0, innen, boxH, sz, { ausr: 'center', mess: true, maxZeilen: mz }); }
+    var mKopf = mess(kopf, 22, kopf.length > 28 ? 9 : 11, 2), mGrund = mess(grund, 40, 9, 3);
+    var mTitel = mess(titelZ, 16, 9, 2), mPunkte = mess(punkteZ, 16, 8, 2);
+    var mRunden = mess(rundenZ, 16, 7, 2), mDanke = mess(dankeZ, 16, 8, 2);
+    var gap = 3, pad = 10;
+    var inhalt = pad + Math.ceil(mKopf.h) + gap + Math.ceil(mGrund.h) + gap + Math.ceil(mTitel.h) + 2 + Math.ceil(mPunkte.h) + 2 + Math.ceil(mRunden.h) + gap + Math.ceil(mDanke.h) + gap + btnH + pad;
+    var maxPh = Math.max(60, H - top - 8), ph = Math.min(inhalt, maxPh);
+    var frei = H - top - 8, by0 = top + Math.max(0, Math.floor((frei - ph) / 2));
+    panel(c, bx, by0, bw, ph, 'rgba(255,248,238,0.95)', 10);
+    R.panel = { x: bx, y: by0, w: bw, h: ph };
+    var y = by0 + pad;
+    textInBox(c, kopf, bx + 10, y, innen, Math.ceil(mKopf.h), kopf.length > 28 ? 9 : 11, { col: sieg ? '#2f8a4a' : P.bierRot, ausr: 'center', maxZeilen: 2 });
+    y += Math.ceil(mKopf.h) + gap;
+    textInBox(c, grund, bx + 10, y, innen, Math.ceil(mGrund.h), 9, { col: P.uiTinteWeich, ausr: 'center', maxZeilen: 3 });
+    y += Math.ceil(mGrund.h) + gap;
+    textInBox(c, titelZ, bx + 10, y, innen, Math.ceil(mTitel.h), 9, { col: P.uiTinte, ausr: 'center', maxZeilen: 2 });
+    y += Math.ceil(mTitel.h) + 2;
+    textInBox(c, punkteZ, bx + 10, y, innen, Math.ceil(mPunkte.h), 8, { col: P.uiTinte, ausr: 'center', maxZeilen: 2 });
+    y += Math.ceil(mPunkte.h) + 2;
+    textInBox(c, rundenZ, bx + 10, y, innen, Math.ceil(mRunden.h), 7, { col: P.uiTinteWeich, ausr: 'center', maxZeilen: 2 });
+    y += Math.ceil(mRunden.h) + gap;
+    textInBox(c, dankeZ, bx + 10, y, innen, Math.ceil(mDanke.h), 8, { col: P.uiTinte, ausr: 'center', maxZeilen: 2 });
+    y += Math.ceil(mDanke.h) + gap;
+    var byBtn = Math.min(by0 + ph - pad - btnH, Math.max(y, by0 + pad));
+    var blink = Math.floor(t * 2) % 2 === 0, bxBtn = 56, bwBtn = W - 112;
+    rr(c, bxBtn, byBtn, bwBtn, btnH, blink ? '#fff3b0' : '#ffe9a8', 7, P.kontur, 0.9);
+    textInBox(c, btnLabel, bxBtn + 4, byBtn + 1, bwBtn - 8, btnH - 2, 8, { col: P.uiTinte, ausr: 'center', maxZeilen: 1 });
     R.treffer = [];
-    var blink = Math.floor(t * 2) % 2 === 0, by = Math.min(H - 42, y + 52);
-    rr(c, 56, by, W - 112, 17, blink ? '#fff3b0' : '#ffe9a8', 7, P.kontur, 0.9);
-    textInBox(c, 'E / Tippen: Neustart', 60, by + 1, W - 120, 15, 8, { col: P.uiTinte, ausr: 'center' });
-    R.treffer.push({ x: 56, y: by, w: W - 112, h: 17, i: 0 });
+    R.treffer.push({ x: bxBtn, y: byBtn, w: bwBtn, h: btnH, i: 0 });
   }
 
   function pressFBild(R, S) {
     var c = R.ctx, p = S.pressF, hat = p.zweitesLeben;
     c.fillStyle = 'rgba(10,6,20,0.72)'; c.fillRect(0, 0, W, H);
     textInBox(c, 'F', W / 2 - 40, H * 0.18, 80, 48, 42 + Math.sin(S.t * 14) * 2, { col: '#ffffff', ausr: 'center', kontur: P.kontur, min: 24 });
-    textInBox(c, hat ? 'Press F! Steh wieder auf!' : 'Press F to pay respects', 20, H * 0.48, W - 40, 20, 12, { col: '#ffe84f', ausr: 'center', kontur: P.kontur });
+    textInBox(c, hat ? 'Press F! Steh wieder auf!' : 'Press F to pay respects', 20, H * 0.48, W - 40, 20, 12, { col: '#ffe84f', ausr: 'center', kontur: P.kontur, maxZeilen: 2 });
     if (hat) {
-      textInBox(c, 'Drück F (oder tipp) ' + p.noetig + ' Mal in 3 Sekunden: ' + p.n + '/' + p.noetig, 16, H * 0.60, W - 32, 18, 8, { col: '#ffffff', ausr: 'center', kontur: P.kontur });
+      textInBox(c, 'Drück F (oder tipp) ' + p.noetig + ' Mal in 3 Sekunden: ' + p.n + '/' + p.noetig, 16, H * 0.58, W - 32, 28, 8, { col: '#ffffff', ausr: 'center', kontur: P.kontur, maxZeilen: 2 });
       rr(c, W / 2 - 60, H * 0.73, 120, 8, 'rgba(255,255,255,0.18)', 4, '#ffffff', 0.7); if (p.rest > 0) rr(c, W / 2 - 59, H * 0.73 + 1, 118 * Math.max(0.02, Math.min(1, p.rest / 3)), 6, '#ff5f8a', 3);
     } else {
-      textInBox(c, 'Kein zweites Leben mehr. Drück F.', 20, H * 0.60, W - 40, 16, 9, { col: '#ffffff', ausr: 'center', kontur: P.kontur });
+      textInBox(c, 'Kein zweites Leben mehr. Drück F.', 20, H * 0.60, W - 40, 16, 9, { col: '#ffffff', ausr: 'center', kontur: P.kontur, maxZeilen: 2 });
     }
   }
 
   function textFeld(R, titel, absaetze, fussEintraege, index) {
-    var c = R.ctx, bw = W - 28, textH = Math.max(40, H - 6 - 36 - fussEintraege.length * (R.touch ? 28 : 20)), fussH = R.touch ? 28 : 20;
-    var fh = fussEintraege.length * fussH, bh = Math.min(H - 6, 34 + textH + fh + 4), bx = 14;
+    var c = R.ctx, bw = W - 28, fussH = R.touch ? touchZeile(R) : 20, titelH = R.touch ? Math.max(touchZeile(R) + 4, 24) : 18;
+    var fh = fussEintraege.length * fussH, textH = Math.max(40, H - 6 - titelH - 8 - fh), bx = 14;
+    var bh = Math.min(H - 6, titelH + 8 + textH + fh + 4);
     var pl = panelPlatz(bh); bh = pl.bh;
     var by = pl.by;
     abdunkeln(c, 0.6); panel(c, bx, by, bw, bh, P.uiFlaeche, 8);
     R.panel = { x: bx, y: by, w: bw, h: bh };
     R.treffer = [];
-    textInBox(c, titel, bx + 18, by + 3, bw - 36, 14, 9, { col: P.uiTinte, ausr: 'center' });
-    schliessX(R, bx, by, bw);
-    var bodyH = bh - 34 - fh, bodyY = by + 20;
+    textInBox(c, titel, bx + 18, by + 3, bw - 36, titelH - 4, 9, { col: P.uiTinte, ausr: 'center', maxZeilen: 1 });
+    schliessX(R, bx, by, bw, bh);
+    var bodyH = bh - titelH - 4 - fh, bodyY = by + titelH;
     var joined = absaetze.join('\n\n');
     textInBox(c, joined, bx + 10, bodyY, bw - 20, bodyH, 9, { col: P.uiTinte, ausr: 'left', v: 'top' });
     fussEintraege.forEach(function (e, i) {
-      var ey = by + bh - fh + i * fussH - 2, sel = i === index, rh = fussH - 3;
+      var ey = by + bh - fh + i * fussH - 2, sel = i === index, rh = fussH - 2;
       if (ey + rh > by + bh - 2) return;
-      knopfZeile(c, bx + 50, ey, bw - 100, rh, sel, e.label, true); R.treffer.push({ x: bx + 50, y: ey, w: bw - 100, h: rh, i: i });
+      knopfZeile(c, bx + 50, ey, bw - 100, rh, sel, e.label, true);
+      R.treffer.push({ x: bx + 50, y: ey, w: bw - 100, h: Math.max(rh, R.touch ? touchZeile(R) : rh), i: i });
     });
   }
 
@@ -673,32 +745,40 @@
     var c = R.ctx, o = S.overlay, Mu = Saufi.Musik, z = S.musikInfo || {};
     var bw = W - 20, bx = 10, tl = Mu.TITEL, zeilen = Math.ceil(tl.length / 2), nBtn = o.eintraege.length;
     var maxBh = H - 4, hoch = R.hochkant, touch = !!R.touch;
-    var kopfH = hoch ? 22 : 18, songSz = hoch ? 9 : 8, lz = hoch ? 11 : 9;
+    var kopfH = touch ? Math.max(hoch ? 22 : 18, touchZeile(R) + 4) : (hoch ? 22 : 18);
+    var songSz = hoch ? 9 : 8, lz = hoch ? 11 : 9;
     var metaSz = hoch ? 9 : 8, metaLz = hoch ? 11 : 9;
-    var rowH = touch ? (hoch ? 28 : 18) : (hoch ? 24 : 14);
-    var minRow = touch ? 16 : 12;
+    var minRow = touch ? touchZeile(R) : 12;
+    var rowH = touch ? Math.max(minRow, hoch ? 28 : 18) : (hoch ? 24 : 14);
+    var scrollH = touch ? touchZeile(R) : 14;
     var qn = { mp3: 'Eigene MP3 (music/)', youtube: 'YouTube-Einbettung', webaudio: 'Eigener Spiel-Beat' }[z.quelle] || z.quelle;
     var quelleText = 'Quelle: ' + qn + (z.spielt ? ' (läuft: ' + ({ mp3: 'MP3', youtube: 'YouTube', webaudio: 'Beat' }[z.aktiv]) + ')' : '');
-    var hint = z.hinweis || (z.youtubeVerfuegbar
-      ? 'YouTube: ' + Mu.VIDEOS.length + ' Videos (' + Mu.VIDEOS.map(function (v) { return v.titel.replace(/^Scooter - /, '').replace(/ \(Official Video( HQ)?\)/, ''); }).join(', ') + ')'
-      : 'YouTube nur über http://localhost, nicht file://');
-    function bhVon(kH, lz2, mLz, rH) { return kH + zeilen * lz2 + 4 + 2 * mLz + 4 + nBtn * rH + 4; }
-    var bh = bhVon(kopfH, lz, metaLz, rowH);
-    while (bh > maxBh && rowH > minRow) { rowH--; bh = bhVon(kopfH, lz, metaLz, rowH); }
-    while (bh > maxBh && lz > 9) { lz--; bh = bhVon(kopfH, lz, metaLz, rowH); }
-    while (bh > maxBh && metaLz > 9) { metaLz--; bh = bhVon(kopfH, lz, metaLz, rowH); }
-    while (bh > maxBh && kopfH > 18) { kopfH--; bh = bhVon(kopfH, lz, metaLz, rowH); }
+    // Kurz: keine Titelliste in der YouTube-Zeile (sonst … in Hoch)
+    var hint = z.hinweis || '';
+    if (/YouTube:\s*\d+\s*Videos/.test(hint)) hint = ('YouTube: ' + Mu.VIDEOS.length + ' Videos');
+    if (!hint) hint = z.youtubeVerfuegbar
+      ? 'YouTube: ' + Mu.VIDEOS.length + ' Videos'
+      : 'YouTube nur über http://localhost, nicht file://';
+    function bhVon(kH, lz2, mLz, rH, nShow, mitScroll) { return kH + zeilen * lz2 + 4 + 2 * mLz + 4 + (mitScroll ? 2 * scrollH : 0) + nShow * rH + 4; }
+    var maxBtn = nBtn, scrollt = false, start = 0;
+    var bh = bhVon(kopfH, lz, metaLz, rowH, maxBtn, false);
+    while (bh > maxBh && lz > 9) { lz--; bh = bhVon(kopfH, lz, metaLz, rowH, maxBtn, false); }
+    while (bh > maxBh && metaLz > 9) { metaLz--; bh = bhVon(kopfH, lz, metaLz, rowH, maxBtn, false); }
+    while (bh > maxBh && kopfH > 18) { kopfH--; bh = bhVon(kopfH, lz, metaLz, rowH, maxBtn, false); }
     if (bh > maxBh) {
-      var rest = maxBh - (kopfH + zeilen * lz + 4 + 2 * metaLz + 4 + 4);
-      rowH = Math.max(minRow, Math.floor(rest / Math.max(1, nBtn)));
-      bh = Math.min(maxBh, bhVon(kopfH, lz, metaLz, rowH));
+      scrollt = true;
+      var rest = maxBh - (kopfH + zeilen * lz + 4 + 2 * metaLz + 4 + 2 * scrollH + 4);
+      maxBtn = Math.max(1, Math.floor(rest / Math.max(minRow, rowH)));
+      rowH = Math.max(minRow, Math.min(rowH, Math.floor(rest / maxBtn)));
+      bh = Math.min(maxBh, bhVon(kopfH, lz, metaLz, rowH, maxBtn, true));
+      start = Math.max(0, Math.min(o.index - Math.floor((maxBtn - 1) / 2), nBtn - maxBtn));
     }
     var pl = panelPlatz(bh); bh = pl.bh; var by = pl.by;
     abdunkeln(c, 0.6); panel(c, bx, by, bw, bh, P.uiFlaeche, 8);
     R.panel = { x: bx, y: by, w: bw, h: bh };
     R.treffer = [];
-    textInBox(c, 'Scooter-Playlist', bx + 18, by + 2, bw - 36, kopfH - 2, hoch ? 9 : 9, { col: P.uiTinte, ausr: 'center', maxZeilen: 1 });
-    schliessX(R, bx, by, bw);
+    textInBox(c, 'Scooter-Playlist', bx + 18, by + 2, bw - 36, kopfH - 2, 9, { col: P.uiTinte, ausr: 'center', maxZeilen: 1 });
+    schliessX(R, bx, by, bw, bh);
     var colW = (bw - 20) / 2;
     tl.forEach(function (t2, i) {
       var cx2 = bx + 10 + (i >= zeilen ? colW : 0), cy2 = by + kopfH + (i % zeilen) * lz;
@@ -708,16 +788,49 @@
     textInBox(c, quelleText, bx + 8, sy, bw - 16, metaLz, metaSz, { col: P.uiTinteWeich, ausr: 'center', maxZeilen: 1 });
     textInBox(c, hint, bx + 8, sy + metaLz, bw - 16, metaLz, metaSz, { col: P.uiTinteWeich, ausr: 'center', maxZeilen: 1 });
     var ey0 = sy + 2 * metaLz + 2;
-    o.eintraege.forEach(function (e, i) {
-      var ey = ey0 + i * rowH;
-      if (ey + rowH - 2 > by + bh - 2) return;
-      knopfZeile(c, bx + 8, ey, bw - 16, rowH - 2, i === o.index, e.label, true, e.rechts);
-      R.treffer.push({ x: bx + 8, y: ey, w: bw - 16, h: rowH - 2, i: i });
-    });
+    if (scrollt && start > 0) {
+      knopfZeile(c, bx + 8, ey0, bw - 16, scrollH - 2, false, '▲', true);
+      R.treffer.push({ x: bx + 8, y: ey0, w: bw - 16, h: scrollH, i: 'up' });
+      ey0 += scrollH;
+    }
+    var i, nShow = scrollt ? maxBtn : nBtn;
+    for (i = 0; i < nShow; i++) {
+      var ei = start + i, e = o.eintraege[ei], ey = ey0 + i * rowH;
+      if (ey + rowH - 2 > by + bh - 2) break;
+      knopfZeile(c, bx + 8, ey, bw - 16, rowH - 2, ei === o.index, e.label, true, e.rechts);
+      R.treffer.push({ x: bx + 8, y: ey, w: bw - 16, h: rowH, i: ei });
+    }
+    if (scrollt && start + nShow < nBtn) {
+      var dy = Math.min(by + bh - scrollH - 2, ey0 + nShow * rowH);
+      knopfZeile(c, bx + 8, dy, bw - 16, scrollH - 2, false, '▼', true);
+      R.treffer.push({ x: bx + 8, y: dy, w: bw - 16, h: scrollH, i: 'down' });
+    }
   }
 
   function uebergangBild(R, S) {
     if (S.uebergang) { var u = S.uebergang, a = u.t < u.dauer / 2 ? u.t / (u.dauer / 2) : 1 - (u.t - u.dauer / 2) / (u.dauer / 2); R.ctx.globalAlpha = Math.max(0, Math.min(1, a)); r(R.ctx, 0, 0, W, H, '#14102a'); R.ctx.globalAlpha = 1; }
+  }
+
+  // Innenraum: Zoom so, dass der Raum die Weltflaeche fuellt (kein grosser Schwarzstreifen)
+  function weltZoomFuer(R, S, weltH) {
+    var kam = S.kamera, prevW = kam ? kam.viewW : 0, prevH = kam ? kam.viewH : 0, zoom;
+    if (!S.karte || !S.karte.innen) {
+      R.aktuellerWeltZoom = WELT_ZOOM;
+      if (kam) { kam.viewW = R.VW || VW; kam.viewH = R.VH || VH; }
+      zoom = WELT_ZOOM;
+    } else {
+      zoom = Math.max(W / Math.max(1, S.karte.pxW), weltH / Math.max(1, S.karte.pxH));
+      zoom = Math.max(MIN_WELT_ZOOM, zoom);
+      kam.viewW = W / zoom;
+      kam.viewH = weltH / zoom;
+      kam.weltW = S.karte.pxW;
+      kam.weltH = S.karte.pxH;
+      R.aktuellerWeltZoom = zoom;
+    }
+    if (kam && S.spieler && (Math.abs(prevW - kam.viewW) > 1 || Math.abs(prevH - kam.viewH) > 1)) {
+      Saufi.Kamera.sofort(kam, S.spieler.x, S.spieler.y - 8);
+    }
+    return zoom;
   }
 
   // ---------- Ganzes Bild ----------
@@ -731,6 +844,7 @@
     var wackel = !S.ruhig && S.fig.pegel >= 1.5, amp = Math.min(2, (S.fig.pegel - 1) * 0.8);
     S.doppelt = wackel;
     var weltH = (R.hochkant && R.weltH != null) ? R.weltH : H;
+    var zoom = weltZoomFuer(R, S, weltH);
     // Hoch: dunkles UI-Feld unter der Welt (Hinweise/Hilfe, kein Karten-Schwarz)
     if (R.hochkant && weltH < H) r(c, 0, weltH, W, H - weltH, '#1b1530');
     c.save();
@@ -738,12 +852,16 @@
     // Welt in Kamerakoordinaten, dann auf Bildschirm zoomen (HUD unskaliert); Hoch: Clip auf weltH
     c.save();
     if (R.hochkant && weltH < H) { c.beginPath(); c.rect(0, 0, W, weltH); c.clip(); }
-    c.scale(WELT_ZOOM, WELT_ZOOM);
+    c.scale(zoom, zoom);
     zeichneWelt(R, S);
     c.restore();
-    if (wackel) {                                   // doppeltes Neon-Glimmern
+    if (wackel) {                                   // doppeltes Neon-Glimmern nur im Welt-Ausschnitt (UI-Feld/HUD unberührt)
       c.globalAlpha = 0.25 + Math.min(0.2, (S.fig.pegel - 1.5) * 0.1); c.globalCompositeOperation = 'lighter';
-      c.drawImage(R.canvas, 0, 0, R.canvas.width, R.canvas.height, 3, 0, W, H); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+      c.save();
+      c.beginPath(); c.rect(0, 0, W, weltH); c.clip();
+      c.drawImage(R.canvas, 0, 0, R.canvas.width, Math.round(weltH * sk), 3, 0, W, weltH);
+      c.restore();
+      c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
     }
     c.restore();
     if (S.zustand === 'ende') { endeBild(R, S); return; }
@@ -766,7 +884,7 @@
     kameraView: kameraView, weltView: weltView, berechnePortH: berechnePortH,
     W: BASE_W, H: BASE_H, BASE_W: BASE_W, BASE_H: BASE_H, PORT_H: PORT_H, PORT_H_MIN: PORT_H_MIN, PORT_H_MAX: PORT_H_MAX,
     MAX_BREITE: MAX_BREITE, MAX_BG_SKALA: MAX_BG_SKALA, MAX_DPR: MAX_DPR,
-    UI_RESERVE_HOCH: UI_RESERVE_HOCH, STADT_PX_H: STADT_PX_H,
+    UI_RESERVE_HOCH: UI_RESERVE_HOCH, UI_RESERVE_HOCH_TOUCH: UI_RESERVE_HOCH_TOUCH, STADT_PX_H: STADT_PX_H,
     get WELT_FLAECHE() { return WELT_FLAECHE; }, get WELT_ZOOM() { return WELT_ZOOM; },
     WELT_FLAECHE_HOCH: WELT_FLAECHE_HOCH, WELT_FLAECHE_QUER: WELT_FLAECHE_QUER
   };

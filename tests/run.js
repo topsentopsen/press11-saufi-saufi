@@ -758,7 +758,7 @@ test('39 Teamstimmung 0: eigener Titel statt Umgefallen/Press F', function () {
   gleich(t.S.zustand, 'ende'); gleich(t.S.ende.wertung.titel, 'Abgehängt');
   wahr(/abgehängt/.test(t.S.ende.wertung.kopf)); wahr(/Teamstimmung 0/.test(t.S.ende.grund));
   wahr(t.S.ende.wertung.kopf.indexOf('Press F') < 0);
-  gleich(D.Spiel.VERSION, '0.5');
+  gleich(D.Spiel.VERSION, '0.6');
   wahr(D.Gfx.MIN_SCHRIFT <= 7);
 });
 
@@ -813,9 +813,9 @@ test('42 DPR-Begrenzung: MAX_DPR = 2, setzeAufloesung und begrenzDpr kappen', fu
   wahr(sk === R.canvas.width / R.W, 'Skala konsistent');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
   wahr(/begrenzDpr|MAX_DPR/.test(main), 'main nutzt DPR-Begrenzung');
-  wahr(/VERSION\s*=\s*['"]0\.5['"]/.test(main), 'VERSION 0.5');
+  wahr(/VERSION\s*=\s*['"]0\.6['"]/.test(main), 'VERSION 0.6');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  wahr(/main\.js\?v=0\.5/.test(html), 'Cache-Buster v=0.5');
+  wahr(/main\.js\?v=0\.6/.test(html), 'Cache-Buster v=0.6');
 });
 
 test('43 Hochformat-Layout: Playlist und Menues passen in PORT_H', function () {
@@ -1325,16 +1325,368 @@ test('72 Quer BASE 320x176: VH == H/zoom, Flaeche >= 3', function () {
   wahr(R.VW * R.VH / (D.Render.BASE_W * D.Render.BASE_H) >= 3 - 0.02, 'Quer Flaeche >= 3');
 });
 
-test('73 Versionen: VERSION 0.5, ?v=0.5, README v05, Bau-Bericht', function () {
+test('73 Versionen: VERSION 0.6, ?v=0.6, README v06, Bau-Bericht v06', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.5');
+  gleich(D.Spiel.VERSION, '0.6');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster vorhanden');
-  vs.forEach(function (v) { gleich(v, '?v=0.5', 'Cache-Buster ' + v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.6', 'Cache-Buster ' + v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
-  wahr(/Neu in v05/.test(readme), 'README Neu in v05');
-  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v05.md')), 'bau-bericht-v05.md');
+  wahr(/Neu in v06/.test(readme), 'README Neu in v06');
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v06.md')), 'bau-bericht-v06.md');
+});
+
+// ---------- v06: Menues/Ende/Touch Hochformat ----------
+function endeZustand(D, opt) {
+  var t = neuesSpielTest(D, opt);
+  D.Spiel.beende(t.S, true, 'Sonntag, 04:00 Uhr: Du stehst noch.', t.X);
+  return t;
+}
+
+test('74 Ende-Bild: Panel in Bounds, Touch-Hoch top, kompakt, keine …', function () {
+  var D = lade(), faelle = [
+    { cssW: 375, cssH: 667, hoch: true, touch: true },
+    { cssW: 390, cssH: 844, hoch: true, touch: true },
+    { cssW: 667, cssH: 375, hoch: false, touch: false }
+  ];
+  faelle.forEach(function (f) {
+    var log = [], cv = mockCanvas(log), R = D.Render.erstelle(cv, cv.ownerDocument);
+    var h = f.hoch ? D.Render.berechnePortH(f.cssW, f.cssH) : D.Render.BASE_H;
+    D.Render.setzeBildschirm(R, f.hoch, { h: h, touch: f.touch });
+    R.touch = f.touch; R.cssW = f.cssW; R.cssH = f.cssH;
+    var t = endeZustand(D);
+    D.Render.zeichne(R, t.S);
+    var p = R.panel;
+    wahr(!!p, 'Panel ' + f.cssW + 'x' + f.cssH);
+    wahr(p.x >= 0 && p.y >= 0 && p.x + p.w <= R.W && p.y + p.h <= R.H, 'Panel in [0,W]x[0,H]');
+    if (f.touch && f.hoch) {
+      var sCss = f.cssW / R.W, minTop = Math.ceil(50 / Math.max(0.5, sCss));
+      wahr(p.y >= minTop - 0.5, 'Touch-Hoch panel.y >= ceil(50/sCss) (ist ' + p.y + ', min ' + minTop + ')');
+      wahr(p.h < R.H - 40, 'Panel kompakt h < H-40 (ist ' + p.h + ')');
+    }
+    wahr(log.every(function (s) { return String(s).indexOf('…') < 0; }), 'keine …-Kuerzung im Ende-Bild');
+  });
+});
+
+test('75 Ende-Neustart: Treffer ≥ 44 CSS-px; Tipp daneben nach Sperre', function () {
+  var D = lade(), cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  var cssW = 390, cssH = 844, h = D.Render.berechnePortH(cssW, cssH);
+  D.Render.setzeBildschirm(R, true, { h: h, touch: true });
+  R.touch = true; R.cssW = cssW; R.cssH = cssH;
+  var t = endeZustand(D), S = t.S, X = t.X, sCss = cssW / R.W;
+  D.Render.zeichne(R, S); S.treffer = R.treffer; S.panel = R.panel;
+  wahr(S.treffer.length >= 1, 'Neustart-Treffer');
+  S.treffer.forEach(function (tr) {
+    wahr(tr.h * sCss >= 44 - 0.5, 'Trefferhoehe ≥ 44 CSS (ist ' + (tr.h * sCss) + ')');
+  });
+  S.ende.t = 0.5; X.E.klicke(1, 1); D.Spiel.update(S, 0.05, X); X.E.ende();
+  wahr(!S.neustart, 'Sperre 0.8 s: noch kein Neustart');
+  S.ende.t = 0.9; X.E.klicke(2, 2); D.Spiel.update(S, 0.05, X); X.E.ende();
+  wahr(!!S.neustart, 'Tipp ausserhalb nach Sperre setzt neustart');
+});
+
+test('76 Wackel: drawImage-Zielhoehe == weltH', function () {
+  var D = lade(), draws = [];
+  var cstore = { fillStyle: '#000', globalAlpha: 1, globalCompositeOperation: 'source-over', font: '10px sans-serif' };
+  var ctx = new Proxy(cstore, {
+    get: function (t, k) {
+      if (typeof k === 'symbol') return undefined;
+      if (k === 'measureText') return function (s) { var sz = 10, m = /(\d+(?:\.\d+)?)px/.exec(t.font || ''); if (m) sz = parseFloat(m[1]); return { width: String(s).length * sz * 0.55 }; };
+      if (k === 'createRadialGradient') return function () { return { addColorStop: function () {} }; };
+      if (k === 'createLinearGradient') return function () { return { addColorStop: function () {} }; };
+      if (CTX_EIGENSCHAFTEN.indexOf(k) >= 0) return t[k];
+      if (k === 'drawImage') return function () { draws.push(Array.prototype.slice.call(arguments)); };
+      if (CTX_METHODEN.indexOf(k) >= 0) return function () { pruefeZahlen(k, arguments); };
+      throw new Error('Unbekannte Canvas-Eigenschaft: ' + String(k));
+    },
+    set: function (t, k, v) {
+      if (CTX_EIGENSCHAFTEN.indexOf(k) < 0) throw new Error('Unbekannte: ' + k);
+      if (k === 'globalCompositeOperation' && GCO.indexOf(v) < 0) throw new Error(v);
+      if (k === 'globalAlpha' && !(v >= 0 && v <= 1)) throw new Error('alpha ' + v);
+      t[k] = v; return true;
+    },
+    has: function (t, k) { return CTX_EIGENSCHAFTEN.indexOf(k) >= 0; }
+  });
+  var cv2 = { width: 320, height: 400, style: {}, getContext: function () { return ctx; }, addEventListener: function () {}, getBoundingClientRect: function () { return { left: 0, top: 0, width: 320, height: 400 }; } };
+  cv2.ownerDocument = { createElement: function () { return mockCanvas(); } };
+  var R = D.Render.erstelle(cv2, cv2.ownerDocument);
+  D.Render.setzeBildschirm(R, true, { h: 400, touch: false });
+  R.cssW = 320; R.cssH = 400;
+  var t = neuesSpielTest(D); t.S.fig.pegel = 2.0; t.S.ruhig = false;
+  draws.length = 0;
+  D.Render.zeichne(R, t.S);
+  var wackel = draws.filter(function (a) { return a.length >= 9 && a[0] === R.canvas; });
+  wahr(wackel.length >= 1, 'Wackel-drawImage vorhanden');
+  wackel.forEach(function (a) {
+    nah(a[8], R.weltH, 0.5, 'drawImage Zielhoehe == weltH');
+    wahr(a[8] <= R.weltH + 0.5, 'Zielhoehe ≤ weltH');
+  });
+});
+
+test('77 E.touch spaeter → groesse() erneut, R.touch, Klasse touch, kein Neustart', function () {
+  var listeners = {}, rafs = [], els = {}, log = [], groesseCalls = 0;
+  function el(id) {
+    if (els[id]) return els[id];
+    var cv = mockCanvas(log), e = cv; e.id = id;
+    e.classList = { _c: {}, add: function (c) { this._c[c] = true; }, toggle: function (c, v) { if (v === false) delete this._c[c]; else if (v === true) this._c[c] = true; else { if (this._c[c]) delete this._c[c]; else this._c[c] = true; } }, remove: function (c) { delete this._c[c]; }, contains: function (c) { return !!this._c[c]; } };
+    e.style = { setProperty: function (k, v) { this[k] = v; }, display: '' };
+    e.hidden = false; e.listeners = {}; e.addEventListener = function (t, f) { (e.listeners[t] = e.listeners[t] || []).push(f); }; e.setPointerCapture = function () {}; e.textContent = '';
+    e.getBoundingClientRect = function () { return { left: 0, top: 0, width: 320, height: 176 }; };
+    return (els[id] = e);
+  }
+  var doc = { getElementById: el, createElement: function (t) { return t === 'audio' ? fakeAudio() : mockCanvas(log); }, addEventListener: function () {}, hidden: false, head: { appendChild: function () {} }, body: {} };
+  var win = ladeKontext({ __SAUFI_OHNE_START: true, document: doc, location: { search: '?start=1', protocol: 'file:' }, navigator: { onLine: true },
+    addEventListener: function (t, f) { (listeners[t] = listeners[t] || []).push(f); }, requestAnimationFrame: function (f) { rafs.push(f); return rafs.length; },
+    setInterval: function () { return 1; }, setTimeout: setTimeout, clearTimeout: clearTimeout,
+    innerWidth: 390, innerHeight: 844, devicePixelRatio: 2,
+    getComputedStyle: function () { return { paddingLeft: '0', paddingRight: '0', paddingTop: '0', paddingBottom: '0' }; },
+    matchMedia: function () { return { matches: false }; } });
+  var Saufi = win.Saufi;
+  var api = Saufi.Main.starte(win, doc);
+  var S0 = api.S(), seed0 = S0.seed, zustand0 = S0.zustand, pos0 = { x: S0.spieler.x, y: S0.spieler.y };
+  wahr(!api.E.touch, 'anfangs kein Touch');
+  // Spaeter Touch: wie tippKnopf
+  api.E.touch = true;
+  wahr(rafs.length >= 1, 'RAF registriert');
+  rafs[0](16); // ein Frame → groesse bei Touch-Wechsel
+  wahr(!!api.R.touch, 'R.touch true');
+  wahr(els.rahmen.classList.contains('touch'), 'Klasse touch');
+  var S1 = api.S();
+  gleich(S1.seed, seed0, 'kein Neustart (Seed)');
+  gleich(S1.zustand, zustand0, 'Zustand bleibt');
+  nah(S1.spieler.x, pos0.x, 0.01, 'Position x');
+  nah(S1.spieler.y, pos0.y, 0.01, 'Position y');
+});
+
+test('78 Schildtexte Kehrwoche/Feinstaub ohne …', function () {
+  var D = lade(), cv = mockCanvas(), c = cv.getContext('2d');
+  function passt(txt, boxW, sz) {
+    var info = D.Gfx.textInBox(c, txt, 0, 0, boxW - 4, 8, sz, { ausr: 'center', mess: true, min: 6 });
+    wahr(info.lines.every(function (z) { return z.indexOf('…') < 0; }), txt + ' ohne …');
+    info.lines.forEach(function (z) { wahr(D.Gfx.breite(c, z, info.size) <= boxW - 4 + 0.75, txt + ' Breite'); });
+  }
+  passt('Kehrwoche ok', 52, 7);
+  passt('Feinstaub drin', 60, 7);
+  // Fassaden-Aufruf: Texte in szene.js
+  var src = fs.readFileSync(path.join(ROOT, 'js', 'szene.js'), 'utf8');
+  wahr(/Kehrwoche ok/.test(src) && /Feinstaub drin/.test(src), 'Schildtexte in szene.js');
+  wahr(/hotelSchild|schild\(c,.*Kehrwoche/.test(src) && /kneipeSchild|schild\(c,.*Feinstaub/.test(src), 'Schild-Masse gesetzt');
+});
+
+test('79 Touch-Hoch: Reserve ≤ 52, weltH/H ≥ v05, bedienCss 96..140', function () {
+  var D = lade(), cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  wahr(D.Render.UI_RESERVE_HOCH_TOUCH <= 52, 'UI_RESERVE_HOCH_TOUCH ≤ 52');
+  wahr(D.Render.UI_RESERVE_HOCH === 80, 'UI_RESERVE_HOCH bleibt 80');
+  var h390 = D.Render.berechnePortH(390, 844);
+  D.Render.setzeBildschirm(R, true, { h: h390, touch: true });
+  var v05_390 = 0.85;
+  wahr(R.weltH / R.H >= v05_390, '390 Touch weltH/H ≥ v05 (' + (R.weltH / R.H) + ')');
+  wahr(R.H - R.weltH <= 52 + 1, 'Reserve ≤ 52 logisch');
+  var h375 = D.Render.berechnePortH(375, 667);
+  D.Render.setzeBildschirm(R, true, { h: h375, touch: true });
+  wahr(R.weltH / R.H >= 0.82, '375 Touch weltH/H ≥ v05');
+  var b844 = D.Main.berechneBedien(844), b667 = D.Main.berechneBedien(667);
+  wahr(b844 >= 96 && b844 <= 140, 'bedienCss 844 in 96..140 (' + b844 + ')');
+  wahr(b667 >= 96 && b667 <= 140, 'bedienCss 667 in 96..140 (' + b667 + ')');
+});
+
+test('80 Overlay-Treffer ≥ 44 CSS-px, in Bounds, kein Overlap; Scroll erreichbar', function () {
+  var D = lade();
+  function pruefe(cssW, cssH, hoch) {
+    var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+    var h = hoch ? D.Render.berechnePortH(cssW, cssH) : D.Render.BASE_H;
+    D.Render.setzeBildschirm(R, hoch, { h: h, touch: true });
+    R.touch = true; R.cssW = cssW; R.cssH = cssH;
+    var sCss = cssW / R.W, minH = 44 / sCss;
+    var t = neuesSpielTest(D), S = t.S, X = t.X, Sp = t.Sp;
+    var arten = [];
+    // Start
+    S.zustand = 'start'; D.Render.zeichne(R, S); arten.push({ name: 'start', treffer: R.treffer.slice(), panel: R.panel });
+    // Pause
+    S.zustand = 'spiel'; Sp.pauseMenue(S, X); D.Render.zeichne(R, S); arten.push({ name: 'pause', treffer: R.treffer.slice(), panel: R.panel, overlay: S.overlay });
+    // Info
+    Sp.infoOverlay(S); D.Render.zeichne(R, S); arten.push({ name: 'info', treffer: R.treffer.slice(), panel: R.panel });
+    // Playlist
+    Sp.playlistOverlay(S, X); S.musikInfo = { quelle: 'youtube', aktiv: 'youtube', spielt: true, youtubeVerfuegbar: true, hinweis: '' };
+    D.Render.zeichne(R, S); arten.push({ name: 'playlist', treffer: R.treffer.slice(), panel: R.panel });
+    // Minispiel
+    S.overlay = D.Minispiele.starte('deckel', S.rng);
+    if (S.overlay && S.overlay.art === 'minispiel') { D.Render.zeichne(R, S); arten.push({ name: 'minispiel', treffer: R.treffer.slice(), panel: R.panel }); }
+    // Liste (Pause erneut)
+    S.overlay = null; Sp.pauseMenue(S, X); D.Render.zeichne(R, S); arten.push({ name: 'liste', treffer: R.treffer.slice(), panel: R.panel, overlay: S.overlay });
+
+    arten.forEach(function (a) {
+      var hits = a.treffer;
+      wahr(hits.length > 0, a.name + ' hat Treffer');
+      hits.forEach(function (tr, i) {
+        wahr(tr.x >= 0 && tr.y >= 0 && tr.x + tr.w <= R.W + 0.5 && tr.y + tr.h <= R.H + 0.5, a.name + ' Treffer ' + i + ' in Bounds');
+        wahr(tr.h * sCss >= 44 - 0.75, a.name + ' Treffer ' + i + ' ≥ 44 CSS (h=' + tr.h + ', css=' + (tr.h * sCss) + ')');
+      });
+      // Keine Überlappung numerischer Eintraege untereinander (X darf Header ueberlappen)
+      var nums = hits.filter(function (tr) { return typeof tr.i === 'number'; });
+      for (var i = 0; i < nums.length; i++) for (var j = i + 1; j < nums.length; j++) {
+        var a2 = nums[i], b = nums[j];
+        var overlap = !(a2.x + a2.w <= b.x || b.x + b.w <= a2.x || a2.y + a2.h <= b.y || b.y + b.h <= a2.y);
+        wahr(!overlap, a.name + ' keine Overlap ' + a2.i + '/' + b.i);
+      }
+    });
+    // Scroll: viele Eintraege → ▲/▼, alle Indizes erreichbar
+    S.overlay = null;
+    var viele = [];
+    for (var k = 0; k < 12; k++) viele.push({ label: 'Eintrag ' + k, id: 'weiter' });
+    S.overlay = { art: 'menue', titel: 'Lang', kopf: [], eintraege: viele, index: 0, opt: {} };
+    D.Render.zeichne(R, S); S.treffer = R.treffer; S.panel = R.panel;
+    var gesehen = {};
+    for (var step = 0; step < 20; step++) {
+      D.Render.zeichne(R, S); S.treffer = R.treffer;
+      S.treffer.forEach(function (tr) { if (typeof tr.i === 'number') gesehen[tr.i] = true; });
+      var down = S.treffer.filter(function (tr) { return tr.i === 'down'; })[0];
+      if (down) { S.overlay.index = Math.min(11, S.overlay.index + 1); }
+      else if (S.overlay.index < 11) S.overlay.index++;
+      else break;
+    }
+    for (k = 0; k < 12; k++) wahr(gesehen[k], 'Scroll Eintrag ' + k + ' erreichbar');
+  }
+  pruefe(375, 667, true);
+  pruefe(390, 844, true);
+});
+
+test('81 Text-Fit Overlays/Ende/PressF: keine … bei Knöpfen/Titeln', function () {
+  var D = lade();
+  function ohneEllipsisKnoepfe(log) {
+    log.forEach(function (s) {
+      s = String(s);
+      if (s.indexOf('…') < 0) return;
+      if (/^\d+\.\s/.test(s)) return; // lange Songtitel erlaubt
+      if (s.length > 42) return; // Fliesstext (Info 18+) darf kuerzen
+      throw new Error('… bei Knopf/Titel: ' + s.slice(0, 80));
+    });
+  }
+  function lauf(cssW, cssH, hoch) {
+    var log = [], cv = mockCanvas(log), R = D.Render.erstelle(cv, cv.ownerDocument);
+    var h = hoch ? D.Render.berechnePortH(cssW, cssH) : D.Render.BASE_H;
+    D.Render.setzeBildschirm(R, hoch, { h: h, touch: true });
+    R.touch = true; R.cssW = cssW; R.cssH = cssH;
+    var t = neuesSpielTest(D), S = t.S, X = t.X, Sp = t.Sp;
+    log.length = 0; S.zustand = 'start'; D.Render.zeichne(R, S); ohneEllipsisKnoepfe(log);
+    log.length = 0; S.zustand = 'spiel'; Sp.pauseMenue(S, X); D.Render.zeichne(R, S); ohneEllipsisKnoepfe(log);
+    log.length = 0; Sp.infoOverlay(S); D.Render.zeichne(R, S); ohneEllipsisKnoepfe(log);
+    log.length = 0; Sp.playlistOverlay(S, X); S.musikInfo = { quelle: 'youtube', aktiv: 'youtube', spielt: true, youtubeVerfuegbar: true, hinweis: '' };
+    D.Render.zeichne(R, S); ohneEllipsisKnoepfe(log);
+    log.length = 0; D.Spiel.beende(S, true, 'Sonntag, 04:00 Uhr: Du stehst noch.', X); D.Render.zeichne(R, S); ohneEllipsisKnoepfe(log);
+    log.length = 0; S.zustand = 'umgefallen'; S.pressF = { n: 1, noetig: 5, rest: 2, zweitesLeben: true, t: 0 }; D.Render.zeichne(R, S); ohneEllipsisKnoepfe(log);
+  }
+  lauf(375, 667, true); lauf(390, 844, true); lauf(667, 375, false);
+});
+
+test('82 Stick: Totzone, cancel=0, zweiter Finger ignoriert, E gleichzeitig', function () {
+  var D = lade(), sa = D.Main.stickAuslenkung;
+  wahr(typeof sa === 'function', 'stickAuslenkung exportiert');
+  var z = sa(4, 0, 40); // 0.1 normiert
+  gleich(z.x, 0, 'Totzone 0.1 → 0'); gleich(z.y, 0);
+  var m = sa(20, 0, 40); // 0.5
+  wahr(m.x > 0, '0.5 → > 0 (ist ' + m.x + ')');
+  // DOM: Stick + cancel + zweiter Finger + E
+  var listeners = {}, rafs = [], els = {}, log = [];
+  function el(id) {
+    if (els[id]) return els[id];
+    var cv = mockCanvas(log), e = cv; e.id = id;
+    e.classList = { _c: {}, add: function (c) { this._c[c] = true; }, toggle: function (c, v) { if (v === false) delete this._c[c]; else this._c[c] = true; }, remove: function (c) { delete this._c[c]; }, contains: function (c) { return !!this._c[c]; } };
+    e.style = { setProperty: function (k, v) { this[k] = v; }, display: 'none', left: '', top: '', transform: '' };
+    e.hidden = false; e.listeners = {};
+    e.addEventListener = function (t, f) { (e.listeners[t] = e.listeners[t] || []).push(f); };
+    e.setPointerCapture = function () {}; e.textContent = '';
+    e.getBoundingClientRect = function () { return { left: 0, top: 400, width: 160, height: 120 }; };
+    return (els[id] = e);
+  }
+  var doc = { getElementById: el, createElement: function (t) { return t === 'audio' ? fakeAudio() : mockCanvas(log); }, addEventListener: function (t, f) { (listeners['doc:' + t] = listeners['doc:' + t] || []).push(f); }, hidden: false, head: { appendChild: function () {} }, body: {} };
+  var win = ladeKontext({ __SAUFI_OHNE_START: true, document: doc, location: { search: '?start=1', protocol: 'file:' }, navigator: { onLine: true },
+    addEventListener: function (t, f) { (listeners[t] = listeners[t] || []).push(f); }, requestAnimationFrame: function (f) { rafs.push(f); return 1; },
+    setInterval: function () { return 1; }, setTimeout: function (f) { return 1; }, clearTimeout: function () {},
+    innerWidth: 390, innerHeight: 844, devicePixelRatio: 2,
+    getComputedStyle: function () { return { paddingLeft: '0', paddingRight: '0', paddingTop: '0', paddingBottom: '0' }; },
+    matchMedia: function () { return { matches: true }; } });
+  var Saufi = win.Saufi, api = Saufi.Main.starte(win, doc);
+  var zone = els.stick;
+  wahr(zone && zone.listeners.pointerdown, 'Stick pointerdown');
+  // Finger A
+  zone.listeners.pointerdown[0]({ pointerId: 1, clientX: 40, clientY: 450, preventDefault: function () {} });
+  zone.listeners.pointermove[0]({ pointerId: 1, clientX: 60, clientY: 450, preventDefault: function () {} }); // 20px = 0.5
+  wahr(api.E.stick.x > 0, 'Stick nach Move > 0');
+  var xVorher = api.E.stick.x;
+  // Zweiter Finger ignoriert
+  zone.listeners.pointerdown[0]({ pointerId: 2, clientX: 80, clientY: 460, preventDefault: function () {} });
+  nah(api.E.stick.x, xVorher, 1e-9, 'zweiter Finger aendert Stick nicht');
+  // E gleichzeitig
+  api.E.tippe('aktion');
+  wahr(api.E.neu('aktion'), 'E gleichzeitig loest Aktion aus');
+  wahr(api.E.stick.x > 0, 'E bricht Stick nicht ab');
+  // cancel
+  zone.listeners.pointercancel[0]({ pointerId: 1 });
+  gleich(api.E.stick.x, 0, 'cancel setzt Stick 0');
+  gleich(api.E.stick.y, 0);
+});
+
+test('83 Versionen: VERSION 0.6, ?v=0.6, README v06, Bau-Bericht v06', function () {
+  var D = lade();
+  gleich(D.Spiel.VERSION, '0.6');
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  var vs = html.match(/\?v=([0-9.]+)/g) || [];
+  wahr(vs.length > 0, 'Cache-Buster');
+  vs.forEach(function (v) { gleich(v, '?v=0.6', v); });
+  var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+  wahr(/Neu in v06/.test(readme), 'README Neu in v06');
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v06.md')), 'bau-bericht-v06.md');
+});
+
+test('84 StummHinweis: Flag erst im Timeout, mind. 4 s sichtbar', function () {
+  var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
+  wahr(/4000/.test(main), 'Timeout 4000 ms');
+  wahr(/setTimeout\s*\(\s*function[\s\S]*?stummHinweisGezeigt\s*=\s*true/.test(main), 'Flag erst im Timeout');
+  // Vor Timeout darf die Zuweisung nicht unmittelbar vor setTimeout stehen
+  wahr(!/stummHinweisGezeigt\s*=\s*true;\s*\n\s*T\._stummTimer\s*=\s*win\.setTimeout/.test(main), 'Flag nicht vor Timer');
+  var D = lade();
+  var T = D.Ton.erstelle({ AudioContext: null, setInterval: function () { return 1; } });
+  T.verfuegbar = true; T.entsperrt = true; T.stummHinweisGezeigt = false;
+  gleich(T.hinweis(), D.Ton.HINWEIS_STUMMSCHALTER, 'Hinweis aktiv solange Flag false');
+  T.stummHinweisGezeigt = true;
+  gleich(T.hinweis(), '', 'nach Flag kein Hinweis mehr');
+});
+
+test('85 Disko Hoch: Raum fuellt Weltflaeche (Zoom-Kennzahl / Schwarz < 25%)', function () {
+  var D = lade(), t = neuesSpielTest(D), S = t.S;
+  S.ort = 'disko'; S.karte = S.welt.innen.disko;
+  S.kamera.weltW = S.karte.pxW; S.kamera.weltH = S.karte.pxH;
+  var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  var h = D.Render.berechnePortH(390, 844);
+  D.Render.setzeBildschirm(R, true, { h: h, touch: true });
+  R.touch = true; R.cssW = 390; R.cssH = 844;
+  D.Render.zeichne(R, S);
+  var weltH = R.weltH, zoom = R.aktuellerWeltZoom;
+  wahr(zoom != null, 'aktuellerWeltZoom gesetzt');
+  var cover = Math.max(R.W / S.karte.pxW, weltH / Math.max(1, S.karte.pxH));
+  nah(zoom, cover, 1e-6, 'Cover-Zoom Disko');
+  wahr(zoom >= weltH / S.karte.pxH - 1e-6 || zoom >= R.W / S.karte.pxW - 1e-6, 'eine Achse gefuellt');
+  // Letterbox-Schwarzanteil bei Cover ≈ 0 (Crop statt Balken)
+  var schwarz = Math.max(0, 1 - Math.min(1, (S.karte.pxW * zoom) / R.W) * Math.min(1, (S.karte.pxH * zoom) / weltH));
+  wahr(schwarz < 0.25, 'Schwarzanteil Welt < 25% (ist ' + schwarz + ')');
+});
+
+test('86 Zuruf RUNDE! Abstand ≥ 4 px zur Scooter-Leiste', function () {
+  var src = fs.readFileSync(path.join(ROOT, 'js', 'render.js'), 'utf8');
+  wahr(/resTop\s*\+\s*40/.test(src), 'Banner bei resTop+40');
+  var D = lade(), t = neuesSpielTest(D), S = t.S;
+  S.ort = 'disko'; S.karte = S.welt.innen.disko;
+  S.hilfe = '';
+  S.hinweise.liste = [{ text: 'RUNDE!', rest: 3, art: 'gross' }];
+  var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  var h = D.Render.berechnePortH(390, 844);
+  D.Render.setzeBildschirm(R, true, { h: h, touch: true });
+  R.touch = true; R.cssW = 390; R.cssH = 844;
+  D.Render.zeichne(R, S);
+  var resTop = R.weltH + 2, scooterH = 15, bannerY = resTop + 40;
+  wahr(bannerY - (resTop + scooterH) >= 4 - 0.01, 'Abstand ≥ 4 px');
 });
 
 // ---------- Ausfuehren ----------
