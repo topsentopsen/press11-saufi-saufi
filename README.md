@@ -12,6 +12,8 @@ Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 n
 - Joystick-Zone schluckt keine Overlay-Klicks mehr (`pointer-events` bei Overlay und ohne Touch aus).
 - Jukebox/Menüs passen in beide Orientierungen (kürzen statt abschneiden); YouTube auf dem Handy klein oben, bei Overlay aus.
 - `devicePixelRatio` auf max. 2 begrenzt (Performance).
+- **iPhone/Safari (v03b):** `position:fixed` + `-webkit-fill-available`, Doppeltipp-Zoom aus, Touch-Fallback (`touchstart`/`touchend`, `passive: false`) für Joystick und Knöpfe; Start per Tipp.
+- **Ton auf iOS:** AudioContext erst bei `touchend`/`pointerup`/`click`, stummer 1-Sample-Puffer, Resume nach Unterbrechung; Hinweis „Tippen für Ton“ / einmalig „Kein Ton? Stummschalter am iPhone prüfen“. YouTube nur nach Geste, `playsinline`.
 
 ## Neu in v02
 

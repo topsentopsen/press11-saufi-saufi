@@ -871,6 +871,135 @@ test('45 Touch-Ziele ≥ 44 CSS-px', function () {
   wahr(/#rahmen\.touch\s*~\s*#yt-fenster/.test(html), 'YT auf Touch oben/klein');
 });
 
+// ---------- v03b: iPhone Safari Hochformat + Audio-Entsperren ----------
+test('46 Viewport-Meta und iPhone-CSS: Safe-Area, kein Zoom/Scroll/Gummiband', function () {
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  wahr(/viewport-fit=cover/.test(html), 'viewport-fit=cover');
+  wahr(/maximum-scale=1/.test(html) && /user-scalable=no/.test(html), 'kein Zoom per Meta');
+  wahr(/position:\s*fixed/.test(html), 'body position:fixed');
+  wahr(/-webkit-fill-available/.test(html), 'webkit-fill-available Fallback');
+  wahr(/100dvh/.test(html), '100dvh');
+  wahr(/overscroll-behavior:\s*none/.test(html), 'overscroll-behavior');
+  wahr(/touch-action:\s*none/.test(html), 'touch-action:none');
+  wahr(/-webkit-user-select:\s*none/.test(html), 'user-select');
+  wahr(/-webkit-touch-callout:\s*none/.test(html), 'touch-callout');
+  wahr(/env\(safe-area-inset-/.test(html), 'safe-area-inset');
+  wahr(/id="ton-hinweis"/.test(html), 'Ton-Hinweis-Element');
+  var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
+  wahr(/passive:\s*false/.test(main), 'Touch preventDefault passive:false');
+  wahr(/touchstart/.test(main) && /touchend/.test(main), 'Touch-Fallback Joystick/Knoepfe');
+  var eing = fs.readFileSync(path.join(ROOT, 'js', 'eingabe.js'), 'utf8');
+  wahr(/touchstart/.test(eing) && /passive:\s*false/.test(eing), 'Canvas touchstart Fallback');
+});
+
+test('47 Audio-Entsperren: erst nach Geste, stummer 1-Sample-Puffer, Hinweistexte', function () {
+  var D = lade(), Ton = D.Ton;
+  gleich(Ton.HINWEIS_TIPPEN, 'Tippen für Ton');
+  gleich(Ton.HINWEIS_STUMMSCHALTER, 'Kein Ton? Stummschalter am iPhone prüfen');
+  wahr(Ton.zustandGesperrt('suspended') && Ton.zustandGesperrt('interrupted'));
+  wahr(!Ton.zustandGesperrt('running'));
+  // Fake-AudioContext: start() erst nach entsperre, stummer Puffer wird abgespielt
+  var starts = [], resumes = [], state = 'suspended';
+  function FakeCtx() {
+    this.sampleRate = 44100; this.destination = {};
+    Object.defineProperty(this, 'state', { get: function () { return state; } });
+    this.createGain = function () { return { gain: { value: 1, setTargetAtTime: function () {} }, connect: function () {} }; };
+    this.createDynamicsCompressor = function () { return { connect: function () {} }; };
+    this.createBiquadFilter = function () { return { type: '', frequency: { value: 0, setTargetAtTime: function () {} }, connect: function () {} }; };
+    this.createBuffer = function (ch, len, rate) { return { getChannelData: function () { return new Float32Array(len); }, length: len, sampleRate: rate }; };
+    this.createBufferSource = function () {
+      return { buffer: null, connect: function () {}, start: function () { starts.push(1); } };
+    };
+    this.createOscillator = function () { return { type: '', frequency: { setValueAtTime: function () {}, exponentialRampToValueAtTime: function () {} }, connect: function () {}, start: function () {}, stop: function () {} }; };
+    this.resume = function () { resumes.push(state); state = 'running'; return { then: function (f) { if (f) f(); } }; };
+    this.currentTime = 0;
+  }
+  var win = { AudioContext: FakeCtx, webkitAudioContext: FakeCtx, setInterval: function () { return 1; } };
+  var t = Ton.erstelle(win);
+  wahr(!t.gestartet && !t.entsperrt);
+  gleich(t.hinweis(), 'Tippen für Ton');
+  wahr(t.entsperre(), 'entsperre ok');
+  wahr(t.gestartet && t.entsperrt);
+  wahr(starts.length >= 1, 'stummer 1-Sample-Puffer abgespielt');
+  wahr(resumes.length >= 1, 'resume bei suspended');
+  gleich(t.hinweis(), 'Kein Ton? Stummschalter am iPhone prüfen');
+  t.stummHinweisGezeigt = true; gleich(t.hinweis(), '');
+  // Nach Unterbrechung wieder Hinweis + resume bei naechster Geste
+  state = 'interrupted'; t.markiereUnterbrochen(); wahr(!t.entsperrt); gleich(t.hinweis(), 'Tippen für Ton');
+  starts.length = 0; resumes.length = 0; wahr(t.entsperre()); wahr(starts.length >= 1 && resumes.length >= 1);
+  // Ohne WebAudio kein Absturz
+  var t0 = Ton.erstelle(null); wahr(!t0.start());
+  var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
+  wahr(/pointerup/.test(main) && /touchend/.test(main) && /click/.test(main), 'Entsperren per pointerup/touchend/click');
+  wahr(/markiereUnterbrochen|visibilitychange/.test(main), 'visibilitychange behandelt Unterbrechung');
+  var src = fs.readFileSync(path.join(ROOT, 'js', 'ton.js'), 'utf8');
+  wahr(/createBuffer\(\s*1\s*,\s*1\s*,/.test(src), '1-Sample-Puffer im Code');
+});
+
+test('48 YouTube playsinline und kein Autoplay ohne Geste', function () {
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  wahr(!/<iframe/i.test(html), 'kein YouTube-iframe vor Geste in HTML');
+  var mus = fs.readFileSync(path.join(ROOT, 'js', 'musik.js'), 'utf8');
+  wahr(/playsinline:\s*1/.test(mus), 'playerVars playsinline:1');
+  wahr(/setAttribute\(\s*['"]playsinline['"]/.test(mus), 'iframe-Attribut playsinline');
+  wahr(/webkit-playsinline/.test(mus), 'webkit-playsinline');
+  // Player wird erst bei starte('playlist') erzeugt
+  var D = lade(), ton = D.Ton.erstelle(null), spieler = [];
+  var doc = fakeDocMitYT(), win = {
+    YT: { Player: function (id, opt) {
+      spieler.push(opt);
+      this.loadVideoById = function () {}; this.pauseVideo = function () {}; this.playVideo = function () {};
+      this.mute = function () {}; this.unMute = function () {};
+      var host = doc.els['yt-player'];
+      host.tagName = 'DIV'; host.querySelector = function () {
+        return { setAttribute: function (k, v) { host['attr_' + k] = v; } };
+      };
+    } },
+    setTimeout: setTimeout, clearTimeout: clearTimeout
+  };
+  var m = D.Musik.erstelle({ win: win, doc: doc, ton: ton, speicher: D.Speicher.erstelle(null), melde: function () {}, protokoll: 'https:', online: true, mp3: [] });
+  gleich(spieler.length, 0, 'kein Player ohne Geste');
+  m.starte('playlist');
+  gleich(spieler.length, 1, 'Player nach Playlist-Geste');
+  gleich(spieler[0].playerVars.playsinline, 1);
+  wahr(!!doc.els['yt-player'].attr_playsinline || /setzePlaysinline/.test(mus), 'playsinline gesetzt');
+});
+
+test('49 Hochformat 390x844 und 375x667 komplett sichtbar', function () {
+  var D = lade(), PortH = D.Render.PORT_H, W = D.Render.BASE_W;
+  gleich(PortH, 400); gleich(W, 320);
+  [{ w: 390, h: 844, safeY: 47 + 34 }, { w: 375, h: 667, safeY: 0 }].forEach(function (g) {
+    var availW = g.w - 8, availH = g.h - g.safeY - 8;
+    var sk = D.Main.berechneSkala(availW, availH, W, PortH, true, D.Gfx.MIN_SCHRIFT);
+    wahr(sk.cw <= availW + 0.01, g.w + 'x' + g.h + ' Breite passt (' + sk.cw + '<=' + availW + ')');
+    wahr(sk.ch <= availH + 0.01, g.w + 'x' + g.h + ' Hoehe passt (' + sk.ch + '<=' + availH + ')');
+    wahr(sk.s * D.Gfx.MIN_SCHRIFT >= 10, 'Schrift lesbar bei ' + g.w + ' (sk=' + sk.s + ')');
+    wahr(sk.cw >= W * 0.9 && sk.ch >= PortH * 0.9, 'kein starkes Schrumpfen bei ' + g.w);
+  });
+  var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  D.Render.setzeBildschirm(R, true); R.touch = true;
+  gleich(R.H, 400);
+  var t = neuesSpielTest(D); t.Sp.playlistOverlay(t.S, t.X);
+  D.Render.zeichne(R, t.S);
+  wahr(R.panel && R.panel.y + R.panel.h <= R.H - 2, 'Playlist-Panel in Hochformat');
+});
+
+test('50 Startbildschirm per Tipp startbar (Zeiger/Touch)', function () {
+  var D = lade(), S = D.Spiel.neu({ seed: 1 }), X = { E: fakeE() };
+  gleich(S.zustand, 'start');
+  var log = [], cv = mockCanvas(log), R = D.Render.erstelle(cv, cv.ownerDocument);
+  D.Render.zeichne(R, S); S.treffer = R.treffer;
+  var startBtn = S.treffer.filter(function (tr) { return tr.i === 0; })[0];
+  wahr(startBtn, 'Start-Treffer vorhanden');
+  X.E.klicke(startBtn.x + 1, startBtn.y + 1);
+  D.Spiel.update(S, 0.05, X); X.E.ende();
+  gleich(S.zustand, 'spiel', 'Tipp startet das Spiel');
+  // Eingabe.zeiger (Pointer/Touch-Pfad)
+  var e = D.Eingabe.erstelle(null, null);
+  wahr(e.zeiger(10, 10, 5000));
+  gleich(e.klicks().length, 1);
+});
+
 // ---------- Ausfuehren ----------
 var ausgabe = [];
 tests.forEach(function (t) {

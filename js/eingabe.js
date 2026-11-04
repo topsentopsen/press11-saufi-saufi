@@ -63,17 +63,32 @@
       win.addEventListener('pagehide', function () { halt = {}; });
     }
     if (canvas && canvas.addEventListener) {
+      var pointerMs = -1;
+      function canvasZeiger(clientX, clientY, timeStamp, alsTouch) {
+        if (alsTouch) e.touch = true;
+        var rect = canvas.getBoundingClientRect();
+        if (!rect || !(rect.width > 0) || !(rect.height > 0)) return;
+        var p = zuIntern(clientX, clientY, rect, W, H);
+        var ms = typeof timeStamp === 'number' && timeStamp > 0 ? timeStamp : (typeof Date !== 'undefined' ? Date.now() : (ersatzMs += 1000));
+        e.zeiger(p.x, p.y, ms);
+      }
       canvas.addEventListener('pointerdown', function (ev) {
         if (ev.preventDefault) ev.preventDefault();
         if (ev.isPrimary === false) return;
         if (ev.button !== undefined && ev.button > 0) return;
-        if (ev.pointerType === 'touch') e.touch = true;
-        var rect = canvas.getBoundingClientRect();
-        if (!rect || !(rect.width > 0) || !(rect.height > 0)) return;
-        var p = zuIntern(ev.clientX, ev.clientY, rect, W, H);
-        var ms = typeof ev.timeStamp === 'number' && ev.timeStamp > 0 ? ev.timeStamp : (typeof Date !== 'undefined' ? Date.now() : (ersatzMs += 1000));
-        e.zeiger(p.x, p.y, ms);
+        pointerMs = typeof ev.timeStamp === 'number' ? ev.timeStamp : Date.now();
+        canvasZeiger(ev.clientX, ev.clientY, ev.timeStamp, ev.pointerType === 'touch');
       });
+      // iOS-Fallback neben Pointer Events: touchstart/touchend mit preventDefault ({passive:false})
+      canvas.addEventListener('touchstart', function (ev) {
+        if (ev.preventDefault) ev.preventDefault();
+        var ts = typeof ev.timeStamp === 'number' ? ev.timeStamp : Date.now();
+        if (pointerMs >= 0 && Math.abs(ts - pointerMs) < 80) return; // schon per Pointer verarbeitet
+        var t0 = ev.changedTouches && ev.changedTouches[0];
+        if (!t0) return;
+        canvasZeiger(t0.clientX, t0.clientY, ev.timeStamp, true);
+      }, { passive: false });
+      canvas.addEventListener('touchend', function (ev) { if (ev.preventDefault) ev.preventDefault(); }, { passive: false });
       canvas.addEventListener('contextmenu', function (ev) { if (ev.preventDefault) ev.preventDefault(); });
     }
     return e;

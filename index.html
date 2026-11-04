@@ -7,18 +7,28 @@
 <!-- eigenes kleines Symbol (Bierkrug im Kessel), direkt als Bild im Text, keine Datei von aussen -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232a2342'/%3E%3Crect x='3' y='4' width='7' height='9' fill='%23ffc233' stroke='%234a3560'/%3E%3Crect x='3' y='4' width='7' height='2' fill='%23fff8ee'/%3E%3Cpath d='M10 6h2.5v4H10' fill='none' stroke='%234a3560'/%3E%3Ccircle cx='13' cy='3' r='1.5' fill='%23ff4fa0'/%3E%3C/svg%3E">
 <style>
-  html, body { margin: 0; height: 100%; height: 100dvh; max-height: 100dvh; background: #1b1530; overflow: hidden;
-    touch-action: manipulation; overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
-  body { display: flex; align-items: center; justify-content: center; box-sizing: border-box;
-    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  html { height: 100%; height: -webkit-fill-available; }
+  html, body { margin: 0; background: #1b1530; overflow: hidden;
+    touch-action: none; overscroll-behavior: none; -webkit-text-size-adjust: 100%;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  body { position: fixed; inset: 0; width: 100%; height: 100%; height: 100dvh; max-height: 100dvh;
+    height: -webkit-fill-available; max-height: -webkit-fill-available;
+    display: flex; align-items: center; justify-content: center; box-sizing: border-box;
     padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
     font-family: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif; }
   #rahmen { position: relative; line-height: 0; box-shadow: 0 0 0 4px #ff4fa0, 0 0 0 7px #4fe6ff, 0 8px 30px rgba(0,0,0,.55); border-radius: 6px;
-    padding: 0; /* Safe-Area an Body + an Stick/Knoepfen (Vollbild) */ }
+    padding: 0; touch-action: none; /* Safe-Area an Body + an Stick/Knoepfen (Vollbild) */ }
   canvas { display: block; }
-  #spiel { image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-  .knopf { border: 0; padding: 0; margin: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; line-height: 1;
-    font: bold 15px ui-rounded, "Trebuchet MS", system-ui, sans-serif; color: #4a3560; min-width: 44px; min-height: 44px; }
+  #spiel { image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  .knopf { border: 0; padding: 0; margin: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: none; line-height: 1;
+    font: bold 15px ui-rounded, "Trebuchet MS", system-ui, sans-serif; color: #4a3560; min-width: 44px; min-height: 44px;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  #ton-hinweis { position: fixed; left: 50%; bottom: max(12px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+    z-index: 20; margin: 0; padding: 8px 14px; border-radius: 8px; background: rgba(42, 35, 66, .92); color: #fff8ee;
+    font: bold 13px ui-rounded, "Trebuchet MS", system-ui, sans-serif; text-align: center; pointer-events: none;
+    box-shadow: 0 0 0 2px #ff4fa0; max-width: min(92vw, 320px); }
+  #ton-hinweis[hidden] { display: none; }
   .knopf:focus-visible { outline: 3px solid #ffd36e; outline-offset: 1px; }
   #oben { position: absolute; top: calc(var(--s, 3) * 1px + env(safe-area-inset-top, 0px)); right: calc(var(--s, 3) * 2px + env(safe-area-inset-right, 0px)); display: flex; gap: calc(var(--s, 3) * 2px); z-index: 2; }
   #oben .knopf { width: max(44px, calc(var(--s, 3) * 8px)); height: max(44px, calc(var(--s, 3) * 8px)); border-radius: 50%; background: #fff8ee;
@@ -82,6 +92,7 @@
   <div id="yt-leiste"><span>Scooter (YouTube)</span><button id="yt-klapp" class="knopf" type="button">&ndash; Scooter</button></div>
   <div id="yt-rahmen"><div id="yt-player"></div></div>
 </div>
+<div id="ton-hinweis" hidden>Tippen für Ton</div>
 <pre id="debug" hidden></pre>
 <script src="js/rng.js?v=0.3"></script>
 <script src="js/uhr.js?v=0.3"></script>

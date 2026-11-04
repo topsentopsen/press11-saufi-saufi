@@ -33,9 +33,32 @@
     return out;
   }
 
+  var HINWEIS_TIPPEN = 'Tippen für Ton';
+  var HINWEIS_STUMMSCHALTER = 'Kein Ton? Stummschalter am iPhone prüfen';
+
+  // Stummer 1-Sample-Puffer: iOS entsperrt WebAudio erst nach Abspielen in einer Nutzergeste.
+  function stummerPuffer(ctx) {
+    if (!ctx || !ctx.createBuffer || !ctx.createBufferSource) return null;
+    try {
+      var buf = ctx.createBuffer(1, 1, ctx.sampleRate || 22050);
+      var src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+      return src;
+    } catch (e) { return null; }
+  }
+  function spieleStumm(ctx) {
+    var src = stummerPuffer(ctx);
+    if (!src) return false;
+    try { src.start(0); return true; } catch (e) { return false; }
+  }
+  function zustandGesperrt(state) {
+    return state === 'suspended' || state === 'interrupted';
+  }
+
   function erstelle(win) {
     var Ctor = win && (win.AudioContext || win.webkitAudioContext);
-    var t = { ctx: null, gestartet: false, stumm: false, musikAn: false, ebene: 0, tief: false, boost: false, verfuegbar: !!Ctor,
+    var t = { ctx: null, gestartet: false, entsperrt: false, stummHinweisGezeigt: false, stumm: false, musikAn: false, ebene: 0, tief: false, boost: false, verfuegbar: !!Ctor,
       step: 0, takt: 0, naechste: 0, timer: null, beatStart: 0 };
     var master, musikBus, filter, rausch;
 
@@ -53,6 +76,31 @@
       return true;
     }
     function now() { return t.ctx ? t.ctx.currentTime : 0; }
+
+    // Nach visibilitychange / Unterbrechung: naechste Geste soll wieder resume + stummen Puffer spielen
+    t.markiereUnterbrochen = function () {
+      if (!t.ctx) return;
+      if (zustandGesperrt(t.ctx.state)) t.entsperrt = false;
+    };
+    t.hinweis = function () {
+      if (!t.verfuegbar) return '';
+      if (!t.entsperrt) return HINWEIS_TIPPEN;
+      if (!t.stummHinweisGezeigt) return HINWEIS_STUMMSCHALTER;
+      return '';
+    };
+    // Nur aus touchend / pointerup / click aufrufen (iOS: nicht nur pointerdown/keydown)
+    t.entsperre = function () {
+      if (!init()) return false;
+      var c = t.ctx;
+      if (zustandGesperrt(c.state)) {
+        try { c.resume(); } catch (e) { /* egal */ }
+      }
+      spieleStumm(c);
+      t.gestartet = true;
+      t.entsperrt = !zustandGesperrt(c.state);
+      if (!t.timer && win && win.setInterval) t.timer = win.setInterval(tick, 50);
+      return t.entsperrt;
+    };
 
     function osz(typ, freq, start, dauer, vol, ziel, bis) {
       var c = t.ctx, o = c.createOscillator(), gn = c.createGain();
@@ -88,11 +136,8 @@
       while (t.naechste < c.currentTime + 0.25) planeSchritt(t.naechste);
     }
 
-    t.start = function () {                           // nach erster Taste/Beruehrung aufrufen
-      if (!init()) return false;
-      if (t.ctx.state === 'suspended') { try { t.ctx.resume(); } catch (e) { /* egal */ } }
-      if (!t.timer && win && win.setInterval) t.timer = win.setInterval(tick, 50);
-      t.gestartet = true; return true;
+    t.start = function () {                           // Alias: Entsperren bei Nutzergeste (touchend/pointerup/click)
+      return t.entsperre();
     };
     t.setzeMusik = function (an) { t.musikAn = !!an; if (an && t.ctx) t.naechste = Math.max(t.naechste, now()); };
     t.setzeEbene = function (e) { t.ebene = Math.max(0, Math.min(3, e | 0)); };
@@ -118,5 +163,9 @@
     return t;
   }
 
-  Saufi.Ton = { BPM: BPM, BEAT: BEAT, noten: noten, skalaNote: skalaNote, mtof: mtof, erstelle: erstelle };
+  Saufi.Ton = {
+    BPM: BPM, BEAT: BEAT, noten: noten, skalaNote: skalaNote, mtof: mtof, erstelle: erstelle,
+    HINWEIS_TIPPEN: HINWEIS_TIPPEN, HINWEIS_STUMMSCHALTER: HINWEIS_STUMMSCHALTER,
+    stummerPuffer: stummerPuffer, spieleStumm: spieleStumm, zustandGesperrt: zustandGesperrt
+  };
 })(globalThis);
