@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.3';
+  var K = 16, VERSION = '0.4', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function neuesSpiel(opt) {
@@ -573,11 +573,21 @@
     if (!E) return;
     if (S.overlay) { updateOverlay(S, X, E); return; }
     if (E.neu('hoch') || E.neu('runter')) S.startIndex = 1 - S.startIndex;
-    var klick = null;
-    E.klicks().forEach(function (k) { S.treffer.forEach(function (t) { if (k.x >= t.x && k.x <= t.x + t.w && k.y >= t.y && k.y <= t.y + t.h) klick = t.i; }); });
+    var klick = null, hatKlick = false;
+    E.klicks().forEach(function (k) {
+      hatKlick = true;
+      S.treffer.forEach(function (t) {
+        if (k.x >= t.x && k.x <= t.x + t.w && k.y >= t.y && k.y <= t.y + t.h) klick = t.i;
+      });
+    });
     if (E.neu('playlist')) { playlistOverlay(S, X); return; }
-    if (klick === 1 || (klick === null && E.neu('aktion') && S.startIndex === 1)) { playlistOverlay(S, X); return; }
-    if (klick === 0 || (klick === null && E.neu('aktion') && S.startIndex === 0)) starteSpiel(S, X);
+    // Playlist-Eintrag (i===1) oeffnet die Liste; jeder andere Tipp (auch daneben) startet
+    if (klick === 1) { playlistOverlay(S, X); return; }
+    if (hatKlick) { starteSpiel(S, X); return; }
+    if (E.neu('aktion')) {
+      if (S.startIndex === 1) playlistOverlay(S, X);
+      else starteSpiel(S, X);
+    }
   }
   function starteSpiel(S, X) {
     S.zustand = 'spiel'; S.overlay = null;
@@ -728,6 +738,7 @@
     dbg.schritte = function (sek, ds) { ds = ds || 1 / 30; for (var i = 0; i < sek / ds; i++) { update(S, ds, X); E.ende(); } return schnappschuss(S); };
     dbg.zustand = function () { return S; };
     dbg.musik = function () { return M.zustand(); };
+    dbg.mass = function () { return { W: R.W, H: R.H, VW: R.VW, VH: R.VH, zoom: R.weltZoom }; };
     Saufi.debug = dbg;
 
     // Groesse: Hochformat = Spielfeld oben + Bedienleiste unten, R.H aus Viewport-Seitenverhaeltnis;
@@ -751,7 +762,7 @@
         E.setzeMass(R.W, R.H);
         if (S && S.kamera) { S.kamera.viewW = R.VW || R.W; S.kamera.viewH = R.VH || R.H; }
       }
-      var sk = berechneSkala(availW, playH, R.W, R.H, isTouch, Saufi.Gfx.MIN_SCHRIFT || 9);
+      var sk = berechneSkala(availW, playH, R.W, R.H, isTouch, Saufi.Gfx.MIN_SCHRIFT || 7);
       var s = sk.s, cw = sk.cw, ch = sk.ch;
       canvas.style.width = cw + 'px'; canvas.style.height = ch + 'px';
       var dpr = Saufi.Render.begrenzDpr(win.devicePixelRatio || 1);
@@ -944,7 +955,7 @@
     var s = Math.min(availW / logW, availH / logH);
     if (!(s > 0) || !isFinite(s)) s = 1;
     if (touch) {
-      var minS = 11 / (minSchrift || (Saufi.Gfx && Saufi.Gfx.MIN_SCHRIFT) || 9);
+      var minS = MIN_CSS_SCHRIFT / (minSchrift || (Saufi.Gfx && Saufi.Gfx.MIN_SCHRIFT) || 7);
       s = Math.max(s, Math.min(minS, availW / logW, availH / logH));
     }
     var cw = Math.round(logW * s), ch = Math.round(logH * s);

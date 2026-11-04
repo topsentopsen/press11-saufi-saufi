@@ -74,8 +74,8 @@
   }
 
   // ---------- Text ----------
-  // Mindestgroesse ~9 px logisch; auf Touch skaliert main.js so, dass daraus ≥ ~11 CSS-px werden.
-  var MIN_SCHRIFT = 9;
+  // Mindestgroesse ~7 px logisch; auf Touch skaliert main.js so, dass daraus ≥ ~9 CSS-px werden.
+  var MIN_SCHRIFT = 7;
   function schriftGroesse(size) { return Math.max(MIN_SCHRIFT, size || MIN_SCHRIFT); }
   function fontSetzen(c, size) { c.font = 'bold ' + size + 'px ' + SCHRIFT; }
   function breiteExakt(c, s, size) {

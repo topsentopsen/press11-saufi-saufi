@@ -23,18 +23,18 @@
   #spiel { image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
     -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; flex: 0 0 auto; }
   .knopf { border: 0; padding: 0; margin: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: none; line-height: 1;
-    font: bold 15px ui-rounded, "Trebuchet MS", system-ui, sans-serif; color: #4a3560; min-width: 44px; min-height: 44px;
+    font: bold 13px ui-rounded, "Trebuchet MS", system-ui, sans-serif; color: #4a3560; min-width: 44px; min-height: 44px;
     -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-  #ton-hinweis { position: fixed; left: 50%; bottom: max(12px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  #ton-hinweis { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 56px); bottom: auto; transform: translateX(-50%);
     z-index: 20; margin: 0; padding: 8px 14px; border-radius: 8px; background: rgba(42, 35, 66, .92); color: #fff8ee;
-    font: bold 13px ui-rounded, "Trebuchet MS", system-ui, sans-serif; text-align: center; pointer-events: none;
-    box-shadow: 0 0 0 2px #ff4fa0; max-width: min(92vw, 320px); }
+    font: bold 11px ui-rounded, "Trebuchet MS", system-ui, sans-serif; text-align: center; pointer-events: none;
+    box-shadow: 0 0 0 2px #ff4fa0; max-width: min(92vw, 280px); }
   #ton-hinweis[hidden] { display: none; }
   .knopf:focus-visible { outline: 3px solid #ffd36e; outline-offset: 1px; }
   /* Oben-rechts: 44px Touchziel, sichtbarer Kreis kleiner (~28px), damit HUD-Uhr frei bleibt */
   #oben { position: absolute; top: calc(var(--s, 3) * 1px); right: calc(var(--s, 3) * 1px); display: flex; gap: 2px; z-index: 2; }
   #oben .knopf { width: 44px; height: 44px; border-radius: 50%; background: transparent; box-shadow: none;
-    font-size: 13px; position: relative; color: #4a3560; isolation: isolate; }
+    font-size: 12px; position: relative; color: #4a3560; isolation: isolate; }
   #oben .knopf::before { content: ""; position: absolute; inset: 8px; border-radius: 50%; background: #fff8ee;
     box-shadow: 0 0 0 1.5px #4a3560; z-index: -1; pointer-events: none; }
   #ton-knopf.aus::before { background: #e3dbea; }
@@ -60,8 +60,8 @@
   #rahmen.touch #touch { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
   #rahmen.touch.hoch #touch { top: 0; bottom: 0; right: 8px; flex-direction: row-reverse; align-items: center; }
   #touch .knopf { border-radius: 50%; background: #fff8ee; box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 5px #ffb037; min-width: 44px; min-height: 44px; }
-  #knopf-aktion { width: max(56px, calc(var(--s, 3) * 18px)); height: max(56px, calc(var(--s, 3) * 18px)); font-size: 18px; }
-  #knopf-wasser { width: max(44px, calc(var(--s, 3) * 13px)); height: max(44px, calc(var(--s, 3) * 13px)); box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 4px #7ec8e3 !important; font-size: 11px; }
+  #knopf-aktion { width: max(56px, calc(var(--s, 3) * 18px)); height: max(56px, calc(var(--s, 3) * 18px)); font-size: 16px; }
+  #knopf-wasser { width: max(44px, calc(var(--s, 3) * 13px)); height: max(44px, calc(var(--s, 3) * 13px)); box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 4px #7ec8e3 !important; font-size: 10px; }
   #knopf-item, #knopf-f { display: none; width: max(44px, calc(var(--s, 3) * 13px)); height: max(44px, calc(var(--s, 3) * 13px)); box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 4px #ff4fa0 !important; font-size: 12px; }
   #touch .knopf:active { transform: translateY(3px); }
   /* YouTube-Fenster (Einbettung, ein-/ausklappbar, API mind. 200x113); Desktop unten links */
@@ -110,32 +110,32 @@
 </div>
 <div id="ton-hinweis" hidden>Tippen für Ton</div>
 <pre id="debug" hidden></pre>
-<script src="js/rng.js?v=0.3"></script>
-<script src="js/uhr.js?v=0.3"></script>
-<script src="js/charaktere.js?v=0.3"></script>
-<script src="js/getraenke.js?v=0.3"></script>
-<script src="js/essen.js?v=0.3"></script>
-<script src="js/pegel.js?v=0.3"></script>
-<script src="js/cheats.js?v=0.3"></script>
-<script src="js/runden.js?v=0.3"></script>
-<script src="js/ereignisse.js?v=0.3"></script>
-<script src="js/minispiele.js?v=0.3"></script>
-<script src="js/punkte.js?v=0.3"></script>
-<script src="js/hinweise.js?v=0.3"></script>
-<script src="js/speicher.js?v=0.3"></script>
-<script src="js/karte.js?v=0.3"></script>
-<script src="js/pfad.js?v=0.3"></script>
-<script src="js/kamera.js?v=0.3"></script>
-<script src="js/eingabe.js?v=0.3"></script>
-<script src="js/spieler.js?v=0.3"></script>
-<script src="js/npcs.js?v=0.3"></script>
-<script src="js/ton.js?v=0.3"></script>
-<script src="music/playlist.js?v=0.3"></script>
-<script src="js/musik.js?v=0.3"></script>
-<script src="js/gfx.js?v=0.3"></script>
-<script src="js/szene.js?v=0.3"></script>
-<script src="js/innen.js?v=0.3"></script>
-<script src="js/render.js?v=0.3"></script>
-<script src="js/main.js?v=0.3"></script>
+<script src="js/rng.js?v=0.4"></script>
+<script src="js/uhr.js?v=0.4"></script>
+<script src="js/charaktere.js?v=0.4"></script>
+<script src="js/getraenke.js?v=0.4"></script>
+<script src="js/essen.js?v=0.4"></script>
+<script src="js/pegel.js?v=0.4"></script>
+<script src="js/cheats.js?v=0.4"></script>
+<script src="js/runden.js?v=0.4"></script>
+<script src="js/ereignisse.js?v=0.4"></script>
+<script src="js/minispiele.js?v=0.4"></script>
+<script src="js/punkte.js?v=0.4"></script>
+<script src="js/hinweise.js?v=0.4"></script>
+<script src="js/speicher.js?v=0.4"></script>
+<script src="js/karte.js?v=0.4"></script>
+<script src="js/pfad.js?v=0.4"></script>
+<script src="js/kamera.js?v=0.4"></script>
+<script src="js/eingabe.js?v=0.4"></script>
+<script src="js/spieler.js?v=0.4"></script>
+<script src="js/npcs.js?v=0.4"></script>
+<script src="js/ton.js?v=0.4"></script>
+<script src="music/playlist.js?v=0.4"></script>
+<script src="js/musik.js?v=0.4"></script>
+<script src="js/gfx.js?v=0.4"></script>
+<script src="js/szene.js?v=0.4"></script>
+<script src="js/innen.js?v=0.4"></script>
+<script src="js/render.js?v=0.4"></script>
+<script src="js/main.js?v=0.4"></script>
 </body>
 </html>

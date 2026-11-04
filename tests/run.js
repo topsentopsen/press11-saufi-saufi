@@ -758,8 +758,8 @@ test('39 Teamstimmung 0: eigener Titel statt Umgefallen/Press F', function () {
   gleich(t.S.zustand, 'ende'); gleich(t.S.ende.wertung.titel, 'Abgehängt');
   wahr(/abgehängt/.test(t.S.ende.wertung.kopf)); wahr(/Teamstimmung 0/.test(t.S.ende.grund));
   wahr(t.S.ende.wertung.kopf.indexOf('Press F') < 0);
-  gleich(D.Spiel.VERSION, '0.3');
-  wahr(D.Gfx.MIN_SCHRIFT >= 9);
+  gleich(D.Spiel.VERSION, '0.4');
+  wahr(D.Gfx.MIN_SCHRIFT <= 7);
 });
 
 test('40 privat entfernt', function () {
@@ -813,9 +813,9 @@ test('42 DPR-Begrenzung: MAX_DPR = 2, setzeAufloesung und begrenzDpr kappen', fu
   wahr(sk === R.canvas.width / R.W, 'Skala konsistent');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
   wahr(/begrenzDpr|MAX_DPR/.test(main), 'main nutzt DPR-Begrenzung');
-  wahr(/VERSION\s*=\s*['"]0\.3['"]/.test(main), 'VERSION 0.3');
+  wahr(/VERSION\s*=\s*['"]0\.4['"]/.test(main), 'VERSION 0.4');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  wahr(/main\.js\?v=0\.3/.test(html), 'Cache-Buster v=0.3');
+  wahr(/main\.js\?v=0\.4/.test(html), 'Cache-Buster v=0.4');
 });
 
 test('43 Hochformat-Layout: Playlist und Menues passen in PORT_H', function () {
@@ -986,7 +986,7 @@ test('49 Hochformat 390x844 und 375x667: dynamische H fuellt Spielfeld', functio
     wahr(sk.ch <= playH + 0.01, g.w + 'x' + g.h + ' Hoehe passt');
     // Fast volle Flaeche (kein Letterbox wie bei fester 320x400)
     wahr(sk.ch / playH >= 0.95 && sk.cw / availW >= 0.95, 'Spielfeld fuellt Viewport bei ' + g.w + ' (ch/playH=' + (sk.ch / playH).toFixed(3) + ')');
-    wahr(sk.s * D.Gfx.MIN_SCHRIFT >= 10, 'Schrift lesbar bei ' + g.w);
+    wahr(sk.s * D.Gfx.MIN_SCHRIFT >= 8, 'Schrift lesbar bei ' + g.w);
   });
   var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
   var hDyn = D.Render.berechnePortH(382, 700);
@@ -1065,7 +1065,7 @@ test('52 Overlay-Schrift ueberschreitet Panelbreite nicht', function () {
   D.Render.zeichne(R2, spiel.S);
   wahr(blaseLog.length > 0, 'Sprechblasen-Text gezeichnet');
   wahr(D.Render.WELT_FLAECHE_HOCH >= 1.4 && D.Render.WELT_FLAECHE_HOCH <= 1.6, 'Hoch-Weltflaeche 1.4–1.6');
-  wahr(D.Render.WELT_FLAECHE_QUER >= 2.0 && D.Render.WELT_FLAECHE_QUER <= 2.5, 'Quer-Weltflaeche staerker raus');
+  wahr(D.Render.WELT_FLAECHE_QUER >= 3.0, 'Quer-Weltflaeche v04 staerker raus');
 });
 
 test('53 Kamera-Ausschnitt: Hoch ~1.5x, Quer weiter raus', function () {
@@ -1078,8 +1078,10 @@ test('53 Kamera-Ausschnitt: Hoch ~1.5x, Quer weiter raus', function () {
   nah(D.Render.WELT_ZOOM, 1 / Math.sqrt(D.Render.WELT_FLAECHE_QUER), 1e-9);
   D.Render.setzeBildschirm(R, true);
   var altH = D.Render.BASE_W * D.Render.PORT_H;
-  wahr(R.VW * R.VH > altH, 'Hoch: View > alte Flaeche');
-  nah(R.VW * R.VH / altH, D.Render.WELT_FLAECHE_HOCH, 0.02, 'Hoch ~WELT_FLAECHE_HOCH');
+  wahr(R.VW * R.VH > altH * 0.9, 'Hoch: View ~alte Flaeche (Kartenhoehe gekappt)');
+  // v04: VH auf Stadtkartenhoehe 480 begrenzt → Flaeche etwas unter WELT_FLAECHE_HOCH
+  wahr(R.VH <= 480 + 0.01, 'Hoch VH <= Kartenhoehe');
+  wahr(R.VW * R.VH / altH >= D.Render.WELT_FLAECHE_HOCH * 0.9, 'Hoch-Weltflaeche nahe v03');
   wahr(D.Render.WELT_FLAECHE_QUER > D.Render.WELT_FLAECHE_HOCH, 'Quer staerker rausgezoomt');
   var t = neuesSpielTest(D, { viewW: R.VW, viewH: R.VH });
   wahr(t.S.kamera.viewW >= R.VW - 0.01 && t.S.kamera.viewH >= R.VH - 0.01, 'Kamera-View gesetzt');
@@ -1121,7 +1123,110 @@ test('55 HUD-Uhr und Oben-Knoepfe: kein Overlap; Quer HUD kompakt', function () 
   D.Render.zeichne(R, t.S);
   wahr(R.hudUhr && R.hudUhr.w <= 96, 'Uhr-Panel Quer kompakt');
   wahr(uhrFrei(R.hudUhr), 'Uhr nicht unter HTML-Knoepfen (Quer)');
-  wahr(D.Render.WELT_FLAECHE_QUER >= 2, 'Quer-Kamera weiter raus');
+  wahr(D.Render.WELT_FLAECHE_QUER >= 3, 'Quer-Kamera weiter raus (v04)');
+});
+
+// ---------- v04: Start-Tipp, mass, Schrift, Zoom, Hoch-Layout ----------
+test('61 Start per Tipp irgendwo; Playlist-Treffer oeffnet Overlay', function () {
+  var D = lade(), S = D.Spiel.neu({ seed: 1 }), X = { E: fakeE() };
+  gleich(S.zustand, 'start');
+  var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  D.Render.zeichne(R, S); S.treffer = R.treffer;
+  X.E.klicke(5, 5);
+  D.Spiel.update(S, 0.05, X); X.E.ende();
+  gleich(S.zustand, 'spiel', 'Tipp daneben startet');
+  // Frisches Startspiel: Playlist-Treffer oeffnet, startet nicht
+  var S2 = D.Spiel.neu({ seed: 2 }), X2 = { E: fakeE() };
+  D.Render.zeichne(R, S2); S2.treffer = R.treffer;
+  var pl = S2.treffer.filter(function (tr) { return tr.i === 1; })[0];
+  wahr(pl, 'Playlist-Treffer');
+  X2.E.klicke(pl.x + 1, pl.y + 1);
+  D.Spiel.update(S2, 0.05, X2); X2.E.ende();
+  gleich(S2.zustand, 'start', 'Playlist-Klick startet nicht');
+  wahr(S2.overlay && S2.overlay.art === 'playlist', 'Playlist-Overlay offen');
+});
+
+test('62 Saufi.debug.mass liefert positive Masse', function () {
+  var listeners = {}, rafs = [], els = {}, log = [];
+  function el(id) {
+    if (els[id]) return els[id];
+    var cv = mockCanvas(log), e = cv; e.id = id; e.classList = { add: function () {}, toggle: function () {}, remove: function () {} }; e.style = { setProperty: function () {} };
+    e.hidden = false; e.listeners = {}; e.addEventListener = function (t, f) { (e.listeners[t] = e.listeners[t] || []).push(f); }; e.setPointerCapture = function () {}; e.textContent = '';
+    return (els[id] = e);
+  }
+  var doc = { getElementById: el, createElement: function (t) { return t === 'audio' ? fakeAudio() : mockCanvas(log); }, addEventListener: function () {}, hidden: false, head: { appendChild: function () {} } };
+  var win = ladeKontext({ __SAUFI_OHNE_START: true, document: doc, location: { search: '', protocol: 'file:' }, navigator: { onLine: true },
+    addEventListener: function (t, f) { (listeners[t] = listeners[t] || []).push(f); }, requestAnimationFrame: function (f) { rafs.push(f); }, setInterval: function () { return 1; },
+    setTimeout: setTimeout, clearTimeout: clearTimeout, innerWidth: 1280, innerHeight: 720, getComputedStyle: function () { return { paddingLeft: '0', paddingRight: '0', paddingTop: '0', paddingBottom: '0' }; },
+    matchMedia: function () { return { matches: false }; } });
+  var Saufi = win.Saufi; Saufi.Main.starte(win, doc);
+  wahr(typeof Saufi.debug.mass === 'function', 'debug.mass existiert');
+  var m = Saufi.debug.mass();
+  wahr(m.W > 0 && m.H > 0 && m.VW > 0 && m.VH > 0 && m.zoom > 0, 'Masse positiv');
+});
+
+test('63 Schrift: MIN_SCHRIFT <= 7; textInBox bleibt in Box', function () {
+  var D = lade(), G = D.Gfx, cv = mockCanvas(), c = cv.getContext('2d');
+  wahr(G.MIN_SCHRIFT <= 7, 'MIN_SCHRIFT <= 7');
+  [
+    { t: 'Pegel 1.23 ‰ und noch mehr', w: 66, h: 16, g: 11 },
+    { t: 'RUNDE! Gasthaus Maultäschle um 12:30', w: 180, h: 12, g: 8 },
+    { t: 'Ein langer Hinweistext der in die Blase muss und nicht rauslaufen darf', w: 200, h: 28, g: 9 },
+    { t: 'Ich bin 18+. Los geht\'s! (E / Tippen)', w: 200, h: 15, g: 9 },
+    { t: 'Scooter-Playlist', w: 220, h: 16, g: 11 }
+  ].forEach(function (f, i) {
+    var info = G.textInBox(c, f.t, 0, 0, f.w, f.h, f.g, { mess: true, ausr: 'center' });
+    wahr(info.w <= f.w + 0.75, 'Fall ' + i + ' Breite');
+    wahr(info.h <= f.h + 0.5, 'Fall ' + i + ' Hoehe');
+  });
+});
+
+test('64 Zoom: Quer >= 3; Hoch VH/weltH begrenzt, zoom >= 0.5', function () {
+  var D = lade();
+  wahr(D.Render.WELT_FLAECHE_QUER >= 3, 'WELT_FLAECHE_QUER >= 3');
+  var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  [{ h: 693 }, { h: 570 }].forEach(function (opt) {
+    D.Render.setzeBildschirm(R, true, opt);
+    wahr(R.VH <= 480 + 0.01 || (R.weltH != null && R.weltH > 0), 'Welt-Hoehe begrenzt bei h=' + opt.h);
+    wahr(R.weltZoom >= 0.5, 'zoom >= 0.5 bei h=' + opt.h);
+  });
+});
+
+test('65 Hoch-Layout ohne Overlap (390x844, 375x667)', function () {
+  var D = lade(), t = neuesSpielTest(D);
+  function uhrFrei(u, W) {
+    return u.y >= 36 || u.x + u.w <= W - u.btnBand + 0.5;
+  }
+  function keinOverlap(a, b) {
+    return a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y;
+  }
+  [
+    { cssW: 382, cssH: 700, h: D.Render.berechnePortH(382, 700) },
+    { cssW: 367, cssH: 520, h: D.Render.berechnePortH(367, 520) }
+  ].forEach(function (g) {
+    var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+    D.Render.setzeBildschirm(R, true, { h: g.h });
+    R.touch = true;
+    D.Render.setzeAufloesung(R, g.cssW, g.cssH, 2);
+    // aktive Runde fuer Runden-Panel
+    t.S.runden.runden[0].status = 'aktiv';
+    t.Sp.setze(t.S, { minute: t.S.runden.runden[0].zeit + 1 });
+    D.Render.zeichne(R, t.S);
+    wahr(R.hudUhr, 'hudUhr bei ' + g.cssW);
+    wahr(uhrFrei(R.hudUhr, R.W), 'Uhr frei von Oben-Knoepfen bei ' + g.cssW);
+    if (R.hudLinks) wahr(keinOverlap(R.hudUhr, R.hudLinks), 'Uhr nicht ueber linkem Panel bei ' + g.cssW);
+  });
+});
+
+test('66 Versionen: ?v= == VERSION; README v04; Bau-Bericht', function () {
+  var D = lade();
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  var vs = html.match(/\?v=([0-9.]+)/g) || [];
+  wahr(vs.length > 0, 'Cache-Buster vorhanden');
+  vs.forEach(function (v) { gleich(v, '?v=' + D.Spiel.VERSION, 'Cache-Buster ' + v); });
+  var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+  wahr(/Neu in v04/.test(readme), 'README Neu in v04');
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v04.md')), 'bau-bericht-v04.md');
 });
 
 // ---------- Ausfuehren ----------

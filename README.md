@@ -4,6 +4,14 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v04
+
+- **Start per Tipp:** Tippen irgendwo auf dem Startbild startet; nur der Playlist-Eintrag öffnet die Jukebox. Zeile „Tippen zum Start“.
+- **Schrift kleiner:** `MIN_SCHRIFT` 7, HUD/Panels/Menüs ~15–20 % kleiner; CSS-Knöpfe und Ton-Hinweis angepasst (Touchfläche ≥ 44 px).
+- **Weiter rausgezoomt:** Quer `WELT_FLAECHE_QUER = 3.0`; Mindestzoom 0,5.
+- **Hoch-Layout:** Kamerahöhe auf Stadtkartenhöhe (480 px) begrenzt, darunter dunkles UI-Feld; HUD ohne Panel-Overlap; Hinweise nicht über Stick/E/Wasser; `#ton-hinweis` oben mittig unter den Oben-Knöpfen.
+- **Debug:** `Saufi.debug.mass()` liefert `{ W, H, VW, VH, zoom }`.
+
 ## Neu in v03
 
 - Handy-Optimierung Hoch- und Querformat: `viewport-fit=cover`, Safe-Area, `100dvh`, kein Scrollen/Zoomen.
@@ -43,7 +51,7 @@ python3 -m http.server 8000
 
 Dann im Browser <http://localhost:8000> öffnen.
 
-Am Startbildschirm Hinweis 18+ bestätigen (E, Enter, Leertaste oder Tippen).
+Am Startbildschirm Hinweis 18+ bestätigen (E, Enter, Leertaste) oder irgendwo tippen (außer auf „Scooter-Playlist“).
 
 ## Steuerung
 
