@@ -6,7 +6,7 @@ var fs = require('fs'), path = require('path'), vm = require('vm');
 var ROOT = path.join(__dirname, '..');
 // Reihenfolge wie die Script-Tags in index.html
 var DATEIEN = ['js/rng', 'js/uhr', 'js/charaktere', 'js/getraenke', 'js/essen', 'js/pegel', 'js/cheats', 'js/runden', 'js/ereignisse', 'js/punkte', 'js/hinweise',
-  'js/speicher', 'js/karte', 'js/pfad', 'js/kamera', 'js/eingabe', 'js/spieler', 'js/npcs', 'js/ton', 'music/playlist', 'js/musik', 'js/render', 'js/main'];
+  'js/speicher', 'js/karte', 'js/pfad', 'js/kamera', 'js/eingabe', 'js/spieler', 'js/npcs', 'js/ton', 'music/playlist', 'js/musik', 'js/gfx', 'js/szene', 'js/innen', 'js/render', 'js/main'];
 
 function ladeKontext(extra) {
   var ctx = { console: console, Math: Math };
@@ -39,10 +39,10 @@ function fakeE() {
 }
 // Strenger Mock: kennt nur echte CanvasRenderingContext2D-Namen und prueft Zahlen, damit Tippfehler und NaN auffallen
 var CTX_METHODEN = ['fillRect', 'strokeRect', 'clearRect', 'fillText', 'strokeText', 'drawImage', 'save', 'restore', 'translate', 'rotate', 'scale', 'setTransform', 'beginPath', 'closePath',
-  'moveTo', 'lineTo', 'arc', 'rect', 'fill', 'stroke', 'clip', 'quadraticCurveTo', 'bezierCurveTo'];
-var CTX_EIGENSCHAFTEN = ['fillStyle', 'strokeStyle', 'font', 'textAlign', 'textBaseline', 'globalAlpha', 'globalCompositeOperation', 'lineWidth', 'imageSmoothingEnabled'];
+  'moveTo', 'lineTo', 'arc', 'rect', 'fill', 'stroke', 'clip', 'quadraticCurveTo', 'bezierCurveTo', 'ellipse', 'arcTo', 'roundRect', 'setLineDash', 'transform', 'resetTransform'];
+var CTX_EIGENSCHAFTEN = ['fillStyle', 'strokeStyle', 'font', 'textAlign', 'textBaseline', 'globalAlpha', 'globalCompositeOperation', 'lineWidth', 'imageSmoothingEnabled', 'imageSmoothingQuality', 'lineCap', 'lineJoin', 'miterLimit', 'shadowColor', 'shadowBlur', 'shadowOffsetX', 'shadowOffsetY', 'filter', 'lineDashOffset'];
 var GCO = ['source-over', 'lighter', 'multiply', 'screen', 'destination-out', 'source-atop'];
-function pruefeZahlen(name, args) {
+function pruefeZahlen(name, args) { 
   Array.prototype.forEach.call(args, function (a) { if (typeof a === 'number' && !isFinite(a)) throw new Error('Canvas ' + name + ' mit ungueltiger Zahl ' + a); });
 }
 function mockCtx(log) {
@@ -65,7 +65,7 @@ function mockCtx(log) {
       if (CTX_EIGENSCHAFTEN.indexOf(k) < 0) throw new Error('Unbekannte Canvas-Eigenschaft gesetzt: ' + String(k));
       if (k === 'globalCompositeOperation' && GCO.indexOf(v) < 0) throw new Error('Unbekannte Mischart ' + v);
       if (k === 'globalAlpha' && !(v >= 0 && v <= 1)) throw new Error('globalAlpha ausserhalb 0..1: ' + v);
-      if ((k === 'fillStyle' || k === 'strokeStyle') && typeof v !== 'string' && (!v || typeof v.addColorStop !== 'function')) throw new Error('fillStyle ' + v);
+      if ((k === 'fillStyle' || k === 'strokeStyle') && typeof v !== 'string' && (!v || typeof v.addColorStop !== 'function')) throw new Error('fillStyle ' + v + ' @ ' + new Error().stack.split('\n').slice(3,7).join(' | '));
       t[k] = v; return true;
     },
     has: function (t, k) { return CTX_EIGENSCHAFTEN.indexOf(k) >= 0; }

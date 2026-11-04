@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.1';
+  var K = 16, VERSION = '0.2';
 
   // ---------------------------------------------------------------- Neues Spiel
   function neuesSpiel(opt) {
@@ -643,12 +643,15 @@
     dbg.musik = function () { return M.zustand(); };
     Saufi.debug = dbg;
 
-    // Groesse: ganzzahliger Pixelfaktor
+    // Groesse: stufenlos, hochaufloesend
     function groesse() {
       var hoch = !!(E.touch || (win.matchMedia && win.matchMedia('(pointer: coarse)').matches)) && win.innerHeight > win.innerWidth;
       if (hoch !== R.hochkant) { Saufi.Render.setzeBildschirm(R, hoch); E.setzeMass(R.W, R.H); S.kamera.viewW = R.W; S.kamera.viewH = R.H; }
-      var s = Math.max(1, Math.min(win.innerWidth / R.W, win.innerHeight / R.H)); if (s >= 2) s = Math.floor(s);
-      canvas.style.width = Math.round(R.W * s) + 'px'; canvas.style.height = Math.round(R.H * s) + 'px';
+      // stufenlos skalieren, Backing-Store in Geraete-Pixeln (devicePixelRatio) -> scharf statt pixelig
+      var s = Math.max(1, Math.min((win.innerWidth - 16) / R.W, (win.innerHeight - 16) / R.H));
+      var cw = Math.round(R.W * s), ch = Math.round(R.H * s);
+      canvas.style.width = cw + 'px'; canvas.style.height = ch + 'px';
+      Saufi.Render.setzeAufloesung(R, cw, ch, win.devicePixelRatio || 1);
       rahmen.style.setProperty('--s', String(s)); rahmen.classList.toggle('touch', !!(E.touch || (win.matchMedia && win.matchMedia('(pointer: coarse)').matches)));
     }
     win.addEventListener('resize', groesse); win.addEventListener('orientationchange', groesse); groesse();

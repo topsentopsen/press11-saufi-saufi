@@ -5,7 +5,7 @@
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
   var G = Saufi.Gfx, Sz = Saufi.Szene, In = Saufi.Innen;
-  var P = G.P, hash = G.hash, r = G.r, rr = G.rr, box = G.box, kreis = G.kreis, ellipse = G.ellipse, poly = G.poly, linie = G.linie, vlauf = G.vlauf;
+  var P = G.P, hash = G.hash, r = G.r, rr = G.rr, box = G.box, kreis = G.kreis, ellipse = G.ellipse, poly = G.poly, linie = G.linie, vlauf = G.vlauf, herz = G.herz;
   var text = G.text, breite = G.breite, umbruch = G.umbruch, panel = G.panel, rgb = G.rgb, mix = G.mix;
   var BASE_W = 320, BASE_H = 176, PORT_H = 400, K = 16;
   var MAX_BREITE = 4096, MAX_BG_SKALA = 6;
