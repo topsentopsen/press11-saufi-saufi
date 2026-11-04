@@ -1,0 +1,8 @@
+# Eigene MP3s von Tobi gehoeren nicht ins Repo
+music/*.mp3
+music/*.MP3
+
+# Editor und System
+.DS_Store
+Thumbs.db
+*.swp

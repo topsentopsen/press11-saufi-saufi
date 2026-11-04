@@ -1,0 +1,70 @@
+/* Pegel (fiktiv, 0,0 bis 4,0), Standfestigkeit 0 bis 100, Abbau, Schwellen, Umfallen, zweites Leben.
+   Gilt fuer jede Figur (Spieler und NPCs). Rein Spielwerte, kein Massstab fuers echte Leben. */
+(function (g) {
+  'use strict';
+  var Saufi = g.Saufi = g.Saufi || {};
+
+  var MAX = 4.0, ABBAU_PRO_STUNDE = 0.10, STAND_MAX = 100;
+
+  function neu(char) {
+    return { id: char.id, trink: char.trink, pegel: 0, stand: STAND_MAX, leben: char.leben, umgefallen: false, verloren: false,
+      abbauBonus: 0, abbauBis: 0, mahlzeiten: [], vollBis: 0 };
+  }
+  function klemme(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function rund1(v) { return Math.round(v * 10) / 10; }
+
+  function addPegel(f, d) { f.pegel = klemme(f.pegel + d, 0, MAX); return f.pegel; }
+  // Getraenk trinken: Alkoholisches wird mit der Trinkfestigkeit skaliert (Getraenke.pegelDelta), Wasser hebt die Standfestigkeit.
+  function trinke(f, id, mal) {
+    var G = Saufi.Getraenke, def = G.LISTE[id];
+    if (!def) return 0;
+    var d = G.pegelDelta(id, f.trink) * (mal || 1), alt = f.pegel;
+    addPegel(f, d);
+    if (def.stand) heile(f, def.stand * (mal || 1));
+    return f.pegel - alt;
+  }
+  function abbau(f, stunden, minute) {
+    var rate = ABBAU_PRO_STUNDE + (minute < f.abbauBis ? f.abbauBonus : 0);
+    f.pegel = klemme(f.pegel - rate * stunden, 0, MAX);
+  }
+  function schwelle(p) { return p < 1 ? 'klar' : (p < 2 ? 'locker' : (p < 3 ? 'wackelig' : 'kritisch')); }
+  function heile(f, n) { f.stand = klemme(f.stand + n, 0, STAND_MAX); }
+  function schaden(f, n, halbiert) { f.stand = klemme(f.stand - n * (halbiert ? 0.5 : 1), 0, STAND_MAX); }
+  // Ueber 3,0 sinkt die Standfestigkeit jede Sekunde, je hoeher, desto schneller.
+  function verlustProSekunde(f) { return f.pegel > 3 ? 1.5 + (f.pegel - 3) * 3 : 0; }
+  function update(f, dt, halbiert) { var v = verlustProSekunde(f) * dt; if (v > 0) schaden(f, v, halbiert); return v; }
+
+  // Bei Standfestigkeit 0 faellt die Figur um und verbraucht ein Leben.
+  // Rueckgabe: null (steht) | 'aufstehbar' (hat noch ein Leben) | 'verloren' (kein Leben mehr)
+  function pruefe(f) {
+    if (f.umgefallen || f.stand > 0) return null;
+    f.stand = 0; f.umgefallen = true; f.leben -= 1;
+    f.verloren = f.leben <= 0;
+    return f.verloren ? 'verloren' : 'aufstehbar';
+  }
+  function aufstehen(f) {
+    if (!f.umgefallen || f.leben <= 0) return false;
+    f.umgefallen = false; f.stand = 40; f.pegel = klemme(f.pegel - 1.0, 0, MAX);
+    return true;
+  }
+
+  // Essen: Pegel runter, Standfestigkeit rauf, Abbau-Boost 2 Spielstunden. 3 Gerichte in 2 Spielstunden machen satt (Bewegung -20 %).
+  function essen(f, gericht, minute, faktor) {
+    var E = Saufi.Essen, k = faktor || 1;
+    addPegel(f, gericht.pegel * k);
+    heile(f, gericht.stand * k);
+    if (gericht.abbau > 0) { f.abbauBonus = gericht.abbau; f.abbauBis = minute + 120; }
+    f.mahlzeiten.push(minute);
+    f.mahlzeiten = f.mahlzeiten.filter(function (m) { return minute - m <= E.VOLL_FENSTER_MIN; });
+    if (f.mahlzeiten.length >= E.VOLL_ANZAHL) f.vollBis = minute + E.VOLL_DAUER_MIN;
+    return { voll: minute < f.vollBis };
+  }
+  function bewegung(f, minute) { return minute < f.vollBis ? Saufi.Essen.VOLL_FAKTOR : 1; }
+  function anzeige(p) { return rund1(p).toFixed(1).replace('.', ','); }
+
+  Saufi.Pegel = {
+    MAX: MAX, ABBAU_PRO_STUNDE: ABBAU_PRO_STUNDE, STAND_MAX: STAND_MAX,
+    neu: neu, addPegel: addPegel, trinke: trinke, abbau: abbau, schwelle: schwelle, heile: heile, schaden: schaden,
+    verlustProSekunde: verlustProSekunde, update: update, pruefe: pruefe, aufstehen: aufstehen, essen: essen, bewegung: bewegung, anzeige: anzeige
+  };
+})(globalThis);

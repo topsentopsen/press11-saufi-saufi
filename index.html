@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Press11 - Saufi Saufi (18+, privat)</title>
+<!-- eigenes kleines Symbol (Bierkrug im Kessel), direkt als Bild im Text, keine Datei von aussen -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232a2342'/%3E%3Crect x='3' y='4' width='7' height='9' fill='%23ffc233' stroke='%234a3560'/%3E%3Crect x='3' y='4' width='7' height='2' fill='%23fff8ee'/%3E%3Cpath d='M10 6h2.5v4H10' fill='none' stroke='%234a3560'/%3E%3Ccircle cx='13' cy='3' r='1.5' fill='%23ff4fa0'/%3E%3C/svg%3E">
+<style>
+  html, body { margin: 0; height: 100%; background: #1b1530; overflow: hidden; touch-action: manipulation; }
+  body { display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+    font-family: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif; }
+  #rahmen { position: relative; line-height: 0; box-shadow: 0 0 0 4px #ff4fa0, 0 0 0 7px #4fe6ff, 0 8px 30px rgba(0,0,0,.55); border-radius: 6px; }
+  canvas { display: block; }
+  #spiel { image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .knopf { border: 0; padding: 0; margin: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; line-height: 1;
+    font: bold 15px ui-rounded, "Trebuchet MS", system-ui, sans-serif; color: #4a3560; }
+  .knopf:focus-visible { outline: 3px solid #ffd36e; outline-offset: 1px; }
+  #oben { position: absolute; top: calc(var(--s, 3) * 1px); right: calc(var(--s, 3) * 2px); display: flex; gap: calc(var(--s, 3) * 2px); }
+  #oben .knopf { width: max(24px, calc(var(--s, 3) * 8px)); height: max(24px, calc(var(--s, 3) * 8px)); border-radius: 50%; background: #fff8ee;
+    box-shadow: 0 0 0 2px #4a3560; font-size: max(12px, calc(var(--s, 3) * 4px)); }
+  #rahmen.touch #oben .knopf { width: max(34px, calc(var(--s, 3) * 10px)); height: max(34px, calc(var(--s, 3) * 10px)); }
+  #ton-knopf.aus { background: #e3dbea; text-decoration: line-through; }
+  /* Touch: Joystick links unten (erscheint, wo der Daumen aufsetzt), Aktionsknopf rechts unten */
+  #stick { display: none; position: absolute; left: 0; bottom: 0; width: 46%; height: 46%; touch-action: none; }
+  #rahmen.touch #stick { display: block; }
+  #stick-basis { display: none; position: absolute; width: 80px; height: 80px; margin: -40px 0 0 -40px; border-radius: 50%; background: rgba(255,248,238,.22); box-shadow: 0 0 0 2px rgba(74,53,96,.6); pointer-events: none; }
+  #stick-dau { position: absolute; left: 25px; top: 25px; width: 30px; height: 30px; border-radius: 50%; background: rgba(255,248,238,.85); box-shadow: 0 0 0 2px #4a3560; }
+  #touch { display: none; position: absolute; right: calc(var(--s, 3) * 3px); bottom: calc(var(--s, 3) * 3px); }
+  #rahmen.touch #touch { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  #touch .knopf { border-radius: 50%; background: #fff8ee; box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 5px #ffb037; }
+  #knopf-aktion { width: max(72px, calc(var(--s, 3) * 24px)); height: max(72px, calc(var(--s, 3) * 24px)); font-size: 22px; }
+  #knopf-wasser { width: max(46px, calc(var(--s, 3) * 15px)); height: max(46px, calc(var(--s, 3) * 15px)); box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 4px #7ec8e3 !important; font-size: 12px; }
+  #knopf-item, #knopf-f { display: none; width: max(46px, calc(var(--s, 3) * 15px)); height: max(46px, calc(var(--s, 3) * 15px)); box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 4px #ff4fa0 !important; font-size: 13px; }
+  #touch .knopf:active { transform: translateY(3px); }
+  /* YouTube-Fenster (nur Einbettung, sichtbar, ein-/ausklappbar, mindestens 200x113) */
+  #yt-fenster { position: fixed; left: 8px; bottom: 8px; width: 220px; background: #2a2342; border-radius: 8px; box-shadow: 0 0 0 2px #ff4fa0; z-index: 10; overflow: hidden; }
+  #yt-fenster[hidden] { display: none; }
+  #yt-leiste { display: flex; align-items: center; justify-content: space-between; padding: 3px 6px; color: #fff8ee; font: bold 11px ui-rounded, "Trebuchet MS", system-ui, sans-serif; }
+  #yt-klapp { background: #fff8ee; border-radius: 6px; padding: 3px 8px; font-size: 11px; }
+  #yt-rahmen { width: 220px; height: 124px; }
+  #yt-fenster.zu #yt-rahmen { display: none; }
+  #yt-rahmen iframe { width: 220px; height: 124px; display: block; }
+  #debug { position: fixed; right: 4px; top: 4px; margin: 0; padding: 4px 6px; background: rgba(0,0,0,.75); color: #9f9; font: 10px ui-monospace, monospace; line-height: 1.2; z-index: 30; pointer-events: none; }
+  #debug[hidden] { display: none; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+</head>
+<body>
+<div id="rahmen">
+  <canvas id="spiel" width="320" height="176" aria-label="Press11 - Saufi Saufi"></canvas>
+  <div id="oben">
+    <button id="playlist-knopf" class="knopf" type="button" title="Scooter-Playlist (Taste P)" aria-label="Scooter-Playlist">&#9835;</button>
+    <button id="ton-knopf" class="knopf" type="button" title="Ton an oder aus (Taste M)" aria-label="Ton an oder aus">&#9834;</button>
+    <button id="vollbild-knopf" class="knopf" type="button" title="Vollbild" aria-label="Vollbild">&#9974;</button>
+    <button id="info-knopf" class="knopf" type="button" title="Hinweis 18+" aria-label="Hinweis 18 plus">i</button>
+  </div>
+  <div id="stick" aria-hidden="true"><div id="stick-basis"><div id="stick-dau"></div></div></div>
+  <div id="touch">
+    <button id="knopf-f" class="knopf" type="button" aria-label="Press F">F</button>
+    <button id="knopf-item" class="knopf" type="button" aria-label="Item benutzen">R</button>
+    <button id="knopf-wasser" class="knopf" type="button" aria-label="Wasser trinken">Wasser</button>
+    <button id="knopf-aktion" class="knopf" type="button" aria-label="Aktion">E</button>
+  </div>
+</div>
+<!-- Kleines Fenster fuer die YouTube-Einbettung (Scooter-Playlist). Bleibt versteckt, bis YouTube wirklich gewaehlt und verfuegbar ist. -->
+<div id="yt-fenster" hidden>
+  <div id="yt-leiste"><span>Scooter (YouTube)</span><button id="yt-klapp" class="knopf" type="button">&ndash; Scooter</button></div>
+  <div id="yt-rahmen"><div id="yt-player"></div></div>
+</div>
+<pre id="debug" hidden></pre>
+<script src="js/rng.js?v=0.1"></script>
+<script src="js/uhr.js?v=0.1"></script>
+<script src="js/charaktere.js?v=0.1"></script>
+<script src="js/getraenke.js?v=0.1"></script>
+<script src="js/essen.js?v=0.1"></script>
+<script src="js/pegel.js?v=0.1"></script>
+<script src="js/cheats.js?v=0.1"></script>
+<script src="js/runden.js?v=0.1"></script>
+<script src="js/ereignisse.js?v=0.1"></script>
+<script src="js/punkte.js?v=0.1"></script>
+<script src="js/hinweise.js?v=0.1"></script>
+<script src="js/speicher.js?v=0.1"></script>
+<script src="js/karte.js?v=0.1"></script>
+<script src="js/pfad.js?v=0.1"></script>
+<script src="js/kamera.js?v=0.1"></script>
+<script src="js/eingabe.js?v=0.1"></script>
+<script src="js/spieler.js?v=0.1"></script>
+<script src="js/npcs.js?v=0.1"></script>
+<script src="js/ton.js?v=0.1"></script>
+<script src="music/playlist.js?v=0.1"></script>
+<script src="js/musik.js?v=0.1"></script>
+<script src="js/render.js?v=0.1"></script>
+<script src="js/main.js?v=0.1"></script>
+</body>
+</html>
