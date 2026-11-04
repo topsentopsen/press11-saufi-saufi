@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Press11 - Saufi Saufi (18+, privat)</title>
+<title>Press11 - Saufi Saufi (18+)</title>
 <!-- eigenes kleines Symbol (Bierkrug im Kessel), direkt als Bild im Text, keine Datei von aussen -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232a2342'/%3E%3Crect x='3' y='4' width='7' height='9' fill='%23ffc233' stroke='%234a3560'/%3E%3Crect x='3' y='4' width='7' height='2' fill='%23fff8ee'/%3E%3Cpath d='M10 6h2.5v4H10' fill='none' stroke='%234a3560'/%3E%3Ccircle cx='13' cy='3' r='1.5' fill='%23ff4fa0'/%3E%3C/svg%3E">
 <style>
@@ -38,6 +38,8 @@
   /* YouTube-Fenster (nur Einbettung, sichtbar, ein-/ausklappbar, mindestens 200x113) */
   #yt-fenster { position: fixed; left: 8px; bottom: 8px; width: 220px; background: #2a2342; border-radius: 8px; box-shadow: 0 0 0 2px #ff4fa0; z-index: 10; overflow: hidden; }
   #yt-fenster[hidden] { display: none; }
+  /* Overlay offen: Mini-Player ausblenden (Musik laeuft weiter), damit Panel-Eintraege nicht verdeckt werden */
+  #rahmen.overlay ~ #yt-fenster { visibility: hidden; pointer-events: none; }
   #yt-leiste { display: flex; align-items: center; justify-content: space-between; padding: 3px 6px; color: #fff8ee; font: bold 11px ui-rounded, "Trebuchet MS", system-ui, sans-serif; }
   #yt-klapp { background: #fff8ee; border-radius: 6px; padding: 3px 8px; font-size: 11px; }
   #yt-rahmen { width: 220px; height: 124px; }
@@ -50,7 +52,7 @@
 </head>
 <body>
 <div id="rahmen">
-  <canvas id="spiel" width="320" height="176" aria-label="Press11 - Saufi Saufi"></canvas>
+  <canvas id="spiel" width="320" height="176" tabindex="0" aria-label="Press11 - Saufi Saufi"></canvas>
   <div id="oben">
     <button id="playlist-knopf" class="knopf" type="button" title="Scooter-Playlist (Taste P)" aria-label="Scooter-Playlist">&#9835;</button>
     <button id="ton-knopf" class="knopf" type="button" title="Ton an oder aus (Taste M)" aria-label="Ton an oder aus">&#9834;</button>
@@ -74,25 +76,29 @@
 <script src="js/rng.js?v=0.1"></script>
 <script src="js/uhr.js?v=0.1"></script>
 <script src="js/charaktere.js?v=0.1"></script>
-<script src="js/getraenke.js?v=0.1"></script>
-<script src="js/essen.js?v=0.1"></script>
+<script src="js/getraenke.js?v=0.2"></script>
+<script src="js/essen.js?v=0.2"></script>
 <script src="js/pegel.js?v=0.1"></script>
 <script src="js/cheats.js?v=0.1"></script>
 <script src="js/runden.js?v=0.1"></script>
-<script src="js/ereignisse.js?v=0.1"></script>
-<script src="js/punkte.js?v=0.1"></script>
-<script src="js/hinweise.js?v=0.1"></script>
+<script src="js/ereignisse.js?v=0.2"></script>
+<script src="js/minispiele.js?v=0.2"></script>
+<script src="js/punkte.js?v=0.2"></script>
+<script src="js/hinweise.js?v=0.2"></script>
 <script src="js/speicher.js?v=0.1"></script>
 <script src="js/karte.js?v=0.1"></script>
 <script src="js/pfad.js?v=0.1"></script>
 <script src="js/kamera.js?v=0.1"></script>
 <script src="js/eingabe.js?v=0.1"></script>
 <script src="js/spieler.js?v=0.1"></script>
-<script src="js/npcs.js?v=0.1"></script>
+<script src="js/npcs.js?v=0.2"></script>
 <script src="js/ton.js?v=0.1"></script>
 <script src="music/playlist.js?v=0.1"></script>
 <script src="js/musik.js?v=0.1"></script>
-<script src="js/render.js?v=0.1"></script>
-<script src="js/main.js?v=0.1"></script>
+<script src="js/gfx.js?v=0.2"></script>
+<script src="js/szene.js?v=0.2"></script>
+<script src="js/innen.js?v=0.2"></script>
+<script src="js/render.js?v=0.2"></script>
+<script src="js/main.js?v=0.2"></script>
 </body>
 </html>

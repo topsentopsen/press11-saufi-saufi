@@ -1,8 +1,18 @@
 # Press11 - Saufi Saufi
 
-Fiktives Spaß-Spiel für Erwachsene (**ab 18**), privat für Tobi und die Truppe. **Nicht öffentlich teilen:** privates Repo, kein GitHub Pages.
+Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar unter [GitHub Pages](https://topsentopsen.github.io/press11-saufi-saufi/).
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
+
+## Neu in v02
+
+- Schärfere Grafik (hohe Canvas-Auflösung × DPR), lesbare Schriften (mind. ~11 px logisch).
+- Jukebox/Playlist und alle Menüs: Esc, X, Klick daneben; Songwahl schließt das Overlay (Bewegung wieder frei).
+- Teamstimmung 0: eigener Endtitel („Die Truppe hat dich abgehängt“), nicht „Press F/Umgefallen“.
+- Mehr Humor (MS-Marathon-Stil), Sprüche-Pools je Figur/Ort/Pegel, max. 2 Sprechblasen.
+- Saufpannen & Mitspieler-Gags (Freund stützen, Hose weg, …), pegelgestuft.
+- Drei Trinkspiel-Minispiele an Tresen/Bar (Bierdeckel-Flip, Reaktions-Prost, Maßkrugstemmen), abbrechbar.
+- Titel ohne „privat“; Hinweis 18+ bleibt.
 
 > Alle Personen, Orte, Getränke und Werte sind erfunden. Die Promille-Anzeige ist nur ein Spielelement. Das Spiel ruft nicht zum Trinken auf. Trink im echten Leben nur, was Du verträgst, setz Dich nie betrunken ans Steuer und pass auf Deine Freunde auf. Der "Joint" ist nur ein Spiel-Item.
 

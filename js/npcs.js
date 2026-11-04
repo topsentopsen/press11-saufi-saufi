@@ -134,10 +134,17 @@
     });
     return neu;
   }
-  function sprechen(list, rng, karteId) {
+  // Hoechstens 2 Sprechblasen gleichzeitig; Sprueche aus Pools (Figur/Ort/Pegel)
+  function sprechen(list, rng, karteId, pegel) {
+    var aktivBlasen = list.filter(function (n) { return n.blase; }).length;
+    if (aktivBlasen >= 2) return null;
     var kandidaten = list.filter(function (n) { return n.aktiv && !n.liegt && n.karteId === karteId && !n.blase; });
     if (!kandidaten.length) return null;
-    var n = rng.pick(kandidaten); n.blase = { text: n.char.spruch, rest: 2.6 }; return n;
+    var n = rng.pick(kandidaten);
+    var text = (Saufi.Hinweise && Saufi.Hinweise.spruch)
+      ? Saufi.Hinweise.spruch(rng, { id: n.id, ort: karteId, pegel: pegel || 0 })
+      : n.char.spruch;
+    n.blase = { text: text, rest: 2.8 }; return n;
   }
 
   Saufi.NPCs = {

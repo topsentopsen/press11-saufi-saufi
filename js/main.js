@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.1';
+  var K = 16, VERSION = '0.2';
 
   // ---------------------------------------------------------------- Neues Spiel
   function neuesSpiel(opt) {
@@ -18,9 +18,10 @@
       npcs: Saufi.NPCs.erstelle(char.id), runden: Saufi.Runden.erstelle(), cheats: Saufi.Cheats.erstelle(), punkte: Saufi.Punkte.erstelle(),
       joint: Saufi.Ereignisse.Joint.erstelle(), boost: Saufi.Ereignisse.Boost.erstelle(), boostAktiv: false, flaschen: 2, flascheGenommen: false,
       hinweise: Saufi.Hinweise.erstelle(), licht: null, t: 0, zustand: opt.start ? 'spiel' : 'start', startIndex: 0, overlay: null, uebergang: null,
-      effekte: [], hilfe: '', pfeil: null, ende: null, pressF: null, hausverbote: 0, letzteStunde: Math.floor(Saufi.Uhr.START / 60), prost: 0, tanzNpc: false,
-      sprechT: 4, aufnahmeWartet: [], ruhig: !!opt.ruhig, treffer: [], musikInfo: { quelle: 'webaudio', aktiv: 'webaudio', spielt: false, youtubeVerfuegbar: false, hinweis: '' },
-      best: opt.best || 0, speicher: opt.speicher || null, doppelt: false, stummAn: false, neustart: false, spielSek: 0, stats: { getrunken: 0, gegessen: 0, getauscht: 0, geweckt: 0 }
+      effekte: [], hilfe: '', pfeil: null, ende: null, pressF: null, hausverbote: 0, letzteStunde: Math.floor(Saufi.Uhr.START / 60), prost: 0, tanzBeat: false,
+      sprechT: 4, aufnahmeWartet: [], ruhig: !!opt.ruhig, treffer: [], panel: null, musikInfo: { quelle: 'webaudio', aktiv: 'webaudio', spielt: false, youtubeVerfuegbar: false, hinweis: '' },
+      best: opt.best || 0, speicher: opt.speicher || null, doppelt: false, stummAn: false, neustart: false, spielSek: 0, stats: { getrunken: 0, gegessen: 0, getauscht: 0, geweckt: 0 },
+      pannen: Saufi.Ereignisse.erstellePannen()
     };
     S.licht = Saufi.Uhr.licht(S.uhr);
     Saufi.NPCs.uebergang(S.npcs, welt.stadt, sp.x / K | 0, (sp.y / K | 0));
@@ -51,10 +52,12 @@
     if (S.zustand === 'ende') return;
     X = stub(X);
     S.zustand = 'ende'; S.overlay = null; S.uebergang = null;
-    var w = Saufi.Punkte.wertung(S.punkte.punkte, sieg), neu = false;
+    var art = sieg ? 'sieg' : (/Teamstimmung/.test(grund || '') ? 'team' : 'umfall');
+    var w = Saufi.Punkte.wertung(S.punkte.punkte, sieg, art), neu = false;
     if (S.speicher) { var alt = S.speicher.zahl('best', 0); if (sieg && S.punkte.punkte > alt) { S.speicher.setzeZahl('best', S.punkte.punkte); neu = true; S.best = S.punkte.punkte; } else S.best = Math.max(S.best || 0, alt); }
     else if (sieg && S.punkte.punkte > (S.best || 0)) { S.best = S.punkte.punkte; neu = true; }
-    S.ende = { sieg: sieg, grund: grund || '', wertung: w, t: 0, neuerBestwert: neu };
+    if (art === 'team' && (!grund || /Teamstimmung 0/.test(grund))) grund = 'Die Truppe hat dich abgehängt (Teamstimmung 0).';
+    S.ende = { sieg: sieg, grund: grund || '', wertung: w, art: art, t: 0, neuerBestwert: neu };
     if (sieg) X.T.fanfare(); else X.T.verloren();
     if (X.M) X.M.ende();
     X.T.setzeBoost(false);
@@ -164,8 +167,9 @@
     var G = Saufi.Getraenke, ids = G.MENUE[st.typ] || [], preis = G.PREIS_PUNKTE[st.typ] || {}, e = [];
     ids.forEach(function (id) { e.push({ label: G.LISTE[id].label, rechts: preis[id] ? '-' + preis[id] + ' ★' : (G.LISTE[id].pegel > 0 ? '+' + G.LISTE[id].pegel.toFixed(2).replace('.', ',') : ''), id: 'getraenk', daten: id, preis: preis[id] || 0 }); });
     (Saufi.Essen.MENUE[st.typ] || []).forEach(function (id) { e.push({ label: Saufi.Essen.GERICHTE[id].label, rechts: 'Essen', id: 'essen', daten: id }); });
+    Saufi.Minispiele.eintraegeFuerOrt(S.ort).forEach(function (m) { e.push({ label: m.label, rechts: 'Spiel', id: 'minispiel', daten: m.id }); });
     e.push(zurueckEintrag());
-    oeffneMenue(S, st.label, ['Pegel ' + Saufi.Pegel.anzeige(S.fig.pegel) + ' ‰'], e);
+    oeffneMenue(S, st.label, ['Pegel ' + Saufi.Pegel.anzeige(S.fig.pegel) + ' ‰ · MS-Marathon optional'], e);
   }
   function essenMenue(S, st) {
     var E2 = Saufi.Essen, e = [];
@@ -226,14 +230,50 @@
       case 'runde_trinken': case 'runde_frei': case 'runde_ablehnen': S.overlay = null; runde(S, e.id, X); break;
       case 'playlist': playlistOverlay(S, X); break;
       case 'pl_start':
-        if (X.M) { X.M.starte('playlist'); S.musikInfo = X.M.zustand(); playlistOverlay(S, X); } break;
+        if (X.M) { X.M.starte('playlist'); S.musikInfo = X.M.zustand(); }
+        S.overlay = null; // Songwahl schließt die Jukebox/Playlist (Regression: Bewegung wieder frei)
+        break;
       case 'pl_fenster': if (X.M) { X.M.klappe(); S.musikInfo = X.M.zustand(); } break;
-      case 'pl_beat': if (X.M) { X.M.stopp(); X.M.waehleYoutube(false); S.musikInfo = X.M.zustand(); } break;
+      case 'pl_beat': if (X.M) { X.M.stopp(); X.M.waehleYoutube(false); S.musikInfo = X.M.zustand(); } S.overlay = null; break;
       case 'ton': toggleTon(S, X); pauseMenue(S, X); S.overlay.index = 2; break;
       case 'ruhig': S.ruhig = !S.ruhig; if (S.speicher) S.speicher.setzeBool('ruhig', S.ruhig); pauseMenue(S, X); S.overlay.index = 3; break;
       case 'info': infoOverlay(S); break;
       case 'neustart': S.neustart = true; break;
+      case 'minispiel': starteMinispiel(S, e.daten, X); break;
+      case 'mg_aktion': if (S.overlay && S.overlay.art === 'minispiel') Saufi.Minispiele.update(S.overlay, 0, true); break;
+      case 'panne_ok': loeseAktivePanne(S, 'aktion', X); break;
     }
+  }
+
+  function starteMinispiel(S, id, X) {
+    var mg = Saufi.Minispiele.starte(id, S.rng);
+    if (!mg) return;
+    S.overlay = mg;
+  }
+  function beendeMinispiel(S, X) {
+    var mg = S.overlay;
+    if (!mg || mg.art !== 'minispiel') { schliesse(S); return; }
+    var bel = Saufi.Minispiele.belohnung(mg);
+    Saufi.Punkte.add(S.punkte, bel.punkte || 0, 'Minispiel');
+    if (bel.pegel) S.fig.pegel = Math.max(0, Math.min(4, S.fig.pegel + bel.pegel));
+    if (bel.stand) S.fig.stand = Math.max(0, Math.min(100, S.fig.stand + bel.stand));
+    if (bel.team) Saufi.Runden.teamAendern(S.runden, bel.team);
+    sag(S, bel.text || 'Minispiel Ende', 3, mg.erfolg ? 'gut' : 'info');
+    S.overlay = null;
+    if (X && X.T) X.T.pling();
+  }
+  function loeseAktivePanne(S, via, X) {
+    var res = Saufi.Ereignisse.loesePanne(S.pannen, via);
+    if (!res) return false;
+    var ef = res.effekt || {};
+    if (ef.punkte) Saufi.Punkte.add(S.punkte, ef.punkte, 'Panne');
+    if (ef.team) Saufi.Runden.teamAendern(S.runden, ef.team);
+    if (ef.stand) S.fig.stand = Math.max(0, Math.min(100, S.fig.stand + ef.stand));
+    if (ef.pegel) S.fig.pegel = Math.max(0, Math.min(4, S.fig.pegel + ef.pegel));
+    sag(S, res.def.text + ' → erledigt!' + (ef.punkte ? ' +' + ef.punkte : ''), 3, 'gut');
+    if (X && X.T) X.T.pling();
+    if (S.overlay && S.overlay.art === 'panne') S.overlay = null;
+    return true;
   }
   function toggleTon(S, X) {
     S.stummAn = !S.stummAn; X.T.setzeStumm(S.stummAn); if (X.M) X.M.setzeStumm(S.stummAn);
@@ -246,6 +286,8 @@
     if (sp.isst > 0) return;
     if (sp.sitzt) { sp.sitzt = false; return; }
     st = Saufi.Karte.nahe(S.karte, sp.x, sp.y - 2, 14);
+    // Panne nur loesen, wenn keine Station im Weg (sonst brechen Mittrunden/Menues)
+    if (!st && S.pannen && S.pannen.aktiv && S.pannen.aktiv.def.loesung === 'aktion' && loeseAktivePanne(S, 'aktion', X)) return;
     if (!st) { sag(S, 'Hier gibt es nichts zu tun.', 1.2, 'info'); return; }
     var m = minute(S), Uhr = Saufi.Uhr;
     switch (st.typ) {
@@ -284,6 +326,13 @@
         break;
     }
   }
+
+  function minispielMenue(S) {
+    var e = Saufi.Minispiele.eintraegeFuerOrt(S.ort).map(function (m) { return { label: m.label, id: 'minispiel', daten: m.id }; });
+    if (!e.length) { sag(S, 'Hier gerade kein Minispiel. Kneipe/Disko/Gasthaus versuchen.', 2.5, 'info'); return; }
+    e.push(zurueckEintrag());
+    oeffneMenue(S, 'Trinkspiele', ['Kurz, abbrechbar, MS-Marathon-Light.'], e);
+  }
   function tanzen(S, X) {
     var sp = S.spieler;
     if (sp.tanzt > 0.15) return;
@@ -303,6 +352,7 @@
       Saufi.Punkte.add(S.punkte, 80, 'Freund geweckt'); Saufi.Runden.teamAendern(S.runden, 1);
       sag(S, n.char.name + ' ist wieder wach! +80, Team +1', 3, 'gut'); X.T.pling(); return;
     }
+    if (S.pannen && S.pannen.aktiv && S.pannen.aktiv.def.loesung === 'wasser' && loeseAktivePanne(S, 'wasser', X)) return;
     if (S.flaschen <= 0) { sag(S, 'Keine Flasche mehr. Am Spender oder an der Bar auffüllen.', 2.5, 'schlecht'); return; }
     S.flaschen -= 1; trinke(S, 'wasser', X);
     sag(S, 'Wasser! Pegel ' + Saufi.Pegel.anzeige(S.fig.pegel) + ' ‰, Standfestigkeit ' + Math.round(S.fig.stand), 2, 'gut');
@@ -449,8 +499,13 @@
         Saufi.Runden.peinlich(S.runden, e.npc.id, -10);
       } else if (e.typ === 'aufgestanden') sag(S, e.npc.char.name + ' steht wieder auf (zweites Leben)!', 3, 'gut');
     });
-    S.sprechT -= dt; if (S.sprechT <= 0) { Saufi.NPCs.sprechen(S.npcs, S.rng, S.ort); S.sprechT = 6 + S.rng.next() * 6; }
-    S.tanzNpc = S.ort === 'disko' && (S.boostAktiv || sp.tanzt > 0);
+    S.sprechT -= dt; if (S.sprechT <= 0) { Saufi.NPCs.sprechen(S.npcs, S.rng, S.ort, S.fig.pegel); S.sprechT = 5 + S.rng.next() * 5; }
+    Saufi.Ereignisse.updatePannen(S.pannen, dt);
+    if (S.rng.next() < dt * 0.015) {
+      var pan = Saufi.Ereignisse.wuerflePanne(S.pannen, S.rng, S.fig.pegel);
+      if (pan) sag(S, pan.def.text + (pan.def.loesung === 'aktion' ? ' (E)' : pan.def.loesung === 'wasser' ? ' (Q)' : ''), 5, 'info');
+    }
+    S.tanzBeat = S.ort === 'disko' && (S.boostAktiv || sp.tanzt > 0);
     // Kamera, Hilfe, Pfeil, Musik
     Saufi.Kamera.update(S.kamera, sp.x, sp.y - 8, dt);
     S.hilfe = S.overlay ? '' : hilfeText(S); S.pfeil = berechnePfeil(S);
@@ -480,19 +535,37 @@
   function updateOverlay(S, X, E) {
     var o = S.overlay;
     if (!E) return;
+    if (o.art === 'minispiel') {
+      Saufi.Minispiele.update(o, 0, false);
+      if (o.fertig) { beendeMinispiel(S, X); return; }
+    }
     var n = o.eintraege.length, aktivIdx = function (d) {
       var i = o.index; for (var k = 0; k < n; k++) { i = (i + d + n) % n; if (o.eintraege[i].aktiv !== false) return i; } return o.index;
     };
     if (E.neu('hoch')) o.index = aktivIdx(-1);
     if (E.neu('runter')) o.index = aktivIdx(1);
-    var geklickt = null;
-    E.klicks().forEach(function (k) { S.treffer.forEach(function (t) { if (k.x >= t.x && k.x <= t.x + t.w && k.y >= t.y && k.y <= t.y + t.h) geklickt = t.i; }); });
+    var geklickt = null, daneben = false;
+    E.klicks().forEach(function (k) {
+      var hit = null;
+      S.treffer.forEach(function (t) { if (k.x >= t.x && k.x <= t.x + t.w && k.y >= t.y && k.y <= t.y + t.h) hit = t.i; });
+      if (hit !== null) geklickt = hit;
+      else {
+        var p = S.panel;
+        if (p && !(k.x >= p.x && k.x <= p.x + p.w && k.y >= p.y && k.y <= p.y + p.h)) daneben = true;
+        else if (!p) daneben = true;
+      }
+    });
+    if (geklickt === 'x' || daneben) { if (o.art === 'minispiel') { S.overlay = null; return; } schliesse(S); return; }
     var wahlNr = E.neu('wahl1') ? 0 : (E.neu('wahl2') ? 1 : (E.neu('wahl3') ? 2 : -1));
-    if (wahlNr >= 0 && wahlNr < n && o.art === 'menue') geklickt = wahlNr;
+    if (wahlNr >= 0 && wahlNr < n && (o.art === 'menue' || o.art === 'minispiel')) geklickt = wahlNr;
     var best = geklickt !== null ? geklickt : (E.neu('aktion') ? o.index : -1);
-    if (E.neu('pause')) { if (o.art === 'menue' && o.titel === 'Pause') { S.overlay = null; return; } schliesse(S); return; }
+    if (E.neu('pause')) {
+      if (o.art === 'menue' && o.titel === 'Pause') { S.overlay = null; return; }
+      if (o.art === 'minispiel') { S.overlay = null; return; }
+      schliesse(S); return;
+    }
     if (E.neu('playlist')) { if (o.art === 'playlist') schliesse(S); else playlistOverlay(S, X); return; }
-    if (best >= 0 && o.eintraege[best] && o.eintraege[best].aktiv !== false) { o.index = best; waehle(S, o.eintraege[best], X); }
+    if (typeof best === 'number' && best >= 0 && o.eintraege[best] && o.eintraege[best].aktiv !== false) { o.index = best; waehle(S, o.eintraege[best], X); }
   }
 
   function updateStart(S, X, E) {
@@ -536,6 +609,8 @@
     }
     else if (S.overlay) {
       if (!istPause(S.overlay) && S.zustand === 'spiel') uhrLaeuft(S, dt, X);
+      if (S.overlay && S.overlay.art === 'minispiel') Saufi.Minispiele.update(S.overlay, dt, false);
+      if (S.overlay && S.overlay.art === 'minispiel' && S.overlay.fertig) beendeMinispiel(S, X);
       if (S.overlay) { updateOverlay(S, X, E); S.hilfe = ''; }
     }
     else if (S.zustand === 'umgefallen') updatePressF(S, dt, X, E);
@@ -595,7 +670,8 @@
   Saufi.Spiel = {
     VERSION: VERSION, neu: neuesSpiel, update: update, beende: beende, aktion: aktion, waehle: waehle, runde: runde, wasserTrinken: wasserTrinken, itemNutzen: itemNutzen,
     betreten: betreten, verlassen: verlassen, schnappschuss: schnappschuss, geheZuStation: geheZuStation, setze: setze, starteSpiel: starteSpiel, stationDe: stationDe,
-    pauseMenue: pauseMenue, playlistOverlay: playlistOverlay, infoOverlay: infoOverlay, stammtisch: stammtisch, tanzen: tanzen, stub: stub
+    pauseMenue: pauseMenue, playlistOverlay: playlistOverlay, infoOverlay: infoOverlay, stammtisch: stammtisch, tanzen: tanzen, stub: stub,
+    schliesse: schliesse, minispielMenue: minispielMenue
   };
 
   // ---------------------------------------------------------------- DOM-Verdrahtung (nur im Browser)
@@ -643,20 +719,34 @@
     dbg.musik = function () { return M.zustand(); };
     Saufi.debug = dbg;
 
-    // Groesse: ganzzahliger Pixelfaktor
+    // Groesse: stufenlos, hochaufloesend
     function groesse() {
       var hoch = !!(E.touch || (win.matchMedia && win.matchMedia('(pointer: coarse)').matches)) && win.innerHeight > win.innerWidth;
       if (hoch !== R.hochkant) { Saufi.Render.setzeBildschirm(R, hoch); E.setzeMass(R.W, R.H); S.kamera.viewW = R.W; S.kamera.viewH = R.H; }
-      var s = Math.max(1, Math.min(win.innerWidth / R.W, win.innerHeight / R.H)); if (s >= 2) s = Math.floor(s);
-      canvas.style.width = Math.round(R.W * s) + 'px'; canvas.style.height = Math.round(R.H * s) + 'px';
+      // stufenlos skalieren, Backing-Store in Geraete-Pixeln (devicePixelRatio) -> scharf statt pixelig
+      var s = Math.max(1, Math.min((win.innerWidth - 16) / R.W, (win.innerHeight - 16) / R.H));
+      var cw = Math.round(R.W * s), ch = Math.round(R.H * s);
+      canvas.style.width = cw + 'px'; canvas.style.height = ch + 'px';
+      Saufi.Render.setzeAufloesung(R, cw, ch, win.devicePixelRatio || 1);
       rahmen.style.setProperty('--s', String(s)); rahmen.classList.toggle('touch', !!(E.touch || (win.matchMedia && win.matchMedia('(pointer: coarse)').matches)));
     }
     win.addEventListener('resize', groesse); win.addEventListener('orientationchange', groesse); groesse();
 
     function geste() { if (!T.gestartet) { T.start(); T.setzeMusik(S.zustand !== 'start' && M.aktiv === 'webaudio'); } }
     win.addEventListener('keydown', geste); canvas.addEventListener('pointerdown', geste);
+    canvas.tabIndex = 0;
+    canvas.addEventListener('pointerdown', function () { try { canvas.focus(); } catch (err) { /* egal */ } });
+    win.addEventListener('blur', function () {
+      setTimeout(function () {
+        var ae = doc.activeElement, tag = ae && ae.tagName ? String(ae.tagName).toUpperCase() : '';
+        if (tag === 'IFRAME' || (ae && ae.id === 'yt-player')) { try { canvas.focus(); } catch (err2) { /* egal */ } }
+      }, 0);
+    });
+    doc.addEventListener('focusin', function (ev) {
+      var t = ev && ev.target, tag = t && t.tagName ? String(t.tagName).toUpperCase() : '';
+      if (tag === 'IFRAME') { try { canvas.focus(); } catch (err3) { /* egal */ } }
+    });
     win.addEventListener('keydown', function (ev) { if (ev.code === 'Backquote') { var d = doc.getElementById('debug'); if (d) d.hidden = !d.hidden; } });
-
     // Knoepfe
     function knopf(id, fn) { var b = doc.getElementById(id); if (!b) return; b.addEventListener('click', function (ev) { ev.preventDefault(); geste(); fn(b); }); return b; }
     knopf('ton-knopf', function (b) { toggleTon(S, X); b.classList.toggle('aus', S.stummAn); });
@@ -706,12 +796,14 @@
       if (letzte === null) letzte = ms;
       var dt = Math.min(0.05, (ms - letzte) / 1000); letzte = ms;
       if (E.touch !== undefined && E.touch) rahmen.classList.add('touch');
-      S.treffer = R.treffer;
+      if (rahmen && rahmen.classList) rahmen.classList.toggle('overlay', !!S.overlay);
+      S.treffer = R.treffer; S.panel = R.panel || null;
       update(S, dt, X);
       if (S.neustart) { neuStarten(); starteSpiel(S, X); }
       musikInfoSync();
       Saufi.Render.zeichne(R, S);
-      S.treffer = R.treffer;
+      S.treffer = R.treffer; S.panel = R.panel || null;
+      if (rahmen && rahmen.classList) rahmen.classList.toggle('overlay', !!S.overlay);
       knoepfeAktualisieren();
       E.ende();
       win.requestAnimationFrame(frame);
