@@ -77,9 +77,14 @@
   // Mindestgroesse ~9 px logisch; auf Touch skaliert main.js so, dass daraus ≥ ~11 CSS-px werden.
   var MIN_SCHRIFT = 9;
   function schriftGroesse(size) { return Math.max(MIN_SCHRIFT, size || MIN_SCHRIFT); }
-  function text(c, s, x, y, col, size, ausr, kontur) {
-    size = schriftGroesse(size);
-    c.font = 'bold ' + size + 'px ' + SCHRIFT; c.textAlign = ausr || 'left'; c.textBaseline = 'middle';
+  function fontSetzen(c, size) { c.font = 'bold ' + size + 'px ' + SCHRIFT; }
+  function breiteExakt(c, s, size) {
+    fontSetzen(c, size);
+    var m = c.measureText(String(s == null ? '' : s));
+    return m && m.width ? m.width : String(s == null ? '' : s).length * size * 0.55;
+  }
+  function textZeichnen(c, s, x, y, col, size, ausr, kontur) {
+    fontSetzen(c, size); c.textAlign = ausr || 'left'; c.textBaseline = 'middle';
     if (kontur) {
       c.lineJoin = 'round'; c.lineWidth = Math.max(0.9, size * 0.12); c.strokeStyle = kontur; c.strokeText(s, x, y + 0.4);
     }
@@ -87,27 +92,98 @@
     c.fillStyle = col || P.uiTinte; c.fillText(s, x, y);
     c.shadowColor = 'transparent'; c.shadowBlur = 0; c.shadowOffsetX = 0; c.shadowOffsetY = 0;
   }
-  function breite(c, s, size) { size = schriftGroesse(size); c.font = 'bold ' + size + 'px ' + SCHRIFT; var m = c.measureText(s); return m && m.width ? m.width : s.length * size * 0.55; }
-  function umbruch(c, s, maxB, size) {
-    size = schriftGroesse(size);
-    var worte = String(s).split(' '), zeilen = [], z = '';
+  function text(c, s, x, y, col, size, ausr, kontur) {
+    textZeichnen(c, s, x, y, col, schriftGroesse(size), ausr, kontur);
+  }
+  function breite(c, s, size) { return breiteExakt(c, s, schriftGroesse(size)); }
+  // Wortumbruch; zu lange Woerter werden hart geschnitten
+  function umbruchExakt(c, s, maxB, size) {
+    maxB = Math.max(1, maxB);
+    var worte = String(s == null ? '' : s).split(/\s+/), zeilen = [], z = '';
+    function pushWort(w) {
+      if (breiteExakt(c, w, size) <= maxB) { z = z ? z + ' ' + w : w; return; }
+      if (z) { zeilen.push(z); z = ''; }
+      var teil = '';
+      for (var i = 0; i < w.length; i++) {
+        var n = teil + w.charAt(i);
+        if (teil && breiteExakt(c, n, size) > maxB) { zeilen.push(teil); teil = w.charAt(i); }
+        else teil = n;
+      }
+      z = teil;
+    }
     worte.forEach(function (w) {
-      var t = z ? z + ' ' + w : w;
-      if (z && breite(c, t, size) > maxB) { zeilen.push(z); z = w; } else z = t;
+      if (!w) return;
+      if (!z) { pushWort(w); return; }
+      var t = z + ' ' + w;
+      if (breiteExakt(c, t, size) > maxB) { zeilen.push(z); z = ''; pushWort(w); }
+      else z = t;
     });
     if (z) zeilen.push(z);
-    return zeilen;
+    return zeilen.length ? zeilen : [''];
   }
+  function umbruch(c, s, maxB, size) { return umbruchExakt(c, s, maxB, schriftGroesse(size)); }
   // Titel auf Spaltenbreite kuerzen (mit …)
-  function kuerze(c, s, maxB, size) {
+  function kuerzeExakt(c, s, maxB, size) {
     s = String(s == null ? '' : s);
-    if (breite(c, s, size) <= maxB) return s;
+    if (breiteExakt(c, s, size) <= maxB) return s;
     var ell = '…', lo = 0, hi = s.length;
     while (lo < hi) {
       var mid = Math.ceil((lo + hi) / 2);
-      if (breite(c, s.slice(0, mid) + ell, size) <= maxB) lo = mid; else hi = mid - 1;
+      if (breiteExakt(c, s.slice(0, mid) + ell, size) <= maxB) lo = mid; else hi = mid - 1;
     }
     return lo > 0 ? s.slice(0, lo) + ell : ell;
+  }
+  function kuerze(c, s, maxB, size) { return kuerzeExakt(c, s, maxB, schriftGroesse(size)); }
+
+  // Text IMMER in x,y,w,h: misst, umbricht, verkleinert bis min, danach mit … kuerzen.
+  // opt: { col, ausr, kontur, min, lh, maxZeilen, zeichne, mess }
+  // Rueckgabe: { size, lines, w, h, lh }
+  function textInBox(c, s, x, y, w, h, groesse, opt) {
+    opt = opt || {};
+    s = String(s == null ? '' : s);
+    w = Math.max(0, w); h = Math.max(0, h);
+    var minSz = opt.min != null ? opt.min : MIN_SCHRIFT;
+    var ausr = opt.ausr || 'left', col = opt.col || P.uiTinte, kontur = opt.kontur;
+    var lhF = opt.lh || 1.15, zeichne = opt.zeichne !== false && !opt.mess;
+    var leer = { size: minSz, lines: [], w: 0, h: 0, lh: 0 };
+    if (w < 1 || h < 1) return leer;
+
+    var start = Math.max(minSz, groesse || minSz), size = start, lines = [], lh = size * lhF, maxZ;
+    // hart=false: waehrend des Verkleinerns nicht kuerzen (sonst „passt“ der Stummel und size bleibt zu gross).
+    // hart=true: erst nach Erreichen von min Zeilen abschneiden und mit … kuerzen.
+    function layout(sz, hart) {
+      lh = Math.max(sz * lhF, sz);
+      maxZ = Math.max(1, Math.floor(h / lh + 1e-9));
+      if (opt.maxZeilen) maxZ = Math.min(maxZ, opt.maxZeilen);
+      var raw = umbruchExakt(c, s, w, sz);
+      if (raw.length <= maxZ) return raw;
+      if (!hart) return raw;
+      var keep = raw.slice(0, maxZ);
+      keep[maxZ - 1] = kuerzeExakt(c, keep[maxZ - 1], w, sz);
+      return keep;
+    }
+    lines = layout(size, false);
+    while (size > minSz && (lines.length > maxZ || lines.length * lh > h + 0.01 || lines.some(function (z) { return breiteExakt(c, z, size) > w + 0.5; }))) {
+      size = Math.max(minSz, size - 0.5);
+      lines = layout(size, false);
+    }
+    // Noch zu breit/hoch: letzte Zeile kuerzen, ueberzaehlige Zeilen streichen
+    lines = layout(size, true);
+    lines = lines.map(function (z) { return breiteExakt(c, z, size) > w + 0.5 ? kuerzeExakt(c, z, w, size) : z; });
+
+    var usedW = 0;
+    lines.forEach(function (z) { usedW = Math.max(usedW, breiteExakt(c, z, size)); });
+    // usedH hoechstens Boxhoehe melden (eine Min-Zeile kann bei winzigem h leicht ueberstehen)
+    var usedH = Math.min(h, lines.length * lh);
+    if (zeichne && lines.length) {
+      var y0 = y + (h - usedH) / 2 + lh / 2;
+      if (opt.v === 'top') y0 = y + lh / 2;
+      lines.forEach(function (z, i) {
+        var tx = ausr === 'center' ? x + w / 2 : (ausr === 'right' ? x + w : x);
+        textZeichnen(c, z, tx, y0 + i * lh, col, size, ausr, kontur);
+      });
+    }
+    return { size: size, lines: lines, w: usedW, h: usedH, lh: lh };
   }
 
   // Panel mit weichem Schatten, abgerundeten Ecken und feiner Kontur
@@ -120,6 +196,6 @@
 
   Saufi.Gfx = {
     SCHRIFT: SCHRIFT, MIN_SCHRIFT: MIN_SCHRIFT, P: P, hash: hash, rgb: rgb, mix: mix, hex: hex, mischeHex: mischeHex, r: r, rundPfad: rundPfad, rr: rr, box: box, kreis: kreis, ellipse: ellipse,
-    poly: poly, linie: linie, vlauf: vlauf, glanz: glanz, herz: herz, text: text, breite: breite, umbruch: umbruch, kuerze: kuerze, panel: panel, schriftGroesse: schriftGroesse
+    poly: poly, linie: linie, vlauf: vlauf, glanz: glanz, herz: herz, text: text, breite: breite, umbruch: umbruch, kuerze: kuerze, textInBox: textInBox, panel: panel, schriftGroesse: schriftGroesse
   };
 })(globalThis);

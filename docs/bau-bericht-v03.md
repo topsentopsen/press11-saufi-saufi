@@ -1,6 +1,13 @@
 # Bau-Bericht v03: Press11 - Saufi Saufi
 
-Stand: 04.11.2026. Auftrag: `auftrag-cursor-v03.md` + `auftrag-cursor-v03b.md` (Branch `v03-wip`, Basis v02).
+Stand: 04.11.2026. Auftrag: `auftrag-cursor-v03.md` + `auftrag-cursor-v03b.md` + `auftrag-cursor-v03c.md` (Branch `v03-wip`, Basis v02).
+
+## Was geändert (v03c – Textfit, Kamera, Grafik)
+
+- **textInBox:** zentrale Hilfsfunktion `Gfx.textInBox(c, text, x, y, w, h, groesse, opt)` misst (`measureText`), umbricht, verkleinert bis `MIN_SCHRIFT`, kürzt mit `…`. Alle Panels, Sprechblasen, HUD, Menüs, Jukebox, Schilder, End-/Startbildschirm darauf umgestellt. Sprechblasen-Breite am Text gemessen.
+- **Kamera:** `WELT_FLAECHE = 1.5` (~1.4–1.6×), `WELT_ZOOM = 1/√F`; Welt in `VW×VH`, gezeichnet mit Zoom; HUD/Overlays bleiben in Bildschirm-`W×H` (lesbar).
+- **Grafik:** klarere Figuren (Umrisse, Glanz, stärkerer Laufzyklus, weicher Schatten), Fassaden/Innen mit weicheren Schatten/Paletten, weichere Nacht-Vignette; Y-Sortierung gegen Überlappungen.
+- **Tests 51–53:** textInBox passt, Overlay-Schrift in Panelbreite, Kamera-Ausschnitt größer.
 
 ## Was geändert (v03)
 
@@ -42,9 +49,17 @@ Stand: 04.11.2026. Auftrag: `auftrag-cursor-v03.md` + `auftrag-cursor-v03b.md` (
 4. [x] Tests 46–50, erwartet alle grün
 5. [x] Bau-Bericht und README „Neu in v03“ ergänzt
 
+## Abhakliste (Auftrag v03c)
+
+1. [x] `Gfx.textInBox` + alle UI-Texte (Panels, Blasen, HUD, Menüs, Jukebox, Schilder, Ende)
+2. [x] Kamera ~1.5× Weltfläche, HUD in Bildschirmkoordinaten
+3. [x] Figuren/Fassaden/Innen/Licht-Schatten verbessert
+4. [x] Tests 51–53, erwartet alle grün
+5. [x] Bau-Bericht und README „Neu in v03“ ergänzt
+
 ## Testergebnis
 
-`node tests/run.js`: Tests 1–50 (inkl. 42–45 v03, 46–50 v03b) – auf der Box ausführen. Erwartet: alle grün.
+`node tests/run.js`: Tests 1–53 (inkl. 51–53 v03c) – auf der Box ausführen. Erwartet: alle grün.
 
 ## Dateien
 
@@ -52,7 +67,9 @@ Stand: 04.11.2026. Auftrag: `auftrag-cursor-v03.md` + `auftrag-cursor-v03b.md` (
 - `js/ton.js` – entsperre, stummer Puffer, Hinweise, Unterbrechung
 - `js/musik.js` – playsinline am iframe, Start nur nach Geste
 - `js/eingabe.js` – touchstart/touchend-Fallback Canvas
-- `js/main.js` – Geste pointerup/touchend/click, Joystick/Knopf-Touch, Skala/Safe-Area, Ton-Hinweis-UI
-- `js/render.js` – `MAX_DPR`, Panel-Platz (unverändert v03)
-- `tests/run.js` – Tests 42–50
+- `js/main.js` – Geste pointerup/touchend/click, Joystick/Knopf-Touch, Skala/Safe-Area, Ton-Hinweis-UI, Kamera-View
+- `js/gfx.js` – `textInBox`, Umbruch/Kürzung
+- `js/render.js` – `WELT_FLAECHE`/`WELT_ZOOM`, HUD screen-space, textInBox, Figuren
+- `js/szene.js` / `js/innen.js` – Schilder/Deko mit textInBox, weichere Fassaden/Böden
+- `tests/run.js` – Tests 42–53
 - `README.md`, `docs/bau-bericht-v03.md`

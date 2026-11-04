@@ -14,6 +14,9 @@ Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 n
 - `devicePixelRatio` auf max. 2 begrenzt (Performance).
 - **iPhone/Safari (v03b):** `position:fixed` + `-webkit-fill-available`, Doppeltipp-Zoom aus, Touch-Fallback (`touchstart`/`touchend`, `passive: false`) für Joystick und Knöpfe; Start per Tipp.
 - **Ton auf iOS:** AudioContext erst bei `touchend`/`pointerup`/`click`, stummer 1-Sample-Puffer, Resume nach Unterbrechung; Hinweis „Tippen für Ton“ / einmalig „Kein Ton? Stummschalter am iPhone prüfen“. YouTube nur nach Geste, `playsinline`.
+- **Textfit (v03c):** `Gfx.textInBox` – Text misst, umbricht, verkleinert und kürzt mit `…`, damit nichts aus Panels/Blasen/HUD/Menüs/Schildern läuft; Sprechblasen-Breite am Text.
+- **Kamera (v03c):** ~1,5× mehr sichtbare Weltfläche (Hoch- und Querformat); HUD bleibt in Bildschirmkoordinaten lesbar.
+- **Grafik (v03c):** sauberere Figuren (Umrisse, Schatten, Laufanimation), detailreichere Fassaden/Innenräume, weichere Licht-/Schattenübergänge.
 
 ## Neu in v02
 

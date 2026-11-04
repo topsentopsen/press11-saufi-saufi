@@ -11,7 +11,8 @@
     var seed = opt.seed !== undefined && isFinite(opt.seed) ? opt.seed >>> 0 : 1, tempo = opt.tempo > 0 ? opt.tempo : 1;
     var welt = Saufi.Karte.erstelleWelt(Saufi.RNG.erstelle(seed)), char = Saufi.Charaktere.holen(opt.figur || 'tobi') || Saufi.Charaktere.holen('tobi');
     var sp = Saufi.Spieler.erstelle(welt.stadt.spawn.x, welt.stadt.spawn.y);
-    var viewW = opt.viewW || 320, viewH = opt.viewH || 176;
+    var z = (Saufi.Render && Saufi.Render.WELT_ZOOM) || 1;
+    var viewW = opt.viewW || (320 / z), viewH = opt.viewH || (176 / z);
     var S = {
       version: VERSION, seed: seed, tempo: tempo, rng: Saufi.RNG.erstelle(seed + 1000), welt: welt, ort: 'stadt', karte: welt.stadt, char: char,
       fig: Saufi.Pegel.neu(char), uhr: Saufi.Uhr.erstelle(tempo), spieler: sp, kamera: Saufi.Kamera.erstelle(viewW, viewH, welt.stadt.pxW, welt.stadt.pxH),
@@ -703,7 +704,7 @@
       var isTouch = !!(E.touch || (win.matchMedia && win.matchMedia('(pointer: coarse)').matches));
       var mobilHoch = isTouch && win.innerHeight > win.innerWidth;
       Saufi.Render.setzeBildschirm(R, mobilHoch); E.setzeMass(R.W, R.H); R.touch = isTouch;
-      S = neuesSpiel({ seed: par.seed, tempo: par.tempo, figur: par.figur, viewW: R.W, viewH: R.H, best: speicher.zahl('best', 0), speicher: speicher, ruhig: speicher.bool('ruhig', false) });
+      S = neuesSpiel({ seed: par.seed, tempo: par.tempo, figur: par.figur, viewW: R.VW || R.W, viewH: R.VH || R.H, best: speicher.zahl('best', 0), speicher: speicher, ruhig: speicher.bool('ruhig', false) });
       S.stummAn = speicher.bool('stumm', false); T.setzeStumm(S.stummAn); M.setzeStumm(S.stummAn);
     }
     X = { E: E, M: M, T: T };
@@ -725,7 +726,7 @@
     function groesse() {
       var isTouch = !!(E.touch || (win.matchMedia && win.matchMedia('(pointer: coarse)').matches));
       var hoch = isTouch && win.innerHeight > win.innerWidth;
-      if (hoch !== R.hochkant) { Saufi.Render.setzeBildschirm(R, hoch); E.setzeMass(R.W, R.H); S.kamera.viewW = R.W; S.kamera.viewH = R.H; }
+      if (hoch !== R.hochkant) { Saufi.Render.setzeBildschirm(R, hoch); E.setzeMass(R.W, R.H); S.kamera.viewW = R.VW || R.W; S.kamera.viewH = R.VH || R.H; }
       var padX = 0, padY = 0;
       if (win.getComputedStyle && doc.body) {
         var cs = win.getComputedStyle(doc.body);

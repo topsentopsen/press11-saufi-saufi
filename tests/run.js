@@ -50,7 +50,11 @@ function mockCtx(log) {
   return new Proxy(store, {
     get: function (t, k) {
       if (typeof k === 'symbol') return undefined;
-      if (k === 'measureText') return function (s) { return { width: String(s).length * 4 }; };
+      if (k === 'measureText') return function (s) {
+        var sz = 10, m = /(\d+(?:\.\d+)?)px/.exec(t.font || '');
+        if (m) sz = parseFloat(m[1]);
+        return { width: String(s).length * sz * 0.55 };
+      };
       if (k === 'createRadialGradient') return function (a, b, c, d, e, f) { pruefeZahlen(k, arguments); if (c < 0 || f < 0) throw new Error('negativer Radius'); return { addColorStop: function (o, col) { if (!(o >= 0 && o <= 1) || typeof col !== 'string') throw new Error('addColorStop ' + o + ' ' + col); } }; };
       if (k === 'createLinearGradient') return function () { pruefeZahlen(k, arguments); return { addColorStop: function () {} }; };
       if (CTX_EIGENSCHAFTEN.indexOf(k) >= 0) return t[k];
@@ -998,6 +1002,80 @@ test('50 Startbildschirm per Tipp startbar (Zeiger/Touch)', function () {
   var e = D.Eingabe.erstelle(null, null);
   wahr(e.zeiger(10, 10, 5000));
   gleich(e.klicks().length, 1);
+});
+
+// ---------- v03c: textInBox, Kamera-Zoom, Overlay-Schrift ----------
+test('51 textInBox passt immer (Laengen/Breiten)', function () {
+  var D = lade(), G = D.Gfx, cv = mockCanvas(), c = cv.getContext('2d');
+  wahr(typeof G.textInBox === 'function', 'textInBox existiert');
+  [
+    { t: 'kurz', w: 80, h: 20, g: 14 },
+    { t: 'Ein etwas laengerer Hinweistext fuer das HUD', w: 60, h: 40, g: 12 },
+    { t: 'Supercalifragilisticexpialidocious ohne Leerzeichen', w: 50, h: 30, g: 16 },
+    { t: 'A B C D E F G H I J K L M N O P Q R S T U V W X Y Z', w: 40, h: 50, g: 11 },
+    { t: '', w: 30, h: 14, g: 10 },
+    { t: 'Press11 - Saufi Saufi · Stuttgart Kessel Marathon', w: 90, h: 16, g: 18 }
+  ].forEach(function (f, i) {
+    var info = G.textInBox(c, f.t, 0, 0, f.w, f.h, f.g, { mess: true, ausr: 'center' });
+    wahr(info.size >= G.MIN_SCHRIFT || !f.t, 'Fall ' + i + ' size>=min');
+    wahr(info.h <= f.h + 0.5, 'Fall ' + i + ' Hoehe passt (' + info.h + '<=' + f.h + ')');
+    info.lines.forEach(function (z, j) {
+      wahr(G.breite(c, z, info.size) <= f.w + 0.75, 'Fall ' + i + ' Zeile ' + j + ' Breite');
+    });
+    // Zeichnen ohne Fehler
+    G.textInBox(c, f.t, 2, 2, f.w, f.h, f.g, { col: '#123', ausr: 'center' });
+  });
+});
+
+test('52 Overlay-Schrift ueberschreitet Panelbreite nicht', function () {
+  var D = lade(), t = neuesSpielTest(D), S = t.S, X = t.X;
+  var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  function pruefePanel() {
+    wahr(R.panel, 'Panel gesetzt');
+    var p = R.panel, c = R.ctx;
+    // Alle fillText-Aufrufe werden im Mock geloggt; hier Breite der sichtbaren Labels ueber textInBox/kuerze absichern
+    R.treffer.filter(function (tr) { return typeof tr.i === 'number'; }).forEach(function (tr) {
+      wahr(tr.x >= p.x - 0.5 && tr.x + tr.w <= p.x + p.w + 0.5, 'Treffer in Panelbreite');
+    });
+    // Playlist-Titel und Menuezeilen: textInBox/kuerze halten Breite
+    var lang = '10. Posse (I Need You on the Floor) und noch mehr Text';
+    var info = D.Gfx.textInBox(c, lang, 0, 0, p.w - 20, 14, 12, { mess: true });
+    info.lines.forEach(function (z) { wahr(D.Gfx.breite(c, z, info.size) <= p.w - 20 + 0.75, 'textInBox in Panel'); });
+  }
+  D.Render.setzeBildschirm(R, false);
+  t.Sp.playlistOverlay(S, X); D.Render.zeichne(R, S); pruefePanel();
+  t.Sp.pauseMenue(S, X); D.Render.zeichne(R, S); pruefePanel();
+  D.Render.setzeBildschirm(R, true); R.touch = true;
+  t.Sp.playlistOverlay(S, X); D.Render.zeichne(R, S); pruefePanel();
+  // Sprechblase: Breite am Text gemessen, nicht groesser als View
+  var blaseLog = [];
+  var cv2 = mockCanvas(blaseLog), R2 = D.Render.erstelle(cv2, cv2.ownerDocument);
+  D.Render.setzeBildschirm(R2, false);
+  var spiel = neuesSpielTest(D); spiel.Sp.setze(spiel.S, { minute: 16 * 60 });
+  spiel.S.npcs.forEach(function (n) { n.aktiv = true; n.liegt = false; n.karteId = spiel.S.karte.id; n.blase = { text: 'Das ist ein ziemlich langer Spruch fuer die Blase!' }; n.x = spiel.S.spieler.x; n.y = spiel.S.spieler.y; });
+  D.Render.zeichne(R2, spiel.S);
+  wahr(blaseLog.length > 0, 'Sprechblasen-Text gezeichnet');
+  wahr(D.Render.WELT_FLAECHE >= 1.4 && D.Render.WELT_FLAECHE <= 1.6, 'Weltflaeche 1.4–1.6');
+});
+
+test('53 Kamera-Ausschnitt groesser als vorher (1.4–1.6x Flaeche)', function () {
+  var D = lade();
+  wahr(D.Render.WELT_FLAECHE >= 1.4 && D.Render.WELT_FLAECHE <= 1.6);
+  nah(D.Render.WELT_ZOOM, 1 / Math.sqrt(D.Render.WELT_FLAECHE), 1e-9);
+  var alt = D.Render.BASE_W * D.Render.BASE_H;
+  var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  D.Render.setzeBildschirm(R, false);
+  wahr(R.VW * R.VH > alt, 'Quer: View > alte Flaeche');
+  nah(R.VW * R.VH / alt, D.Render.WELT_FLAECHE, 0.02, 'Quer ~WELT_FLAECHE');
+  D.Render.setzeBildschirm(R, true);
+  var altH = D.Render.BASE_W * D.Render.PORT_H;
+  wahr(R.VW * R.VH > altH, 'Hoch: View > alte Flaeche');
+  nah(R.VW * R.VH / altH, D.Render.WELT_FLAECHE, 0.02, 'Hoch ~WELT_FLAECHE');
+  // HUD bleibt Bildschirm-W×H; Kamera nutzt VW×VH
+  var t = neuesSpielTest(D, { viewW: R.VW, viewH: R.VH });
+  wahr(t.S.kamera.viewW >= R.VW - 0.01 && t.S.kamera.viewH >= R.VH - 0.01, 'Kamera-View gesetzt');
+  wahr(R.W === D.Render.BASE_W && R.H === D.Render.PORT_H, 'HUD-Aufloesung unveraendert');
+  D.Render.zeichne(R, t.S); // ohne Fehler inkl. HUD
 });
 
 // ---------- Ausfuehren ----------

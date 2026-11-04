@@ -6,11 +6,14 @@
   var Saufi = g.Saufi = g.Saufi || {};
   var G = Saufi.Gfx, Sz = Saufi.Szene, In = Saufi.Innen;
   var P = G.P, hash = G.hash, r = G.r, rr = G.rr, box = G.box, kreis = G.kreis, ellipse = G.ellipse, poly = G.poly, linie = G.linie, vlauf = G.vlauf, herz = G.herz;
-  var text = G.text, breite = G.breite, umbruch = G.umbruch, kuerze = G.kuerze, panel = G.panel, rgb = G.rgb, mix = G.mix;
+  var text = G.text, breite = G.breite, umbruch = G.umbruch, kuerze = G.kuerze, textInBox = G.textInBox, panel = G.panel, rgb = G.rgb, mix = G.mix;
   var BASE_W = 320, BASE_H = 176, PORT_H = 400, K = 16;
+  // Kamera rausgezoomt: ~1.5x mehr sichtbare Weltflaeche; HUD bleibt in Bildschirmkoordinaten (W×H)
+  var WELT_FLAECHE = 1.5, WELT_ZOOM = 1 / Math.sqrt(WELT_FLAECHE);
   var MAX_BREITE = 4096, MAX_BG_SKALA = 6, MAX_DPR = 2;
-  var W = BASE_W, H = BASE_H;
+  var W = BASE_W, H = BASE_H, VW = BASE_W / WELT_ZOOM, VH = BASE_H / WELT_ZOOM;
   var SH = { dx: 0, lang: 0.6, a: 0 };           // Schatten der aktuellen Uhrzeit
+  function weltView() { return { w: VW, h: VH, zoom: WELT_ZOOM, flaeche: WELT_FLAECHE }; }
 
   // ---------- Aufloesung ----------
   function erstelle(canvas, doc) {
@@ -19,7 +22,7 @@
     var neueLeinwand = (doc && typeof doc.createElement === 'function') ? function (w, h) {
       try { var cv = doc.createElement('canvas'); if (!cv || !cv.getContext) return null; cv.width = w; cv.height = h; return cv; } catch (e) { return null; }
     } : null;
-    var R = { canvas: canvas, ctx: ctx, neueLeinwand: neueLeinwand, hg: {}, spr: {}, props: {}, treffer: [], panel: null, W: W, H: H, hochkant: false, touch: false, sk: 1, spSk: 1, cssW: 0, cssH: 0, dpr: 1 };
+    var R = { canvas: canvas, ctx: ctx, neueLeinwand: neueLeinwand, hg: {}, spr: {}, props: {}, treffer: [], panel: null, W: W, H: H, VW: VW, VH: VH, weltZoom: WELT_ZOOM, hochkant: false, touch: false, sk: 1, spSk: 1, cssW: 0, cssH: 0, dpr: 1 };
     glaettung(R);
     return R;
   }
@@ -46,9 +49,11 @@
   }
   function setzeBildschirm(R, hoch) {
     R.hochkant = !!hoch; W = BASE_W; H = hoch ? PORT_H : BASE_H; R.W = W; R.H = H;
+    VW = W / WELT_ZOOM; VH = H / WELT_ZOOM; R.VW = VW; R.VH = VH; R.weltZoom = WELT_ZOOM;
     setzeAufloesung(R, R.cssW, R.cssH, R.dpr);
-    return { w: W, h: H };
+    return { w: W, h: H, vw: VW, vh: VH };
   }
+  function kameraView(R) { return { w: (R && R.VW) || VW, h: (R && R.VH) || VH }; }
 
   // ---------- Gebaeude, Props ----------
   function bauplan(b) { return Sz.bauplan(b); }
@@ -138,35 +143,37 @@
     o = o || {};
     var dir = o.dir || 'unten', fr = o.schritt || 0, extra = ch.extra, t = o.t || 0;
     var seite = dir === 'links' || dir === 'rechts', sg = dir === 'links' ? -1 : 1;
-    ellipse(c, x + SH.dx * 3.4, y - 0.2, 6 + Math.abs(SH.dx) * 3, 2.2, 'rgba(50,30,80,' + (0.2 + SH.a * 0.5).toFixed(3) + ')');
+    // Weicher Bodenschatten (Richtung nach Sonne)
+    ellipse(c, x + SH.dx * 3.8, y - 0.15, 6.4 + Math.abs(SH.dx) * 3.2, 2.4, 'rgba(50,30,80,' + (0.18 + SH.a * 0.55).toFixed(3) + ')');
     if (o.liegt) {                                              // umgefallen: liegt quer
-      rr(c, x - 4, y - 6.6, 15, 6.4, ch.hose, 2.6, KONT, 0.7);
-      rr(c, x - 8.6, y - 8.6, 12.4, 8, ch.shirt, 3, KONT, 0.7);
-      kreis(c, x - 10.6, y - 5.6, 4.4, P.haut, KONT, 0.7);
+      rr(c, x - 4, y - 6.6, 15, 6.4, ch.hose, 2.6, KONT, 0.85);
+      rr(c, x - 8.6, y - 8.6, 12.4, 8, ch.shirt, 3, KONT, 0.85);
+      kreis(c, x - 10.6, y - 5.6, 4.4, P.haut, KONT, 0.85);
       c.beginPath(); c.arc(x - 10.6, y - 5.6, 4.6, Math.PI * 0.95, Math.PI * 1.9); c.fillStyle = ch.haar; c.fill();
       linie(c, x - 12, y - 5.6, x - 10.6, y - 5.3, KONT, 0.6); linie(c, x - 9.8, y - 5.6, x - 8.6, y - 5.3, KONT, 0.6);
       rr(c, x + 9, y - 4.6, 3.4, 2.6, KONT, 1.2);
-      text(c, 'zZz', x - 4, y - 14 + Math.sin(t * 3), '#ffffff', 8, 'center', P.kontur);
+      textInBox(c, 'zZz', x - 12, y - 20 + Math.sin(t * 3), 16, 10, 8, { col: '#ffffff', ausr: 'center', kontur: P.kontur, min: 7 });
       return;
     }
-    var swing = [0, 1.7, 0, -1.7][fr] || 0, hop = o.tanzt ? -Math.abs(Math.sin(t * 12)) * 2.2 : 0, wipp = o.tanzt ? Math.sin(t * 12) * 1.2 : 0;
-    var bob = ((fr === 1 || fr === 3) ? -0.5 : 0) + hop + Math.sin(t * 2 + x) * 0.12;
+    // Laufzyklus: staerkerer Bein-/Armschwung und leichtes Wippen
+    var swing = [0, 2.4, 0, -2.4][fr] || 0, hop = o.tanzt ? -Math.abs(Math.sin(t * 12)) * 2.2 : 0, wipp = o.tanzt ? Math.sin(t * 12) * 1.2 : 0;
+    var bob = ((fr === 1 || fr === 3) ? -0.85 : 0) + hop + Math.sin(t * 2 + x) * 0.12;
     var hose = ch.hose, shirt = ch.shirt, by = y + hop;
     // Beine
     var beinFarbe = extra === 'latz' ? ch.shirt : hose, schuh = extra === 'schuhe' ? ['#ff4fa0', '#4fe6ff'] : ['#3a2a3e', '#3a2a3e'];
-    var l1 = seite ? swing : 0, l2 = seite ? -swing : 0, up1 = seite ? 0 : Math.max(0, swing) * 0.8, up2 = seite ? 0 : Math.max(0, -swing) * 0.8;
-    if (seite) { rr(c, x - 1.9 + l2 * 0.9, by - 8.2, 3.8, 8.4, dunkler(beinFarbe, 0.18), 1.5); rr(c, x - 2.4 + l2 * 0.9, by - 1.6, 5.4 * sg > 0 ? 5.4 : 5.4, 2.2, schuh[1], 1.1, KONT, 0.5); }
-    rr(c, x - 3.8 + (seite ? l1 * 0.9 : 0), by - 8.4 - 0 + up1, 3.5, 8.6 - up1, beinFarbe, 1.5, KONT, 0.5);
-    if (!seite) rr(c, x + 0.3, by - 8.4 + up2, 3.5, 8.6 - up2, beinFarbe, 1.5, KONT, 0.5);
-    if (!seite) { rr(c, x - 4.3, by - 1.8 + up1, 4.4, 2.3, schuh[0], 1.1, KONT, 0.5); rr(c, x - 0.1, by - 1.8 + up2, 4.4, 2.3, schuh[1], 1.1, KONT, 0.5); }
-    else { rr(c, x - 2.4 + l1 * 0.9 + (sg > 0 ? 0.5 : -0.5), by - 1.8, 5.4, 2.3, schuh[0], 1.1, KONT, 0.5); }
+    var l1 = seite ? swing : 0, l2 = seite ? -swing : 0, up1 = seite ? 0 : Math.max(0, swing) * 0.85, up2 = seite ? 0 : Math.max(0, -swing) * 0.85;
+    if (seite) { rr(c, x - 1.9 + l2 * 1.05, by - 8.2, 3.8, 8.4, dunkler(beinFarbe, 0.18), 1.5, KONT, 0.55); rr(c, x - 2.4 + l2 * 1.05, by - 1.6, 5.4, 2.2, schuh[1], 1.1, KONT, 0.55); }
+    rr(c, x - 3.8 + (seite ? l1 * 1.05 : 0), by - 8.4 + up1, 3.5, 8.6 - up1, beinFarbe, 1.5, KONT, 0.65);
+    if (!seite) rr(c, x + 0.3, by - 8.4 + up2, 3.5, 8.6 - up2, beinFarbe, 1.5, KONT, 0.65);
+    if (!seite) { rr(c, x - 4.3, by - 1.8 + up1, 4.4, 2.3, schuh[0], 1.1, KONT, 0.55); rr(c, x - 0.1, by - 1.8 + up2, 4.4, 2.3, schuh[1], 1.1, KONT, 0.55); }
+    else { rr(c, x - 2.4 + l1 * 1.05 + (sg > 0 ? 0.5 : -0.5), by - 1.8, 5.4, 2.3, schuh[0], 1.1, KONT, 0.55); }
     // Arme hinten (Seitenansicht)
-    var ay = by - 14.8 + bob, armSw = o.tanzt ? -3.6 : swing * 0.5;
-    if (seite) rr(c, x - 1.2 - swing * 0.6, ay, 2.6, 6.2, dunkler(shirt, 0.18), 1.2);
+    var ay = by - 14.8 + bob, armSw = o.tanzt ? -3.6 : swing * 0.65;
+    if (seite) rr(c, x - 1.2 - swing * 0.7, ay, 2.6, 6.2, dunkler(shirt, 0.18), 1.2, KONT, 0.5);
     // Torso
     var tw = seite ? 6.8 : 9, tx = x - tw / 2;
-    rr(c, tx + wipp * 0.15, by - 16.6 + bob, tw, 9.4, shirt, 3.2, KONT, 0.7);
-    vlauf(c, tx + 1, by - 15.8 + bob, tw - 2, 3, heller(shirt, 0.28), shirt);
+    rr(c, tx + wipp * 0.15, by - 16.6 + bob, tw, 9.4, shirt, 3.2, KONT, 0.85);
+    vlauf(c, tx + 1, by - 15.8 + bob, tw - 2, 3.4, heller(shirt, 0.32), shirt);
     if (extra === 'weste' && !seite) { rr(c, tx + 1.2, by - 15.4 + bob, 2.8, 8, '#7a7a88', 1.2); rr(c, tx + tw - 4, by - 15.4 + bob, 2.8, 8, '#7a7a88', 1.2); }
     else if (extra === 'weste') rr(c, tx + 0.8, by - 15.4 + bob, tw - 1.6, 8, '#7a7a88', 1.2);
     if (extra === 'tracht') { rr(c, tx + 1, by - 15.6 + bob, tw - 2, 8.2, '#1f4a2a', 1.6); for (var k = 0; k < 3; k++) kreis(c, x + (seite ? 0 : 0), by - 14 + bob + k * 2.4, 0.5, '#d8c070'); }
@@ -174,18 +181,19 @@
     if (extra === 'hut') { poly(c, [[x - 1.2, by - 16 + bob], [x + 1.2, by - 16 + bob], [x + 0.8, by - 9 + bob], [x - 0.8, by - 9 + bob]], '#1a1a22'); }
     // Arm vorn
     if (!seite) {
-      rr(c, tx - 2.2, ay + armSw * 0.4 - (o.tanzt ? 3 : 0), 2.6, o.tanzt ? 5 : 6.2, shirt, 1.3, KONT, 0.5);
-      rr(c, tx + tw - 0.4, ay - armSw * 0.4 - (o.tanzt ? 3 : 0), 2.6, o.tanzt ? 5 : 6.2, shirt, 1.3, KONT, 0.5);
-      kreis(c, tx - 0.9, ay + 6 + armSw * 0.4 - (o.tanzt ? 6 : 0), 1.3, P.haut); kreis(c, tx + tw + 0.9, ay + 6 - armSw * 0.4 - (o.tanzt ? 6 : 0), 1.3, P.haut);
-      if (o.glas) { rr(c, tx + tw + 0.2, ay + 1.4 - armSw * 0.4, 3.6, 5, 'rgba(255,208,80,0.95)', 1.1, '#6a5a70', 0.5); r(c, tx + tw + 0.4, ay + 1.4 - armSw * 0.4, 3.2, 1.2, '#fff8ee'); }
+      rr(c, tx - 2.2, ay + armSw * 0.45 - (o.tanzt ? 3 : 0), 2.6, o.tanzt ? 5 : 6.2, shirt, 1.3, KONT, 0.65);
+      rr(c, tx + tw - 0.4, ay - armSw * 0.45 - (o.tanzt ? 3 : 0), 2.6, o.tanzt ? 5 : 6.2, shirt, 1.3, KONT, 0.65);
+      kreis(c, tx - 0.9, ay + 6 + armSw * 0.45 - (o.tanzt ? 6 : 0), 1.3, P.haut, KONT, 0.45); kreis(c, tx + tw + 0.9, ay + 6 - armSw * 0.45 - (o.tanzt ? 6 : 0), 1.3, P.haut, KONT, 0.45);
+      if (o.glas) { rr(c, tx + tw + 0.2, ay + 1.4 - armSw * 0.45, 3.6, 5, 'rgba(255,208,80,0.95)', 1.1, '#6a5a70', 0.5); r(c, tx + tw + 0.4, ay + 1.4 - armSw * 0.45, 3.2, 1.2, '#fff8ee'); }
     } else {
-      rr(c, x - 1.2 + swing * 0.6, ay, 2.6, 6.2, shirt, 1.3, KONT, 0.5); kreis(c, x + swing * 0.6 + 0.1, ay + 6.2, 1.3, P.haut);
-      if (o.glas) { rr(c, x + sg * 1.4 + swing * 0.6 - 1.4, ay + 2, 3.6, 5, 'rgba(255,208,80,0.95)', 1.1, '#6a5a70', 0.5); }
+      rr(c, x - 1.2 + swing * 0.7, ay, 2.6, 6.2, shirt, 1.3, KONT, 0.65); kreis(c, x + swing * 0.7 + 0.1, ay + 6.2, 1.3, P.haut, KONT, 0.45);
+      if (o.glas) { rr(c, x + sg * 1.4 + swing * 0.7 - 1.4, ay + 2, 3.6, 5, 'rgba(255,208,80,0.95)', 1.1, '#6a5a70', 0.5); }
     }
     // Kopf
     var hx = x + wipp * 0.3 + (seite ? sg * 0.5 : 0), hy = by - 21.4 + bob;
     r(c, hx - 1.2, hy + 3.4, 2.4, 2, dunkler(P.haut, 0.1));
-    kreis(c, hx, hy, 4.7, P.haut, KONT, 0.7);
+    kreis(c, hx, hy, 4.7, P.haut, KONT, 0.85);
+    kreis(c, hx - 1.4, hy - 1.2, 1.6, 'rgba(255,255,255,0.22)');
     if (dir === 'oben') haare(c, ch, hx, hy, 'oben', extra);
     else {
       haare(c, ch, hx, hy, dir, extra);
@@ -223,11 +231,16 @@
   }
 
   function blase(c, x, y, s) {
-    var w = Math.min(W - 8, breite(c, s, 11) + 14), bx = Math.round(x - w / 2), by = Math.round(y - 18);
-    if (bx < 2) bx = 2; if (bx + w > W - 2) bx = W - 2 - w;
-    panel(c, bx, by, w, 16, P.uiFlaeche, 5);
-    poly(c, [[x - 2, by + 15.2], [x + 2, by + 15.2], [x, by + 18.6]], P.uiFlaeche);
-    text(c, s, bx + w / 2, by + 8.2, P.uiTinte, 11, 'center');
+    var pad = 8, maxW = Math.min(VW - 10, 150), ziel = 9;
+    var mess = textInBox(c, s, 0, 0, maxW - pad, 48, ziel, { ausr: 'center', mess: true });
+    var tw = Math.max(28, Math.min(maxW - pad, mess.w));
+    var lay = textInBox(c, s, 0, 0, tw, 48, ziel, { ausr: 'center', mess: true });
+    var bw = Math.round(Math.min(maxW, lay.w + pad)), bh = Math.round(Math.max(14, lay.h + 5));
+    var bx = Math.round(x - bw / 2), by = Math.round(y - bh - 4);
+    if (bx < 2) bx = 2; if (bx + bw > VW - 2) bx = VW - 2 - bw;
+    panel(c, bx, by, bw, bh, P.uiFlaeche, 5);
+    poly(c, [[x - 2.2, by + bh - 0.8], [x + 2.2, by + bh - 0.8], [x, by + bh + 3.4]], P.uiFlaeche);
+    textInBox(c, s, bx + 3, by + 1, bw - 6, bh - 2, ziel, { col: P.uiTinte, ausr: 'center' });
   }
 
   function zeichneJoint(c, x, y, t) {
@@ -238,28 +251,29 @@
     c.globalAlpha = 0.5; kreis(c, x + 4, y - 4 + w, 1.2, '#c9c3d6'); kreis(c, x + 5.2, y - 7 + w, 1.6, '#c9c3d6'); c.globalAlpha = 1;
   }
 
-  // ---------- Welt zeichnen ----------
+  // ---------- Welt zeichnen (in Kamerakoordinaten VW×VH; wird mit WELT_ZOOM auf W×H skaliert) ----------
   function zeichneWelt(R, S) {
     var c = R.ctx, karte = S.karte, cam = S.kamera, T = Saufi.Karte.T, sk = R.sk;
+    var viewW = cam.viewW || VW, viewH = cam.viewH || VH;
     var cx = Math.round(cam.x * sk) / sk, cy = Math.round(cam.y * sk) / sk, licht = S.licht, i;
     SH = karte.innen ? { dx: 0, lang: 0.6, a: 0 } : Sz.schattenFuer(S);
-    r(c, 0, 0, W, H, '#1b1530');
+    r(c, 0, 0, viewW, viewH, '#1b1530');
     var hg = hintergrund(R, karte);
     if (hg) {
       var sx = Math.max(0, cx), sy = Math.max(0, cy), dx = sx - cx, dy = sy - cy;
-      var bw = Math.min(karte.pxW - sx, W - dx), bh = Math.min(karte.pxH - sy, H - dy), bk = hg.sk;
+      var bw = Math.min(karte.pxW - sx, viewW - dx), bh = Math.min(karte.pxH - sy, viewH - dy), bk = hg.sk;
       if (bw > 0 && bh > 0) c.drawImage(hg.canvas, Math.round(sx * bk), Math.round(sy * bk), Math.round(bw * bk), Math.round(bh * bk), dx, dy, bw, bh);
     } else {
-      for (var y = Math.max(0, Math.floor(cy / K)); y <= Math.min(karte.h - 1, Math.floor((cy + H) / K)); y++)
-        for (var x = Math.max(0, Math.floor(cx / K)); x <= Math.min(karte.w - 1, Math.floor((cx + W) / K)); x++) {
+      for (var y = Math.max(0, Math.floor(cy / K)); y <= Math.min(karte.h - 1, Math.floor((cy + viewH) / K)); y++)
+        for (var x = Math.max(0, Math.floor(cx / K)); x <= Math.min(karte.w - 1, Math.floor((cx + viewW) / K)); x++) {
           if (karte.innen) In.zeichneInnenKachel(c, karte, x, y, x * K - cx, y * K - cy); else Sz.zeichneAussenKachel(c, karte, x, y, x * K - cx, y * K - cy);
         }
     }
     var t = S.t;
     if (!karte.innen) {                                           // bewegtes Wasser
       c.lineCap = 'round'; c.lineWidth = 0.7;
-      for (var wy = Math.max(0, Math.floor(cy / K)); wy <= Math.min(karte.h - 1, Math.floor((cy + H) / K)); wy++)
-        for (var wx = Math.max(0, Math.floor(cx / K)); wx <= Math.min(karte.w - 1, Math.floor((cx + W) / K)); wx++) {
+      for (var wy = Math.max(0, Math.floor(cy / K)); wy <= Math.min(karte.h - 1, Math.floor((cy + viewH) / K)); wy++)
+        for (var wx = Math.max(0, Math.floor(cx / K)); wx <= Math.min(karte.w - 1, Math.floor((cx + viewW) / K)); wx++) {
           if (karte.tile(wx, wy) !== T.WASSER) continue;
           var o = (t * 5 + wx * 3 + wy * 5) % 16, px0 = wx * K - cx, py0 = wy * K - cy;
           c.strokeStyle = 'rgba(232,251,255,0.8)'; c.beginPath(); c.moveTo(px0 + o, py0 + 5); c.quadraticCurveTo(px0 + o + 2.5, py0 + 3.8, px0 + o + 5, py0 + 5); c.stroke();
@@ -269,15 +283,15 @@
       In.tanzFlaeche(c, S, cx, cy, Math.floor(S.t / Saufi.Ton.BEAT), (S.t / Saufi.Ton.BEAT) % 1, S.boostAktiv);
     } else In.innenFensterNacht(c, karte, Math.min(0.85, licht.glut * 0.9), cx, cy);
 
-    // Sortierte Dinge: Props, Orte-Objekte, Figuren
+    // Sortierte Dinge: Props, Orte-Objekte, Figuren (Y-Sortierung verhindert Ueberlappungsfehler)
     var dinge = [];
-    propsFuer(R, karte).forEach(function (p) { if (p.x - cx < W + 40 && p.x - cx > -140 && p.y - cy > -20 && p.y - cy < H + 120) dinge.push(p); });
+    propsFuer(R, karte).forEach(function (p) { if (p.x - cx < viewW + 40 && p.x - cx > -140 && p.y - cy > -20 && p.y - cy < viewH + 120) dinge.push(p); });
     if (!karte.innen) dinge.push({ y: 15 * K + 4, x: 0, art: 'tram' });
     if (karte.id === 'hotel' && S.joint && !S.joint.gefunden) dinge.push({ y: 8 * K + 12, art: 'joint', x: 14 * K, ky: 8 * K });
     S.npcs.forEach(function (n) { if (n.aktiv && n.karteId === karte.id) dinge.push({ y: n.y, art: 'npc', n: n }); });
     if (S.zustand !== 'start') dinge.push({ y: S.spieler.y + 0.1, art: 'spieler' });
     if (karte.id === 'disko') dinge.push({ y: 10 * K + 8, art: 'tuersteher', x: 6 * K + 8, ky: 10 * K + 8 });
-    dinge.sort(function (a, b) { return a.y - b.y; });
+    dinge.sort(function (a, b) { return a.y - b.y || (a.art === 'spieler' ? 1 : 0) - (b.art === 'spieler' ? 1 : 0); });
     dinge.forEach(function (d) {
       var px = d.x - cx, fy = d.y - cy;                           // d.y = Fusslinie
       if (d.art === 'geb') zeichneGebaeude(R, c, d.b, px, d.b.y * K - cy);
@@ -286,13 +300,13 @@
       else if (d.art === 'laterne') { if (SH.a > 0.02) ellipse(c, px + 8 + SH.dx * 6, fy - 1, 5, 1.2, 'rgba(50,30,80,' + SH.a + ')'); Sz.zeichneSprite(R, c, 'laterne', 14, 28, 7, 26, px + 8, fy - 0.5, function (hc) { Sz.laterneBild(hc); }); }
       else if (d.art === 'bank') Sz.zeichneSprite(R, c, 'bank', 22, 18, 11, 16, px + 8, fy - 1, function (hc) { Sz.bankBild(hc); });
       else if (d.art === 'brunnen') { Sz.zeichneSprite(R, c, 'brunnen', 40, 42, 20, 36, px + 16, fy - 3, function (hc) { Sz.brunnenBild(hc); }); Sz.brunnenWasser(c, px + 16, fy - 3, t); }
-      else if (d.art === 'tram') { var tx = ((t * 14) % (karte.pxW + 160)) - 90 - cx; if (tx > -80 && tx < W + 10) Sz.strassenbahn(c, tx, 253 - cy, t); }
+      else if (d.art === 'tram') { var tx = ((t * 14) % (karte.pxW + 160)) - 90 - cx; if (tx > -80 && tx < viewW + 10) Sz.strassenbahn(c, tx, 253 - cy, t); }
       else if (d.art === 'joint') zeichneJoint(c, d.x - cx + 8, d.ky - cy + 8, t);
       else if (d.art === 'tuersteher') figur(c, { shirt: '#14102a', hose: '#14102a', haar: '#14102a', extra: 'hut' }, d.x - cx, d.ky - cy, { dir: 'unten', t: t });
       else if (d.art === 'npc') {
         var n = d.n; figur(c, n.char, n.x - cx, n.y - cy, { dir: n.dir, schritt: n.schritt, liegt: n.liegt, t: t, schwips: n.fig.pegel > 1.5, tanzt: S.tanzBeat && !n.liegt, glas: S.prost > 0 && !n.liegt });
         if (n.blase && !n.liegt) blase(c, n.x - cx, n.y - cy - 25, n.char.name + ': ' + n.blase.text);
-        else if (n.liegt) text(c, 'Q = wecken', n.x - cx, n.y - cy - 16, '#ffffff', 8, 'center', P.kontur);
+        else if (n.liegt) textInBox(c, 'Q = wecken', n.x - cx - 28, n.y - cy - 22, 56, 12, 8, { col: '#ffffff', ausr: 'center', kontur: P.kontur, min: 7 });
       }
       else if (d.art === 'spieler') {
         var sp = S.spieler, ch = S.char;
@@ -309,14 +323,16 @@
       c.globalAlpha = Math.min(1, a); kreis(c, e.x - cx + e.vx * age, e.y - cy + e.vy * age, 1.2, e.farbe); c.globalAlpha = 1;
     });
 
-    // Toenung: Tageslicht (draussen) oder Raumlicht (innen)
+    // Toenung: Tageslicht (draussen) oder Raumlicht (innen) — weicher Verlauf
     var tint = tintFuer(S);
-    c.globalCompositeOperation = 'multiply'; r(c, 0, 0, W, H, rgb(tint)); c.globalCompositeOperation = 'source-over';
+    c.globalCompositeOperation = 'multiply'; r(c, 0, 0, viewW, viewH, rgb(tint)); c.globalCompositeOperation = 'source-over';
     zeichneLichter(R, S, cx, cy, tint);
     var nacht = karte.innen ? 0 : Sz.nachtGrad(S.uhr.minute / 60);
-    if (nacht > 0.05) {                                           // Vignette in der Nacht
-      var vg = c.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, W * 0.66); vg.addColorStop(0, 'rgba(10,8,40,0)'); vg.addColorStop(1, 'rgba(10,8,40,' + (0.38 * nacht).toFixed(3) + ')');
-      c.fillStyle = vg; c.fillRect(0, 0, W, H);
+    if (nacht > 0.05) {                                           // weiche Vignette in der Nacht
+      var vg = c.createRadialGradient(viewW / 2, viewH / 2, viewH * 0.28, viewW / 2, viewH / 2, Math.max(viewW, viewH) * 0.72);
+      vg.addColorStop(0, 'rgba(10,8,40,0)'); vg.addColorStop(0.55, 'rgba(10,8,40,' + (0.12 * nacht).toFixed(3) + ')');
+      vg.addColorStop(1, 'rgba(10,8,40,' + (0.42 * nacht).toFixed(3) + ')');
+      c.fillStyle = vg; c.fillRect(0, 0, viewW, viewH);
     }
   }
 
@@ -360,12 +376,12 @@
         propsFuer(R, karte).forEach(function (p) {
           if (p.art !== 'laterne') return;
           var lx = p.x - cx + 8, kopf = p.ly * K - cy - 1, boden = p.ly * K - cy + 14;
-          if (lx < -50 || lx > W + 50 || boden < -50 || boden > H + 60) return;
-          var cone = c.createLinearGradient(0, kopf, 0, boden + 6); cone.addColorStop(0, 'rgba(255,225,150,0.5)'); cone.addColorStop(1, 'rgba(255,200,110,0.1)');
+          if (lx < -50 || lx > VW + 50 || boden < -50 || boden > VH + 60) return;
+          var cone = c.createLinearGradient(0, kopf, 0, boden + 8); cone.addColorStop(0, 'rgba(255,225,150,0.55)'); cone.addColorStop(0.55, 'rgba(255,210,120,0.22)'); cone.addColorStop(1, 'rgba(255,200,110,0)');
           c.globalAlpha = lampen; c.fillStyle = cone;
-          c.beginPath(); c.moveTo(lx - 1.6, kopf); c.lineTo(lx + 1.6, kopf); c.lineTo(lx + 17, boden + 6); c.lineTo(lx - 17, boden + 6); c.closePath(); c.fill();
-          G.glanz(c, lx, boden + 1, 40, 'rgba(255,214,130,0.62)', 'rgba(255,190,100,0)');
-          G.glanz(c, lx, kopf + 2, 9, 'rgba(255,240,190,0.95)', 'rgba(255,220,140,0)');
+          c.beginPath(); c.moveTo(lx - 1.6, kopf); c.lineTo(lx + 1.6, kopf); c.lineTo(lx + 18, boden + 8); c.lineTo(lx - 18, boden + 8); c.closePath(); c.fill();
+          G.glanz(c, lx, boden + 1, 44, 'rgba(255,214,130,0.55)', 'rgba(255,190,100,0)');
+          G.glanz(c, lx, kopf + 2, 10, 'rgba(255,240,190,0.9)', 'rgba(255,220,140,0)');
         });
       }
       if (glut > 0.4) {                                            // schwache Gebaeudekanten, damit man nachts navigieren kann
@@ -388,31 +404,32 @@
   }
   function hud(R, S) {
     var c = R.ctx, fig = S.fig, uhr = S.uhr, i;
-    // links oben: Pegel, Standfestigkeit, Teamstimmung
+    // links oben: Pegel, Standfestigkeit, Teamstimmung (Bildschirmkoordinaten)
     panel(c, 3, 3, 96, 62, 'rgba(255,248,238,0.94)', 6);
     krug(c, 8, 7, fig.pegel);
     var pt = S.joint && Saufi.Ereignisse.Joint.schwammig(S.joint) ? '~' + Saufi.Pegel.anzeige(fig.pegel + Math.sin(S.t * 5) * 0.4) : Saufi.Pegel.anzeige(fig.pegel);
-    text(c, pt + ' ‰', 30, 15, fig.pegel >= 3 ? P.bierRot : P.uiTinte, 12);
+    textInBox(c, pt + ' ‰', 28, 7, 66, 16, 11, { col: fig.pegel >= 3 ? P.bierRot : P.uiTinte, ausr: 'left' });
     var herzen = Math.ceil(fig.stand / 20);
     for (i = 0; i < 5; i++) { var voll = fig.stand >= (i + 1) * 20 - 0.01; herz(c, 8 + i * 11, 28, voll ? P.herzVoll : (i < herzen ? P.herzLicht : P.herzLeer)); }
-    text(c, 'Team', 8, 43, P.uiTinteWeich, 8);
+    textInBox(c, 'Team', 6, 38, 28, 12, 8, { col: P.uiTinteWeich });
     for (i = 0; i < 5; i++) rr(c, 36 + i * 11, 39.4, 9, 7.6, i < S.runden.team ? '#5ec8b8' : P.herzLeer, 2.4, P.kontur, 0.7);
-    r(c, 8, 52.4, 3.6, 8.4, '#8fd4f0'); rr(c, 7.4, 51.4, 4.8, 3, '#4fb0d6', 1.2); text(c, 'x' + S.flaschen, 15, 56.6, P.uiTinte, 9);
-    if (S.joint && (S.joint.hat || S.joint.doppelt)) text(c, S.joint.doppelt ? 'x2!' : 'R: Tüte', 38, 56.6, '#d9701a', 8.5);
+    r(c, 8, 52.4, 3.6, 8.4, '#8fd4f0'); rr(c, 7.4, 51.4, 4.8, 3, '#4fb0d6', 1.2);
+    textInBox(c, 'x' + S.flaschen, 14, 50, 22, 12, 9, { col: P.uiTinte });
+    if (S.joint && (S.joint.hat || S.joint.doppelt)) textInBox(c, S.joint.doppelt ? 'x2!' : 'R: Tüte', 36, 50, 56, 12, 8, { col: '#d9701a' });
     // Mitte oben: Uhr mit Himmelsfenster
     var pw = 108, px = Math.round(W / 2 - pw / 2) + 2;
     panel(c, px, 3, pw, 30, 'rgba(255,248,238,0.94)', 7);
     Sz.himmelIcon(c, px + 17, 18, 11.5, uhr.minute / 60, S.t);
-    text(c, Saufi.Uhr.text(uhr), px + 66, 12.4, P.uiTinte, 13, 'center');
-    text(c, Saufi.Uhr.tag(uhr).slice(0, 2) + ' · ' + Saufi.Uhr.phase(uhr), px + 66, 25, P.uiTinteWeich, 8, 'center');
-    text(c, '★ ' + S.punkte.punkte, px + pw / 2, 41, P.uiTinte, 10, 'center', 'rgba(255,248,238,0.95)');
+    textInBox(c, Saufi.Uhr.text(uhr), px + 32, 4, 70, 14, 12, { col: P.uiTinte, ausr: 'center' });
+    textInBox(c, Saufi.Uhr.tag(uhr).slice(0, 2) + ' · ' + Saufi.Uhr.phase(uhr), px + 32, 17, 70, 12, 8, { col: P.uiTinteWeich, ausr: 'center' });
+    textInBox(c, '★ ' + S.punkte.punkte, px, 34, pw, 12, 9, { col: P.uiTinte, ausr: 'center', kontur: 'rgba(255,248,238,0.95)' });
     // Runde
     var nr = Saufi.Runden.naechste(S.runden);
     if (nr && (nr.status === 'warnung' || nr.status === 'aktiv')) {
       var aktiv = nr.status === 'aktiv', rest = aktiv ? nr.zeit + Saufi.Runden.FRIST_MIN - uhr.minute : nr.zeit - uhr.minute;
-      var rw = 196, rx = Math.round(W / 2 - rw / 2) + 2, ry = 50, blink = aktiv && Math.floor(S.t * 3) % 2 === 0;
+      var rw = Math.min(196, W - 24), rx = Math.round(W / 2 - rw / 2) + 2, ry = 50, blink = aktiv && Math.floor(S.t * 3) % 2 === 0;
       panel(c, rx, ry, rw, 22, aktiv ? (blink ? '#ff9fb0' : '#ffd1da') : '#fff0c8', 6);
-      text(c, (aktiv ? 'RUNDE! ' : 'Runde ' + Saufi.Uhr.zeitText(nr.zeit) + ': ') + Saufi.Karte.NAMEN[nr.ort], rx + rw / 2, ry + 7.4, P.uiTinte, 8.5, 'center');
+      textInBox(c, (aktiv ? 'RUNDE! ' : 'Runde ' + Saufi.Uhr.zeitText(nr.zeit) + ': ') + Saufi.Karte.NAMEN[nr.ort], rx + 6, ry + 1, rw - 12, 12, 8, { col: P.uiTinte, ausr: 'center' });
       var frac = Math.max(0, Math.min(1, rest / (aktiv ? Saufi.Runden.FRIST_MIN : Saufi.Runden.VORLAUF_MIN)));
       rr(c, rx + 10, ry + 14, rw - 20, 4.4, 'rgba(74,53,96,0.25)', 2.2); if (frac > 0.01) rr(c, rx + 10, ry + 14, (rw - 20) * frac, 4.4, aktiv ? '#e0504a' : '#f0b030', 2.2);
     }
@@ -421,54 +438,59 @@
       var bw = 150, bx = Math.round(W / 2 - bw / 2) + 2, by = H - 40, b = S.boost, f = b.leiste, pulse = f >= 1 && Math.floor(S.t * 4) % 2 === 0;
       panel(c, bx - 6, by - 5, bw + 12, 21, 'rgba(42,35,66,0.92)', 7);
       rr(c, bx, by, bw, 11, 'rgba(255,255,255,0.12)', 5.5, P.kontur, 0.7); if (f > 0.02) rr(c, bx + 0.8, by + 0.8, (bw - 1.6) * f, 9.4, pulse ? '#ffffff' : P.neonPink, 4.7);
-      text(c, S.boostAktiv ? 'HYPER HYPER!' : (f >= 1 ? 'R: HYPER-BOOST!' : 'SCOOTER · E tanzen'), bx + bw / 2, by + 5.8, S.boostAktiv ? P.neonGelb : '#ffffff', 8, 'center', 'rgba(30,10,60,0.9)');
+      textInBox(c, S.boostAktiv ? 'HYPER HYPER!' : (f >= 1 ? 'R: HYPER-BOOST!' : 'SCOOTER · E tanzen'), bx, by, bw, 11, 8, { col: S.boostAktiv ? P.neonGelb : '#ffffff', ausr: 'center', kontur: 'rgba(30,10,60,0.9)' });
     }
-    // Navigationspfeil
-    if (S.pfeil) pfeil(R, S.pfeil.x, S.pfeil.y);
+    // Navigationspfeil (Welt→Bildschirm)
+    if (S.pfeil) pfeil(R, S.pfeil.x * WELT_ZOOM, S.pfeil.y * WELT_ZOOM);
     // Banner
     var h = Saufi.Hinweise.aktuell(S.hinweise);
     if (h) {
       var a = Math.min(1, h.rest * 3);
       c.globalAlpha = a;
-      if (h.art === 'gross') { var y0 = Math.round(H * 0.42) + (Math.floor(S.t * 8) % 2); text(c, h.text, Math.round(W / 2), y0, '#ffe84f', 18, 'center', P.kontur); }
-      else {
-        var zl = umbruch(c, h.text, W - 80, 9), hh2 = zl.length * 11.4 + 8, wy = H - 30 - hh2 - (S.ort === 'disko' ? 20 : 0), mw = 0, mx = Math.round(W / 2);
-        zl.forEach(function (z) { mw = Math.max(mw, breite(c, z, 9)); });
-        var bw2 = Math.min(W - 40, Math.round(mw) + 24);
+      if (h.art === 'gross') {
+        var y0 = Math.round(H * 0.38) + (Math.floor(S.t * 8) % 2);
+        textInBox(c, h.text, 16, y0, W - 32, 28, 16, { col: '#ffe84f', ausr: 'center', kontur: P.kontur });
+      } else {
+        var boxW = Math.min(W - 40, 240), mess = textInBox(c, h.text, 0, 0, boxW - 16, 60, 9, { ausr: 'center', mess: true });
+        var bw2 = Math.min(W - 40, Math.round(mess.w) + 20), hh2 = Math.round(mess.h) + 8;
+        var wy = H - 30 - hh2 - (S.ort === 'disko' ? 20 : 0), mx = Math.round(W / 2);
         panel(c, mx - Math.round(bw2 / 2), wy, bw2, hh2, h.art === 'schlecht' ? '#ffd1da' : (h.art === 'gut' ? '#d8f5dc' : P.uiFlaeche), 7);
-        zl.forEach(function (z, k) { text(c, z, mx, wy + 8 + k * 11.4, P.uiTinte, 9, 'center'); });
+        textInBox(c, h.text, mx - Math.round(bw2 / 2) + 6, wy + 2, bw2 - 12, hh2 - 4, 9, { col: P.uiTinte, ausr: 'center' });
       }
       c.globalAlpha = 1;
     }
     // Hilfe unten
     if (S.hilfe) {
-      var hw = breite(c, S.hilfe, 9) + 20;
-      panel(c, Math.round(W / 2 - hw / 2), H - 22, hw, 17, 'rgba(255,248,238,0.96)', 7); text(c, S.hilfe, Math.round(W / 2), H - 13.4, P.uiTinte, 9, 'center');
+      var hm = textInBox(c, S.hilfe, 0, 0, W - 40, 14, 9, { ausr: 'center', mess: true });
+      var hw = Math.min(W - 20, Math.round(hm.w) + 18);
+      panel(c, Math.round(W / 2 - hw / 2), H - 22, hw, 17, 'rgba(255,248,238,0.96)', 7);
+      textInBox(c, S.hilfe, Math.round(W / 2 - hw / 2) + 4, H - 21, hw - 8, 15, 9, { col: P.uiTinte, ausr: 'center' });
     }
   }
-  function pfeil(R, wx, wy) {
-    var c = R.ctx, cx = W / 2, cy = H / 2, dx = wx - cx, dy = wy - cy;
-    var inside = wx > 10 && wx < W - 10 && wy > 50 && wy < H - 24;
-    if (inside) { var bob = Math.sin(Date.now() / 160) * 2; poly(c, [[wx - 6, wy - 22 + bob], [wx + 6, wy - 22 + bob], [wx, wy - 11 + bob]], '#ffd75e', P.kontur, 1); return; }
+  function pfeil(R, sx, sy) {
+    var c = R.ctx, cx = W / 2, cy = H / 2, dx = sx - cx, dy = sy - cy;
+    var inside = sx > 10 && sx < W - 10 && sy > 50 && sy < H - 24;
+    if (inside) { var bob = Math.sin(Date.now() / 160) * 2; poly(c, [[sx - 6, sy - 22 + bob], [sx + 6, sy - 22 + bob], [sx, sy - 11 + bob]], '#ffd75e', P.kontur, 1); return; }
     var ang = Math.atan2(dy, dx), rad = Math.min(cx - 14, (cy - 28) / Math.max(0.2, Math.abs(Math.sin(ang))), (cx - 14) / Math.max(0.2, Math.abs(Math.cos(ang))));
     var px = cx + Math.cos(ang) * rad, py = cy + Math.sin(ang) * rad;
     py = Math.max(56, Math.min(H - 26, py)); px = Math.max(12, Math.min(W - 12, px));
     c.save(); c.translate(px, py); c.rotate(ang);
     poly(c, [[9, 0], [-5, -7], [-3, 0], [-5, 7]], '#ffd75e', P.kontur, 1); c.restore();
-    text(c, 'HIER SOLLST DU HIN', Math.round(W / 2), 80, P.uiTinte, 8, 'center', 'rgba(255,248,238,0.9)');
+    textInBox(c, 'HIER SOLLST DU HIN', W / 2 - 70, 72, 140, 14, 8, { col: P.uiTinte, ausr: 'center', kontur: 'rgba(255,248,238,0.9)' });
   }
 
   // ---------- Menues und Bildschirme ----------
   function abdunkeln(c, a) { c.fillStyle = 'rgba(42,34,54,' + a + ')'; c.fillRect(0, 0, W, H); }
   function knopfZeile(c, x, y, w, h, sel, label, aktiv, rechts, blink) {
     rr(c, x, y, w, h, sel ? (blink ? '#fff3b0' : '#ffe9a8') : P.uiFlaeche2, Math.min(6, h / 2.4), sel ? P.kontur : 'rgba(74,53,96,0.25)', sel ? 0.9 : 0.6);
-    text(c, label, x + 7, y + h / 2 + 0.3, aktiv === false ? '#b3a5c2' : P.uiTinte, 11);
-    if (rechts) text(c, rechts, x + w - 7, y + h / 2 + 0.3, P.uiTinteWeich, 11, 'right');
+    var padR = rechts ? Math.min(72, w * 0.38) : 0;
+    textInBox(c, label, x + 5, y + 1, w - 10 - padR, h - 2, Math.min(11, h - 4), { col: aktiv === false ? '#b3a5c2' : P.uiTinte, ausr: 'left' });
+    if (rechts) textInBox(c, rechts, x + w - padR - 2, y + 1, padR - 2, h - 2, Math.min(11, h - 4), { col: P.uiTinteWeich, ausr: 'right' });
   }
   function schliessX(R, bx, by, bw) {
     var c = R.ctx, hit = R.touch ? 22 : 12, x = bx + bw - hit - 4, y = by + 4;
     rr(c, x, y, hit, hit, '#ffd1da', 3, P.kontur, 0.7);
-    text(c, '×', x + hit / 2, y + hit / 2 + 0.2, P.bierRot, R.touch ? 14 : 12, 'center');
+    textInBox(c, '×', x, y, hit, hit, R.touch ? 14 : 12, { col: P.bierRot, ausr: 'center' });
     R.treffer.push({ x: x, y: y, w: hit, h: hit, i: 'x' });
   }
   // Panel immer in W×H halten (kuerzen statt abschneiden)
@@ -479,21 +501,21 @@
     return { by: by, bh: bh };
   }
   function zeichneListe(R, titel, kopf, eintraege, index, o) {
-    var c = R.ctx, bw = o && o.breite || Math.min(260, W - 20), kopfH = kopf.length * 12;
+    var c = R.ctx, bw = o && o.breite || Math.min(260, W - 20), kopfH = kopf.length * 11;
     // Touch: hoehere Zeilen (≥ lesbare Treffer); Platz begrenzt Zeilenhoehe
     var rowH = o && o.zeile || (R.touch ? (R.hochkant ? 32 : 22) : (R.hochkant ? 26 : 18));
-    var frei = H - 12 - 32 - kopfH;
+    var frei = H - 12 - 28 - kopfH;
     rowH = Math.max(R.touch ? 18 : 14, Math.min(rowH, Math.floor(frei / Math.max(1, eintraege.length))));
-    var roh = 32 + kopfH + eintraege.length * rowH + 6, pl = panelPlatz(roh), bx = Math.round((W - bw) / 2), by = pl.by, bh = pl.bh;
+    var roh = 28 + kopfH + eintraege.length * rowH + 6, pl = panelPlatz(roh), bx = Math.round((W - bw) / 2), by = pl.by, bh = pl.bh;
     abdunkeln(c, 0.55);
     panel(c, bx, by, bw, bh, P.uiFlaeche, 8);
     R.panel = { x: bx, y: by, w: bw, h: bh };
     R.treffer = [];
-    text(c, titel, bx + bw / 2, by + 13, P.uiTinte, 12, 'center');
+    textInBox(c, titel, bx + 18, by + 3, bw - 36, 16, 11, { col: P.uiTinte, ausr: 'center' });
     schliessX(R, bx, by, bw);
-    kopf.forEach(function (z, i) { text(c, z, bx + bw / 2, by + 27 + i * 12, P.uiTinteWeich, 11, 'center'); });
+    kopf.forEach(function (z, i) { textInBox(c, z, bx + 10, by + 20 + i * 11, bw - 20, 11, 9, { col: P.uiTinteWeich, ausr: 'center' }); });
     eintraege.forEach(function (e, i) {
-      var ey = by + 28 + kopfH + i * rowH;
+      var ey = by + 24 + kopfH + i * rowH;
       if (ey + rowH - 2 > by + bh - 2) return; // kein Abschneiden: ueberzaehlige Zeilen weglassen
       knopfZeile(c, bx + 9, ey, bw - 18, rowH - 2, i === index, e.label, e.aktiv, e.rechts);
       R.treffer.push({ x: bx + 9, y: ey, w: bw - 18, h: rowH - 2, i: i });
@@ -504,74 +526,74 @@
     var c = R.ctx, t = S.t;
     Sz.kesselSzene(c, W, H, 8 + (t * 0.35) % 20, t);                    // Tageslauf im Hintergrund
     var grd = c.createRadialGradient(W / 2, 28, 4, W / 2, 28, 130); grd.addColorStop(0, 'rgba(255,79,160,0.3)'); grd.addColorStop(1, 'rgba(255,79,160,0)'); c.fillStyle = grd; c.fillRect(0, 0, W, H);
-    var zeilen = Saufi.Hinweise.HINWEIS_START, lz = 10.6, bh = zeilen.length * lz + 10, gesamt = 46 + bh + 8 + 2 * 20 + 14;
+    var zeilen = Saufi.Hinweise.HINWEIS_START, lz = 10, bh = zeilen.length * lz + 10, gesamt = 46 + bh + 8 + 2 * 20 + 14;
     var y0 = Math.max(4, Math.round((H - gesamt) / 2));
-    text(c, 'Press11 - Saufi Saufi', W / 2, y0 + 10, '#fff8ee', 18, 'center', P.kontur);
-    text(c, 'Stuttgart, Samstag 08:00 bis Sonntag 04:00', W / 2, y0 + 27, '#fff3c8', 9, 'center', P.kontur);
-    var by = y0 + 38;
+    textInBox(c, 'Press11 - Saufi Saufi', 16, y0, W - 32, 18, 15, { col: '#fff8ee', ausr: 'center', kontur: P.kontur });
+    textInBox(c, 'Stuttgart, Samstag 08:00 bis Sonntag 04:00', 20, y0 + 18, W - 40, 14, 9, { col: '#fff3c8', ausr: 'center', kontur: P.kontur });
+    var by = y0 + 36;
     panel(c, 16, by, W - 32, bh, 'rgba(255,248,238,0.96)', 8);
-    zeilen.forEach(function (z, i) { text(c, z, W / 2, by + 9 + i * lz, i === 0 ? P.bierRot : P.uiTinte, 8, 'center'); });
+    zeilen.forEach(function (z, i) { textInBox(c, z, 24, by + 4 + i * lz, W - 48, lz, 8, { col: i === 0 ? P.bierRot : P.uiTinte, ausr: 'center' }); });
     var ey = by + bh + 8;
     R.treffer = [];
     var eintraege = [{ label: 'Ich bin 18+. Los geht\'s! (E / Tippen)' }, { label: 'Scooter-Playlist (P)' }];
     eintraege.forEach(function (e, i) {
       var sel = i === S.startIndex, ry = ey + i * 20, blink = sel && Math.floor(t * 2) % 2 === 0;
       rr(c, 40, ry, W - 80, 17, sel ? (blink ? '#fff3b0' : '#ffe9a8') : P.uiFlaeche2, 7, sel ? P.kontur : 'rgba(74,53,96,0.3)', 0.9);
-      text(c, e.label, W / 2, ry + 8.8, P.uiTinte, 9, 'center');
+      textInBox(c, e.label, 48, ry + 1, W - 96, 15, 9, { col: P.uiTinte, ausr: 'center' });
       R.treffer.push({ x: 40, y: ry, w: W - 80, h: 17, i: i });
     });
-    text(c, S.best ? 'Bestwert: ' + S.best + ' Punkte' : 'Ab 18 · Fiktives Spaß-Spiel', W / 2, ey + 2 * 20 + 6, '#fff3c8', 8, 'center', P.kontur);
+    textInBox(c, S.best ? 'Bestwert: ' + S.best + ' Punkte' : 'Ab 18 · Fiktives Spaß-Spiel', 20, ey + 2 * 20, W - 40, 12, 8, { col: '#fff3c8', ausr: 'center', kontur: P.kontur });
   }
 
   function endeBild(R, S) {
     var c = R.ctx, e = S.ende, sieg = e.sieg, t = S.t;
     Sz.kesselSzene(c, W, H, sieg ? 28 : 26, t);
     if (sieg) { var sy = Math.round(H * 0.5) - Math.min(1, e.t / 6) * 8; G.glanz(c, W / 2, sy, 40, 'rgba(255,230,160,0.7)', 'rgba(255,230,160,0)'); kreis(c, W / 2, sy, 11, '#ffe58a'); kreis(c, W / 2, sy, 7.4, '#fff6c8'); }
-    var w = e.wertung, ph = H - 16;
-    panel(c, 20, 8, W - 40, ph, 'rgba(255,248,238,0.95)', 10);
+    var w = e.wertung, ph = H - 16, bx = 20, bw = W - 40;
+    panel(c, bx, 8, bw, ph, 'rgba(255,248,238,0.95)', 10);
     var kopf = w.kopf || (sieg ? 'Du stehst noch, Saufi.' : 'Press F to pay respects.');
-    text(c, kopf, W / 2, 26, sieg ? '#2f8a4a' : P.bierRot, kopf.length > 28 ? 12 : 14, 'center');
-    umbruch(c, sieg ? 'Sonntag, 04:00. Sonnenaufgang überm Kessel. MS-Marathon geschafft.' : e.grund, W - 70, 11).slice(0, 3).forEach(function (z, i) { text(c, z, W / 2, 42 + i * 12, P.uiTinteWeich, 11, 'center'); });
-    var y = 66;
-    text(c, (w.medaille ? w.medaille + ': ' : '') + w.titel, W / 2, y, P.uiTinte, 12, 'center');
-    text(c, 'Punkte: ' + S.punkte.punkte + (e.neuerBestwert ? '  (neuer Bestwert!)' : (S.best ? '  (Bestwert ' + S.best + ')' : '')), W / 2, y + 16, P.uiTinte, 9, 'center');
-    text(c, 'Runden mitgetrunken: ' + S.runden.geschafft + ' von ' + S.runden.runden.length + ' · Team ' + S.runden.team + '/5', W / 2, y + 28, P.uiTinteWeich, 8, 'center');
-    text(c, Saufi.Hinweise.DANKE, W / 2, y + 42, P.uiTinte, 9, 'center');
+    textInBox(c, kopf, bx + 10, 12, bw - 20, 18, kopf.length > 28 ? 11 : 13, { col: sieg ? '#2f8a4a' : P.bierRot, ausr: 'center' });
+    textInBox(c, sieg ? 'Sonntag, 04:00. Sonnenaufgang überm Kessel. MS-Marathon geschafft.' : e.grund, bx + 12, 32, bw - 24, 28, 10, { col: P.uiTinteWeich, ausr: 'center', maxZeilen: 3 });
+    var y = 64;
+    textInBox(c, (w.medaille ? w.medaille + ': ' : '') + w.titel, bx + 10, y, bw - 20, 14, 11, { col: P.uiTinte, ausr: 'center' });
+    textInBox(c, 'Punkte: ' + S.punkte.punkte + (e.neuerBestwert ? '  (neuer Bestwert!)' : (S.best ? '  (Bestwert ' + S.best + ')' : '')), bx + 10, y + 14, bw - 20, 12, 9, { col: P.uiTinte, ausr: 'center' });
+    textInBox(c, 'Runden mitgetrunken: ' + S.runden.geschafft + ' von ' + S.runden.runden.length + ' · Team ' + S.runden.team + '/5', bx + 10, y + 26, bw - 20, 12, 8, { col: P.uiTinteWeich, ausr: 'center' });
+    textInBox(c, Saufi.Hinweise.DANKE, bx + 10, y + 38, bw - 20, 14, 9, { col: P.uiTinte, ausr: 'center' });
     R.treffer = [];
     var blink = Math.floor(t * 2) % 2 === 0, by = Math.min(H - 42, y + 54);
-    rr(c, 56, by, W - 112, 18, blink ? '#fff3b0' : '#ffe9a8', 7, P.kontur, 0.9); text(c, 'E / Tippen: Neustart', W / 2, by + 9.2, P.uiTinte, 9, 'center');
+    rr(c, 56, by, W - 112, 18, blink ? '#fff3b0' : '#ffe9a8', 7, P.kontur, 0.9);
+    textInBox(c, 'E / Tippen: Neustart', 60, by + 1, W - 120, 16, 9, { col: P.uiTinte, ausr: 'center' });
     R.treffer.push({ x: 56, y: by, w: W - 112, h: 18, i: 0 });
   }
 
   function pressFBild(R, S) {
     var c = R.ctx, p = S.pressF, hat = p.zweitesLeben;
     c.fillStyle = 'rgba(10,6,20,0.72)'; c.fillRect(0, 0, W, H);
-    text(c, 'F', W / 2, H * 0.30, '#ffffff', 50 + Math.sin(S.t * 14) * 2, 'center', P.kontur);
-    text(c, hat ? 'Press F! Steh wieder auf!' : 'Press F to pay respects', W / 2, H * 0.54, '#ffe84f', 13, 'center', P.kontur);
+    textInBox(c, 'F', W / 2 - 40, H * 0.18, 80, 48, 42 + Math.sin(S.t * 14) * 2, { col: '#ffffff', ausr: 'center', kontur: P.kontur, min: 24 });
+    textInBox(c, hat ? 'Press F! Steh wieder auf!' : 'Press F to pay respects', 20, H * 0.48, W - 40, 20, 12, { col: '#ffe84f', ausr: 'center', kontur: P.kontur });
     if (hat) {
-      text(c, 'Drück F (oder tipp) ' + p.noetig + ' Mal in 3 Sekunden: ' + p.n + '/' + p.noetig, W / 2, H * 0.65, '#ffffff', 8.5, 'center', P.kontur);
+      textInBox(c, 'Drück F (oder tipp) ' + p.noetig + ' Mal in 3 Sekunden: ' + p.n + '/' + p.noetig, 16, H * 0.60, W - 32, 18, 8, { col: '#ffffff', ausr: 'center', kontur: P.kontur });
       rr(c, W / 2 - 60, H * 0.73, 120, 8, 'rgba(255,255,255,0.18)', 4, '#ffffff', 0.7); if (p.rest > 0) rr(c, W / 2 - 59, H * 0.73 + 1, 118 * Math.max(0.02, Math.min(1, p.rest / 3)), 6, '#ff5f8a', 3);
     } else {
-      text(c, 'Kein zweites Leben mehr. Drück F.', W / 2, H * 0.65, '#ffffff', 9, 'center', P.kontur);
+      textInBox(c, 'Kein zweites Leben mehr. Drück F.', 20, H * 0.60, W - 40, 16, 9, { col: '#ffffff', ausr: 'center', kontur: P.kontur });
     }
   }
 
   function textFeld(R, titel, absaetze, fussEintraege, index) {
-    var c = R.ctx, bw = W - 28, zl = [], lz = 12, fussH = R.touch ? 28 : 20;
-    absaetze.forEach(function (a) { umbruch(c, a, bw - 26, 11).forEach(function (z) { zl.push(z); }); zl.push(''); });
-    var fh = fussEintraege.length * fussH, bh = 34 + zl.length * lz + fh + 4, bx = 14;
-    if (bh > H - 6) { lz = Math.max(9, (H - 6 - 36 - fh) / Math.max(1, zl.length)); bh = H - 6; }
+    var c = R.ctx, bw = W - 28, textH = Math.max(40, H - 6 - 36 - fussEintraege.length * (R.touch ? 28 : 20)), fussH = R.touch ? 28 : 20;
+    var fh = fussEintraege.length * fussH, bh = Math.min(H - 6, 34 + textH + fh + 4), bx = 14;
     var pl = panelPlatz(bh); bh = pl.bh;
     var by = pl.by;
     abdunkeln(c, 0.6); panel(c, bx, by, bw, bh, P.uiFlaeche, 8);
     R.panel = { x: bx, y: by, w: bw, h: bh };
     R.treffer = [];
-    text(c, titel, W / 2, by + 13, P.uiTinte, 12, 'center');
+    textInBox(c, titel, bx + 18, by + 3, bw - 36, 16, 11, { col: P.uiTinte, ausr: 'center' });
     schliessX(R, bx, by, bw);
-    var maxZl = Math.max(0, Math.floor((bh - 34 - fh) / Math.max(9, lz)));
-    zl.slice(0, maxZl).forEach(function (z, i) { text(c, z, bx + 13, by + 28 + i * lz, P.uiTinte, 11); });
+    var bodyH = bh - 34 - fh, bodyY = by + 22;
+    var joined = absaetze.join('\n\n');
+    textInBox(c, joined, bx + 10, bodyY, bw - 20, bodyH, 10, { col: P.uiTinte, ausr: 'left', v: 'top' });
     fussEintraege.forEach(function (e, i) {
-      var ey = by + 28 + Math.min(zl.length, maxZl) * lz + i * fussH, sel = i === index, rh = fussH - 3;
+      var ey = by + bh - fh + i * fussH - 2, sel = i === index, rh = fussH - 3;
       if (ey + rh > by + bh - 2) return;
       knopfZeile(c, bx + 50, ey, bw - 100, rh, sel, e.label, true); R.treffer.push({ x: bx + 50, y: ey, w: bw - 100, h: rh, i: i });
     });
@@ -607,16 +629,16 @@
     abdunkeln(c, 0.6); panel(c, bx, by, bw, bh, P.uiFlaeche, 8);
     R.panel = { x: bx, y: by, w: bw, h: bh };
     R.treffer = [];
-    text(c, 'Scooter-Playlist', W / 2, by + kopfH * 0.55, P.uiTinte, hoch ? 12 : 11, 'center');
+    textInBox(c, 'Scooter-Playlist', bx + 18, by + 2, bw - 36, kopfH - 2, hoch ? 11 : 10, { col: P.uiTinte, ausr: 'center' });
     schliessX(R, bx, by, bw);
     var colW = (bw - 20) / 2;
     tl.forEach(function (t2, i) {
-      var label = kuerze(c, (i + 1) + '. ' + t2, colW - 4, songSz);
-      text(c, label, bx + 10 + (i >= zeilen ? colW : 0), by + kopfH + (i % zeilen) * lz + lz * 0.35, P.uiTinte, songSz);
+      var cx2 = bx + 10 + (i >= zeilen ? colW : 0), cy2 = by + kopfH + (i % zeilen) * lz;
+      textInBox(c, (i + 1) + '. ' + t2, cx2, cy2, colW - 4, lz, songSz, { col: P.uiTinte, ausr: 'left' });
     });
     var sy = by + kopfH + zeilen * lz + 2;
-    text(c, kuerze(c, quelleText, bw - 16, metaSz), W / 2, sy + metaLz * 0.45, P.uiTinteWeich, metaSz, 'center');
-    text(c, kuerze(c, hint, bw - 16, metaSz), W / 2, sy + metaLz + metaLz * 0.45, P.uiTinteWeich, metaSz, 'center');
+    textInBox(c, quelleText, bx + 8, sy, bw - 16, metaLz, metaSz, { col: P.uiTinteWeich, ausr: 'center' });
+    textInBox(c, hint, bx + 8, sy + metaLz, bw - 16, metaLz, metaSz, { col: P.uiTinteWeich, ausr: 'center' });
     var ey0 = sy + 2 * metaLz + 2;
     o.eintraege.forEach(function (e, i) {
       var ey = ey0 + i * rowH;
@@ -642,7 +664,11 @@
     S.doppelt = wackel;
     c.save();
     if (wackel) c.translate(Math.sin(S.t * 2.1) * amp, Math.cos(S.t * 1.7) * amp);
+    // Welt in Kamerakoordinaten, dann auf Bildschirm zoomen (HUD unskaliert)
+    c.save();
+    c.scale(WELT_ZOOM, WELT_ZOOM);
     zeichneWelt(R, S);
+    c.restore();
     if (wackel) {                                   // doppeltes Neon-Glimmern
       c.globalAlpha = 0.25 + Math.min(0.2, (S.fig.pegel - 1.5) * 0.1); c.globalCompositeOperation = 'lighter';
       c.drawImage(R.canvas, 0, 0, R.canvas.width, R.canvas.height, 3, 0, W, H); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
@@ -665,6 +691,8 @@
 
   Saufi.Render = {
     P: P, K: K, erstelle: erstelle, setzeBildschirm: setzeBildschirm, setzeAufloesung: setzeAufloesung, begrenzDpr: begrenzDpr, zeichne: zeichne, bauplan: bauplan, figur: figur,
-    W: BASE_W, H: BASE_H, BASE_W: BASE_W, BASE_H: BASE_H, PORT_H: PORT_H, MAX_BREITE: MAX_BREITE, MAX_BG_SKALA: MAX_BG_SKALA, MAX_DPR: MAX_DPR
+    kameraView: kameraView, weltView: weltView,
+    W: BASE_W, H: BASE_H, BASE_W: BASE_W, BASE_H: BASE_H, PORT_H: PORT_H, MAX_BREITE: MAX_BREITE, MAX_BG_SKALA: MAX_BG_SKALA, MAX_DPR: MAX_DPR,
+    WELT_FLAECHE: WELT_FLAECHE, WELT_ZOOM: WELT_ZOOM
   };
 })(globalThis);

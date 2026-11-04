@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var G = Saufi.Gfx, P = G.P, hash = G.hash, r = G.r, rr = G.rr, box = G.box, kreis = G.kreis, ellipse = G.ellipse, poly = G.poly, linie = G.linie, vlauf = G.vlauf, text = G.text;
+  var G = Saufi.Gfx, P = G.P, hash = G.hash, r = G.r, rr = G.rr, box = G.box, kreis = G.kreis, ellipse = G.ellipse, poly = G.poly, linie = G.linie, vlauf = G.vlauf, text = G.text, textInBox = G.textInBox;
   var K = 16;
 
   function klemme(v) { return Math.max(0, Math.min(1, v)); }
@@ -323,16 +323,23 @@
   }
   function schild(c, cx, y, w, h, hinten, vorn, s, size) {
     rr(c, cx - w / 2, y, w, h, hinten, 2.5, 'rgba(30,20,40,0.7)', 0.7);
-    text(c, s, cx, y + h / 2 + 0.2, vorn, size || 6.2, 'center');
+    // Weicher Innenschatten am Schildrand
+    c.globalAlpha = 0.18; rr(c, cx - w / 2 + 0.6, y + 0.5, w - 1.2, 1.4, '#ffffff', 1.2); c.globalAlpha = 1;
+    textInBox(c, s, cx - w / 2 + 2, y + 1, w - 4, h - 2, size || 9, { col: vorn, ausr: 'center', min: 6 });
   }
   function schildGeb(c, cx, y, w, h, hinten, vorn, s, size, rand) { rr(c, cx - w / 2 - 1, y - 1, w + 2, h + 2, rand, 3); schild(c, cx, y, w, h, hinten, vorn, s, size); }
 
   function hotelFassade(c, p) {
     var x0 = p.x0, y0 = p.y0, w = p.w, h = p.h, i;
-    vlauf(c, x0, y0 + 14, w, h - 14, '#fff6e6', '#f0dcc0');
-    r(c, x0, y0 + 14, 3, h - 14, 'rgba(180,150,120,0.35)'); r(c, x0 + w - 3, y0 + 14, 3, h - 14, 'rgba(180,150,120,0.35)');
+    vlauf(c, x0, y0 + 14, w, h - 14, '#fff8ea', '#ebd2b4');
+    // Weiche Seitenverschattung
+    var sg = c.createLinearGradient(x0, 0, x0 + 10, 0); sg.addColorStop(0, 'rgba(120,90,70,0.22)'); sg.addColorStop(1, 'rgba(120,90,70,0)');
+    c.fillStyle = sg; c.fillRect(x0, y0 + 14, 10, h - 14);
+    var sg2 = c.createLinearGradient(x0 + w, 0, x0 + w - 10, 0); sg2.addColorStop(0, 'rgba(120,90,70,0.18)'); sg2.addColorStop(1, 'rgba(120,90,70,0)');
+    c.fillStyle = sg2; c.fillRect(x0 + w - 10, y0 + 14, 10, h - 14);
     r(c, x0, y0 + 43, w, 2, '#e5cfaa'); r(c, x0, y0 + 43, w, 0.6, 'rgba(255,255,255,0.7)');          // Gesims
-    // Dach (Walmdach) mit Gauben
+    // Dach (Walmdach) mit Gauben + weicher Dachschatten
+    c.globalAlpha = 0.2; ellipse(c, x0 + w / 2, y0 + 18, w * 0.48, 3.2, 'rgba(60,40,80,0.5)'); c.globalAlpha = 1;
     poly(c, [[x0 - 5, y0 + 17], [x0 + 10, y0 - 9], [x0 + w - 10, y0 - 9], [x0 + w + 5, y0 + 17]], P.dach, P.konturDach, 0.9);
     dachziegel(c, x0 - 1, y0 - 8, w + 2, 22, P.dach, P.dach2, false);
     poly(c, [[x0 - 5, y0 + 17], [x0 + w + 5, y0 + 17], [x0 + w + 5, y0 + 15], [x0 - 5, y0 + 15]], P.dach2);
@@ -350,12 +357,15 @@
     rr(c, d.x - 8, d.y - 10, d.w + 16, 7, '#2e3f7a', 2, 'rgba(20,20,60,0.8)', 0.7);
     for (i = 0; i < 6; i++) r(c, d.x - 8 + i * 4.0 + 1, d.y - 10, 2, 7, 'rgba(255,255,255,0.18)');
     for (i = 0; i < 9; i++) kreis(c, d.x - 6 + i * 3.5, d.y - 3, 1.6, '#2e3f7a');
-    schildGeb(c, x0 + w / 2, y0 + 14, 92, 14, '#2e3f7a', '#ffe9a8', 'HOTEL KESSELBLICK', 11, '#d9b86a');
+    schildGeb(c, x0 + w / 2, y0 + 14, Math.min(w - 8, 112), 14, '#2e3f7a', '#ffe9a8', 'HOTEL KESSELBLICK', 11, '#d9b86a');
     schild(c, x0 + 22, y0 + 48, 36, 10, '#fff8ee', '#6a3f2a', 'Kehrwoche ok', 11);
   }
   function restaurantFassade(c, p) {
     var x0 = p.x0, y0 = p.y0, w = p.w, h = p.h, i;
-    vlauf(c, x0, y0 + 14, w, h - 14, '#f8e8c8', '#ead2a8');
+    vlauf(c, x0, y0 + 14, w, h - 14, '#faf0d4', '#e6cba4');
+    var sg = c.createLinearGradient(x0, 0, x0 + 8, 0); sg.addColorStop(0, 'rgba(100,70,40,0.18)'); sg.addColorStop(1, 'rgba(100,70,40,0)');
+    c.fillStyle = sg; c.fillRect(x0, y0 + 14, 8, h - 14);
+    c.globalAlpha = 0.18; ellipse(c, x0 + w / 2, y0 + 18, w * 0.46, 2.8, 'rgba(60,40,80,0.45)'); c.globalAlpha = 1;
     // Fachwerk
     var holz = '#7a4a34';
     for (i = 0; i < 4; i++) r(c, x0 + 3 + i * 34, y0 + 16, 3, h - 16, holz);
@@ -371,17 +381,19 @@
     r(c, x0 + w - 14, y0 + 33, 12, 1.4, '#3a2a30'); rr(c, x0 + w - 9, y0 + 34.5, 8, 6, '#ffd36e', 1.4, '#7a4a34', 0.6); kreis(c, x0 + w - 5, y0 + 37.5, 1.8, '#c8864a');
     var d = p.tuer;
     [d.x - 14, d.x + d.w + 3].forEach(function (bx, i2) { ellipse(c, bx + 5, d.y + 15, 6, 2, 'rgba(60,40,50,0.25)'); rr(c, bx, d.y + 5, 10, 10, '#b97a4a', 3, '#6a3f2a', 0.7); r(c, bx + 0.5, d.y + 8, 9, 0.8, '#6a3f2a'); r(c, bx + 0.5, d.y + 12, 9, 0.8, '#6a3f2a'); if (i2) kreis(c, bx + 5, d.y + 4.6, 3, '#6fae6a'); });
-    schildGeb(c, x0 + w / 2, y0 + 14, 96, 14, '#6a3f2a', '#ffe9a8', 'GASTHAUS MAULTÄSCHLE', 11, '#d9b86a');
+    schildGeb(c, x0 + w / 2, y0 + 14, Math.min(w - 8, 108), 14, '#6a3f2a', '#ffe9a8', 'GASTHAUS MAULTÄSCHLE', 11, '#d9b86a');
     schild(c, x0 + w - 28, y0 + 50, 40, 10, '#ffd36e', '#6a3f2a', 'Spätzle!', 11);
   }
   function kneipeFassade(c, p) {
     var x0 = p.x0, y0 = p.y0, w = p.w, h = p.h, i, j;
-    r(c, x0, y0 + 10, w, h - 10, '#c4694e');
+    vlauf(c, x0, y0 + 10, w, h - 10, '#d07858', '#b45a42');
     for (j = 0; j < 8; j++) {
-      r(c, x0, y0 + 12 + j * 6.5, w, 0.6, 'rgba(90,40,30,0.4)');
-      for (i = 0; i < w / 10; i++) r(c, x0 + (j % 2 ? 5 : 0) + i * 10, y0 + 12 + j * 6.5, 0.6, 6.5, 'rgba(90,40,30,0.3)');
+      r(c, x0, y0 + 12 + j * 6.5, w, 0.6, 'rgba(90,40,30,0.35)');
+      for (i = 0; i < w / 10; i++) r(c, x0 + (j % 2 ? 5 : 0) + i * 10, y0 + 12 + j * 6.5, 0.6, 6.5, 'rgba(90,40,30,0.28)');
     }
-    r(c, x0, y0 + 10, w, 2, 'rgba(255,255,255,0.15)');
+    r(c, x0, y0 + 10, w, 2, 'rgba(255,255,255,0.18)');
+    var sg = c.createLinearGradient(x0 + w, 0, x0 + w - 10, 0); sg.addColorStop(0, 'rgba(60,30,40,0.2)'); sg.addColorStop(1, 'rgba(60,30,40,0)');
+    c.fillStyle = sg; c.fillRect(x0 + w - 10, y0 + 10, 10, h - 10);
     rr(c, x0 - 3, y0 - 8, w + 6, 20, '#5c4a6e', 3, P.kontur, 0.9);       // Flachdach-Blende
     r(c, x0 - 3, y0 - 8, w + 6, 3, '#7a6690');
     for (i = 0; i < 6; i++) r(c, x0 + 6 + i * 18, y0 - 4, 10, 1, 'rgba(255,255,255,0.14)');
@@ -406,7 +418,7 @@
     kreis(c, sx - 2, sy - 1, 0.6, '#222'); kreis(c, sx + 2, sy - 1, 0.6, '#222'); kreis(c, sx, sy + 2.6, 0.9, '#222');
     // Kreidetafel
     rr(c, d.x + d.w + 4, d.y + 3, 9, 12, '#3a3a40', 1, '#8a5a3a', 0.9); linie(c, d.x + d.w + 6, d.y + 7, d.x + d.w + 11, d.y + 7, '#fff8ee', 0.5); linie(c, d.x + d.w + 6, d.y + 10, d.x + d.w + 10, d.y + 10, '#fff8ee', 0.5);
-    schildGeb(c, x0 + w / 2, y0 + 8, 96, 14, '#2f6a3f', '#ffe9a8', 'ZUM DURSTIGEN DACHS', 11, '#d9b86a');
+    schildGeb(c, x0 + w / 2, y0 + 8, Math.min(w - 8, 108), 14, '#2f6a3f', '#ffe9a8', 'ZUM DURSTIGEN DACHS', 11, '#d9b86a');
     schild(c, x0 + 18, y0 + 52, 44, 10, '#3a3a40', '#fff8ee', 'Feinstaub drin', 11);
   }
   function diskoFassade(c, p) {
@@ -424,7 +436,7 @@
     p.fenster.forEach(function (f) { fensterV(c, f, '#5a4a8a', null, false); });
     // Neon (dunkel, leuchtet in der Lichtstufe)
     p.neon.forEach(function (n) { c.globalAlpha = 0.45; rr(c, n.x, n.y, n.w, n.h, n.farbe, 1); c.globalAlpha = 1; });
-    text(c, 'UNTERGRUND 07', x0 + w / 2, y0 + 3, P.neonCyan, 11, 'center', 'rgba(20,10,50,0.85)');
+    textInBox(c, 'UNTERGRUND 07', x0 + 6, y0 - 1, w - 12, 12, 10, { col: P.neonCyan, ausr: 'center', kontur: 'rgba(20,10,50,0.85)', min: 7 });
     // Absperrung vor der Tuer
     var d = p.tuer;
     [d.x - 6, d.x + d.w + 6].forEach(function (px) { r(c, px - 0.6, d.y + 10, 1.2, 7, '#d8b050'); kreis(c, px, d.y + 9.6, 1.4, '#ffd75e'); });
