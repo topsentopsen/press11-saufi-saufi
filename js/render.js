@@ -6,7 +6,7 @@
   var Saufi = g.Saufi = g.Saufi || {};
   var G = Saufi.Gfx, Sz = Saufi.Szene, In = Saufi.Innen;
   var P = G.P, hash = G.hash, r = G.r, rr = G.rr, box = G.box, kreis = G.kreis, ellipse = G.ellipse, poly = G.poly, linie = G.linie, vlauf = G.vlauf, herz = G.herz;
-  var text = G.text, breite = G.breite, umbruch = G.umbruch, panel = G.panel, rgb = G.rgb, mix = G.mix;
+  var text = G.text, breite = G.breite, umbruch = G.umbruch, kuerze = G.kuerze, panel = G.panel, rgb = G.rgb, mix = G.mix;
   var BASE_W = 320, BASE_H = 176, PORT_H = 400, K = 16;
   var MAX_BREITE = 4096, MAX_BG_SKALA = 6;
   var W = BASE_W, H = BASE_H;
@@ -19,7 +19,7 @@
     var neueLeinwand = (doc && typeof doc.createElement === 'function') ? function (w, h) {
       try { var cv = doc.createElement('canvas'); if (!cv || !cv.getContext) return null; cv.width = w; cv.height = h; return cv; } catch (e) { return null; }
     } : null;
-    var R = { canvas: canvas, ctx: ctx, neueLeinwand: neueLeinwand, hg: {}, spr: {}, props: {}, treffer: [], W: W, H: H, hochkant: false, sk: 1, spSk: 1, cssW: 0, cssH: 0, dpr: 1 };
+    var R = { canvas: canvas, ctx: ctx, neueLeinwand: neueLeinwand, hg: {}, spr: {}, props: {}, treffer: [], panel: null, W: W, H: H, hochkant: false, sk: 1, spSk: 1, cssW: 0, cssH: 0, dpr: 1 };
     glaettung(R);
     return R;
   }
@@ -221,11 +221,11 @@
   }
 
   function blase(c, x, y, s) {
-    var w = breite(c, s, 8) + 10, bx = Math.round(x - w / 2), by = Math.round(y - 12);
+    var w = Math.min(W - 8, breite(c, s, 11) + 14), bx = Math.round(x - w / 2), by = Math.round(y - 18);
     if (bx < 2) bx = 2; if (bx + w > W - 2) bx = W - 2 - w;
-    panel(c, bx, by, w, 12, P.uiFlaeche, 5);
-    poly(c, [[x - 2, by + 11.4], [x + 2, by + 11.4], [x, by + 14.6]], P.uiFlaeche);
-    text(c, s, bx + w / 2, by + 6.2, P.uiTinte, 8, 'center');
+    panel(c, bx, by, w, 16, P.uiFlaeche, 5);
+    poly(c, [[x - 2, by + 15.2], [x + 2, by + 15.2], [x, by + 18.6]], P.uiFlaeche);
+    text(c, s, bx + w / 2, by + 8.2, P.uiTinte, 11, 'center');
   }
 
   function zeichneJoint(c, x, y, t) {
@@ -288,7 +288,7 @@
       else if (d.art === 'joint') zeichneJoint(c, d.x - cx + 8, d.ky - cy + 8, t);
       else if (d.art === 'tuersteher') figur(c, { shirt: '#14102a', hose: '#14102a', haar: '#14102a', extra: 'hut' }, d.x - cx, d.ky - cy, { dir: 'unten', t: t });
       else if (d.art === 'npc') {
-        var n = d.n; figur(c, n.char, n.x - cx, n.y - cy, { dir: n.dir, schritt: n.schritt, liegt: n.liegt, t: t, schwips: n.fig.pegel > 1.5, tanzt: S.tanzNpc && !n.liegt, glas: S.prost > 0 && !n.liegt });
+        var n = d.n; figur(c, n.char, n.x - cx, n.y - cy, { dir: n.dir, schritt: n.schritt, liegt: n.liegt, t: t, schwips: n.fig.pegel > 1.5, tanzt: S.tanzBeat && !n.liegt, glas: S.prost > 0 && !n.liegt });
         if (n.blase && !n.liegt) blase(c, n.x - cx, n.y - cy - 25, n.char.name + ': ' + n.blase.text);
         else if (n.liegt) text(c, 'Q = wecken', n.x - cx, n.y - cy - 16, '#ffffff', 8, 'center', P.kontur);
       }
@@ -460,22 +460,30 @@
   function abdunkeln(c, a) { c.fillStyle = 'rgba(42,34,54,' + a + ')'; c.fillRect(0, 0, W, H); }
   function knopfZeile(c, x, y, w, h, sel, label, aktiv, rechts, blink) {
     rr(c, x, y, w, h, sel ? (blink ? '#fff3b0' : '#ffe9a8') : P.uiFlaeche2, Math.min(6, h / 2.4), sel ? P.kontur : 'rgba(74,53,96,0.25)', sel ? 0.9 : 0.6);
-    text(c, label, x + 7, y + h / 2 + 0.3, aktiv === false ? '#b3a5c2' : P.uiTinte, 9);
-    if (rechts) text(c, rechts, x + w - 7, y + h / 2 + 0.3, P.uiTinteWeich, 8, 'right');
+    text(c, label, x + 7, y + h / 2 + 0.3, aktiv === false ? '#b3a5c2' : P.uiTinte, 11);
+    if (rechts) text(c, rechts, x + w - 7, y + h / 2 + 0.3, P.uiTinteWeich, 11, 'right');
+  }
+  function schliessX(R, bx, by, bw) {
+    var c = R.ctx, x = bx + bw - 16, y = by + 4;
+    rr(c, x, y, 12, 12, '#ffd1da', 3, P.kontur, 0.7);
+    text(c, '×', x + 6, y + 6.2, P.bierRot, 12, 'center');
+    R.treffer.push({ x: x, y: y, w: 12, h: 12, i: 'x' });
   }
   function zeichneListe(R, titel, kopf, eintraege, index, o) {
-    var c = R.ctx, bw = o && o.breite || 240, kopfH = kopf.length * 11;
-    var rowH = o && o.zeile || (R.hochkant ? 24 : 17);
-    var frei = H - 12 - 30 - kopfH;
-    rowH = Math.max(11, Math.min(rowH, Math.floor(frei / Math.max(1, eintraege.length))));
-    var bh = 30 + kopfH + eintraege.length * rowH + 6, bx = Math.round((W - bw) / 2), by = Math.round(Math.max(4, (H - bh) / 2));
+    var c = R.ctx, bw = o && o.breite || 240, kopfH = kopf.length * 12;
+    var rowH = o && o.zeile || (R.hochkant ? 26 : 18);
+    var frei = H - 12 - 32 - kopfH;
+    rowH = Math.max(14, Math.min(rowH, Math.floor(frei / Math.max(1, eintraege.length))));
+    var bh = 32 + kopfH + eintraege.length * rowH + 6, bx = Math.round((W - bw) / 2), by = Math.round(Math.max(4, (H - bh) / 2));
     abdunkeln(c, 0.55);
     panel(c, bx, by, bw, bh, P.uiFlaeche, 8);
-    text(c, titel, bx + bw / 2, by + 12, P.uiTinte, 12, 'center');
-    kopf.forEach(function (z, i) { text(c, z, bx + bw / 2, by + 25 + i * 11, P.uiTinteWeich, 8, 'center'); });
+    R.panel = { x: bx, y: by, w: bw, h: bh };
     R.treffer = [];
+    text(c, titel, bx + bw / 2, by + 13, P.uiTinte, 12, 'center');
+    schliessX(R, bx, by, bw);
+    kopf.forEach(function (z, i) { text(c, z, bx + bw / 2, by + 27 + i * 12, P.uiTinteWeich, 11, 'center'); });
     eintraege.forEach(function (e, i) {
-      var ey = by + 26 + kopfH + i * rowH;
+      var ey = by + 28 + kopfH + i * rowH;
       knopfZeile(c, bx + 9, ey, bw - 18, rowH - 2, i === index, e.label, e.aktiv, e.rechts);
       R.treffer.push({ x: bx + 9, y: ey, w: bw - 18, h: rowH - 2, i: i });
     });
@@ -511,8 +519,8 @@
     var w = e.wertung, ph = H - 16;
     panel(c, 20, 8, W - 40, ph, 'rgba(255,248,238,0.95)', 10);
     var kopf = w.kopf || (sieg ? 'Du stehst noch, Saufi.' : 'Press F to pay respects.');
-    text(c, kopf, W / 2, 26, sieg ? '#2f8a4a' : P.bierRot, kopf.length > 26 ? 13 : 15, 'center');
-    umbruch(c, sieg ? 'Sonntag, 04:00. Sonnenaufgang überm Kessel.' : e.grund, W - 80, 8.5).slice(0, 2).forEach(function (z, i) { text(c, z, W / 2, 42 + i * 10.4, P.uiTinteWeich, 8.5, 'center'); });
+    text(c, kopf, W / 2, 26, sieg ? '#2f8a4a' : P.bierRot, kopf.length > 28 ? 12 : 14, 'center');
+    umbruch(c, sieg ? 'Sonntag, 04:00. Sonnenaufgang überm Kessel. MS-Marathon geschafft.' : e.grund, W - 70, 11).slice(0, 3).forEach(function (z, i) { text(c, z, W / 2, 42 + i * 12, P.uiTinteWeich, 11, 'center'); });
     var y = 66;
     text(c, (w.medaille ? w.medaille + ': ' : '') + w.titel, W / 2, y, P.uiTinte, 12, 'center');
     text(c, 'Punkte: ' + S.punkte.punkte + (e.neuerBestwert ? '  (neuer Bestwert!)' : (S.best ? '  (Bestwert ' + S.best + ')' : '')), W / 2, y + 16, P.uiTinte, 9, 'center');
@@ -538,39 +546,63 @@
   }
 
   function textFeld(R, titel, absaetze, fussEintraege, index) {
-    var c = R.ctx, bw = W - 28, zl = [], lz = 10.2;
-    absaetze.forEach(function (a) { umbruch(c, a, bw - 26, 8).forEach(function (z) { zl.push(z); }); zl.push(''); });
-    var fh = fussEintraege.length * 20, bh = 32 + zl.length * lz + fh + 4, bx = 14;
+    var c = R.ctx, bw = W - 28, zl = [], lz = 12;
+    absaetze.forEach(function (a) { umbruch(c, a, bw - 26, 11).forEach(function (z) { zl.push(z); }); zl.push(''); });
+    var fh = fussEintraege.length * 20, bh = 34 + zl.length * lz + fh + 4, bx = 14;
     if (bh > H - 6) { lz = (H - 6 - 36 - fh) / Math.max(1, zl.length); bh = H - 6; }
     var by = Math.round(Math.max(3, (H - bh) / 2));
     abdunkeln(c, 0.6); panel(c, bx, by, bw, bh, P.uiFlaeche, 8);
-    text(c, titel, W / 2, by + 12, P.uiTinte, 12, 'center');
-    zl.forEach(function (z, i) { text(c, z, bx + 13, by + 27 + i * lz, P.uiTinte, 8); });
+    R.panel = { x: bx, y: by, w: bw, h: bh };
     R.treffer = [];
+    text(c, titel, W / 2, by + 13, P.uiTinte, 12, 'center');
+    schliessX(R, bx, by, bw);
+    zl.forEach(function (z, i) { text(c, z, bx + 13, by + 28 + i * lz, P.uiTinte, 11); });
     fussEintraege.forEach(function (e, i) {
       var ey = by + 28 + zl.length * lz + i * 20, sel = i === index;
       knopfZeile(c, bx + 50, ey, bw - 100, 17, sel, e.label, true); R.treffer.push({ x: bx + 50, y: ey, w: bw - 100, h: 17, i: i });
     });
   }
 
-  // Playlist-Bild: Titelliste in zwei Spalten, Status, Knoepfe
+  // Playlist-Bild: Titelliste in zwei Spalten, Status, Knoepfe, X zum Schliessen.
+  // Panel muss immer in W×H passen (by >= 2, by + bh <= H - 2); Querformat kompakt (Schrift 9–10, Titel kürzen).
   function playlistBild(R, S) {
-    var c = R.ctx, o = S.overlay, Mu = Saufi.Musik, z = S.musikInfo, rowH = R.hochkant ? 24 : 15;
-    var bw = W - 20, bx = 10, tl = Mu.TITEL, zeilen = Math.ceil(tl.length / 2), lz = 10;
+    var c = R.ctx, o = S.overlay, Mu = Saufi.Musik, z = S.musikInfo || {};
+    var bw = W - 20, bx = 10, tl = Mu.TITEL, zeilen = Math.ceil(tl.length / 2), nBtn = o.eintraege.length;
+    var maxBh = H - 4, hoch = R.hochkant;
+    var kopfH = hoch ? 26 : 20, songSz = hoch ? 11 : 9, lz = hoch ? 12 : 10;
+    var metaSz = hoch ? 11 : 9, metaLz = hoch ? 12 : 10, rowH = hoch ? 24 : 14;
     var qn = { mp3: 'Eigene MP3 (music/)', youtube: 'YouTube-Einbettung', webaudio: 'Eigener Spiel-Beat' }[z.quelle] || z.quelle;
-    var hint = z.hinweis || (z.youtubeVerfuegbar ? 'YouTube: ' + Mu.VIDEOS.length + ' Videos (' + Mu.VIDEOS.map(function (v) { return v.titel.replace(/^Scooter - /, '').replace(/ \(Official Video( HQ)?\)/, ''); }).join(', ') + ')' : 'YouTube nur über http://localhost, nicht file://');
-    var hz = umbruch(c, hint, bw - 20, 7.5).slice(0, 2);
-    var bh = 24 + zeilen * lz + 6 + 11 + hz.length * 9.4 + 4 + o.eintraege.length * rowH + 6;
-    if (bh > H - 4) { rowH = Math.max(11, rowH - Math.ceil((bh - (H - 4)) / o.eintraege.length)); bh = 24 + zeilen * lz + 6 + 11 + hz.length * 9.4 + 4 + o.eintraege.length * rowH + 6; }
+    var quelleText = 'Quelle: ' + qn + (z.spielt ? ' (läuft: ' + ({ mp3: 'MP3', youtube: 'YouTube', webaudio: 'Beat' }[z.aktiv]) + ')' : '');
+    var hint = z.hinweis || (z.youtubeVerfuegbar
+      ? 'YouTube: ' + Mu.VIDEOS.length + ' Videos (' + Mu.VIDEOS.map(function (v) { return v.titel.replace(/^Scooter - /, '').replace(/ \(Official Video( HQ)?\)/, ''); }).join(', ') + ')'
+      : 'YouTube nur über http://localhost, nicht file://');
+    function bhVon(kH, lz2, mLz, rH) { return kH + zeilen * lz2 + 4 + 2 * mLz + 4 + nBtn * rH + 4; }
+    var bh = bhVon(kopfH, lz, metaLz, rowH);
+    while (bh > maxBh && rowH > 12) { rowH--; bh = bhVon(kopfH, lz, metaLz, rowH); }
+    while (bh > maxBh && lz > 9) { lz--; bh = bhVon(kopfH, lz, metaLz, rowH); }
+    while (bh > maxBh && metaLz > 9) { metaLz--; bh = bhVon(kopfH, lz, metaLz, rowH); }
+    while (bh > maxBh && kopfH > 18) { kopfH--; bh = bhVon(kopfH, lz, metaLz, rowH); }
+    if (bh > maxBh) {
+      var rest = maxBh - (kopfH + zeilen * lz + 4 + 2 * metaLz + 4 + 4);
+      rowH = Math.max(12, Math.floor(rest / Math.max(1, nBtn)));
+      bh = Math.min(maxBh, bhVon(kopfH, lz, metaLz, rowH));
+    }
     var by = Math.round(Math.max(2, (H - bh) / 2));
+    if (by + bh > H - 2) by = Math.max(2, H - 2 - bh);
     abdunkeln(c, 0.6); panel(c, bx, by, bw, bh, P.uiFlaeche, 8);
-    text(c, 'Scooter-Playlist', W / 2, by + 11, P.uiTinte, 12, 'center');
-    tl.forEach(function (t2, i) { text(c, (i + 1) + '. ' + t2, bx + 10 + (i >= zeilen ? (bw - 20) / 2 : 0), by + 25 + (i % zeilen) * lz, P.uiTinte, 8); });
-    var sy = by + 24 + zeilen * lz + 6;
-    text(c, 'Quelle: ' + qn + (z.spielt ? ' (läuft: ' + ({ mp3: 'MP3', youtube: 'YouTube', webaudio: 'Beat' }[z.aktiv]) + ')' : ''), W / 2, sy + 4, P.uiTinteWeich, 8, 'center');
-    hz.forEach(function (zz, i) { text(c, zz, W / 2, sy + 14 + i * 9.4, P.uiTinteWeich, 7.5, 'center'); });
+    R.panel = { x: bx, y: by, w: bw, h: bh };
     R.treffer = [];
-    var ey0 = sy + 11 + hz.length * 9.4 + 4;
+    text(c, 'Scooter-Playlist', W / 2, by + kopfH * 0.55, P.uiTinte, hoch ? 12 : 11, 'center');
+    schliessX(R, bx, by, bw);
+    var colW = (bw - 20) / 2;
+    tl.forEach(function (t2, i) {
+      var label = kuerze(c, (i + 1) + '. ' + t2, colW - 4, songSz);
+      text(c, label, bx + 10 + (i >= zeilen ? colW : 0), by + kopfH + (i % zeilen) * lz + lz * 0.35, P.uiTinte, songSz);
+    });
+    var sy = by + kopfH + zeilen * lz + 2;
+    text(c, kuerze(c, quelleText, bw - 16, metaSz), W / 2, sy + metaLz * 0.45, P.uiTinteWeich, metaSz, 'center');
+    text(c, kuerze(c, hint, bw - 16, metaSz), W / 2, sy + metaLz + metaLz * 0.45, P.uiTinteWeich, metaSz, 'center');
+    var ey0 = sy + 2 * metaLz + 2;
     o.eintraege.forEach(function (e, i) {
       var ey = ey0 + i * rowH;
       knopfZeile(c, bx + 8, ey, bw - 16, rowH - 2, i === o.index, e.label, true, e.rechts);
@@ -588,7 +620,7 @@
     c.setTransform(sk, 0, 0, sk, 0, 0);
     glaettung(R);
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
-    R.treffer = [];
+    R.treffer = []; R.panel = null;
     if (S.zustand === 'start') { startBild(R, S); if (S.overlay && S.overlay.art === 'info') textFeld(R, 'Hinweis 18+', [Saufi.Hinweise.HINWEIS_VOLL], [{ label: 'Zurück' }], 0); if (S.overlay && S.overlay.art === 'playlist') playlistBild(R, S); return; }
     var wackel = !S.ruhig && S.fig.pegel >= 1.5, amp = Math.min(2, (S.fig.pegel - 1) * 0.8);
     S.doppelt = wackel;
@@ -606,7 +638,11 @@
     if (S.overlay) {
       if (S.overlay.art === 'playlist') playlistBild(R, S);
       else if (S.overlay.art === 'info') textFeld(R, 'Hinweis 18+', [Saufi.Hinweise.HINWEIS_VOLL], [{ label: 'Zurück' }], 0);
-      else zeichneListe(R, S.overlay.titel, S.overlay.kopf || [], S.overlay.eintraege, S.overlay.index, S.overlay.opt);
+      else if (S.overlay.art === 'minispiel') {
+        var mg = S.overlay, kopf = [mg.hinweis || '', mg.feedback || '', (mg.score != null ? 'Treffer: ' + mg.score + (mg.ziel ? '/' + mg.ziel : '') : '')];
+        if (mg.balken != null) kopf.push('Balken: ' + Math.round(Math.min(1, mg.balken) * 100) + '%');
+        zeichneListe(R, mg.titel, kopf.filter(Boolean), mg.eintraege, mg.index || 0, mg.opt);
+      } else zeichneListe(R, S.overlay.titel, S.overlay.kopf || [], S.overlay.eintraege, S.overlay.index, S.overlay.opt);
     }
     uebergangBild(R, S);
   }

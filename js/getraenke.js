@@ -4,11 +4,11 @@
   var Saufi = g.Saufi = g.Saufi || {};
 
   var LISTE = {
-    pils: { id: 'pils', label: 'Pils', pegel: 0.20, stand: 0, preis: 0, alk: true },
-    radler: { id: 'radler', label: 'Radler', pegel: 0.10, stand: 0, preis: 0, alk: true },
+    pils: { id: 'pils', label: 'Kessel-Pils', pegel: 0.20, stand: 0, preis: 0, alk: true },
+    radler: { id: 'radler', label: 'Stäffele-Radler', pegel: 0.10, stand: 0, preis: 0, alk: true },
     kurzer: { id: 'kurzer', label: 'Kurzer (Schwabentropfen)', pegel: 0.35, stand: 0, preis: 0, alk: true },
-    wasser: { id: 'wasser', label: 'Wasser', pegel: -0.05, stand: 5, preis: 0, alk: false },
-    alkoholfrei: { id: 'alkoholfrei', label: 'Alkoholfrei (sieht aus wie Bier)', pegel: 0.00, stand: 0, preis: 0, alk: false, heimlich: true }
+    wasser: { id: 'wasser', label: 'Leitungswasser (ehrlich)', pegel: -0.05, stand: 5, preis: 0, alk: false },
+    alkoholfrei: { id: 'alkoholfrei', label: 'Alkoholfrei (Tarn-Bier)', pegel: 0.00, stand: 0, preis: 0, alk: false, heimlich: true }
   };
 
   // Was die jeweilige Theke / Station anbietet. Wasser kostet in der Disko Punkte.

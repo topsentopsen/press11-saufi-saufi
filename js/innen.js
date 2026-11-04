@@ -259,7 +259,7 @@
     rr(c, sx + (links ? 1 : -1), sy + 1.5, K + 0 + (links ? 0 : 1), K - 1.5, '#c98b5e', 1.4, '#5a3328', 0.8);
     rr(c, sx + (links ? 3 : 1.6), sy + 3, links ? 11 : 11, 11, '#b87a50', 1.4); r(c, sx + (links ? 3 : 1.6), sy + 7, 11, 0.6, 'rgba(60,30,20,0.4)');
     kreis(c, links ? sx + 13.4 : sx + 2.6, sy + 8.4, 0.9, P.gold);
-    rr(c, sx + 2, sy + 0.2, 12, 4.4, '#1f7a42', 1.4, '#0e4a26', 0.6); text(c, 'EXIT', sx + 8, sy + 2.5, '#eaffe8', 5, 'center');
+    rr(c, sx + 1, sy + 0.2, 14, 8, '#1f7a42', 1.4, '#0e4a26', 0.6); text(c, 'EXIT', sx + 8, sy + 4.2, '#eaffe8', 11, 'center');
   }
   function bodenGeraet(c, karte, t, x, y, sx, sy) {
     var T = Saufi.Karte.T, hs = hash(x, y);
@@ -319,14 +319,15 @@
     if (id === 'hotel') {
       rr(c, 2 * K + 2, 8, 4 * K - 4, 14, '#5a3a28', 1.6, '#2e1c14', 0.6);               // Schluesselbrett
       for (i = 0; i < 8; i++) { kreis(c, 2 * K + 7 + i * 6.8, 13, 0.7, '#e8c46a'); r(c, 2 * K + 6.6 + i * 6.8, 14, 0.8, 4, '#e8c46a'); kreis(c, 2 * K + 7 + i * 6.8, 19, 1, i % 3 ? '#c9a64a' : '#e0504a'); }
-      rr(c, 2 * K + 12, 1.2, 40, 6.6, '#c9a64a', 1.6); text(c, 'REZEPTION', 2 * K + 32, 4.6, '#4a2f12', 5.6, 'center');
+      rr(c, 2 * K + 8, 1.2, 48, 10, '#c9a64a', 1.6); text(c, 'REZEPTION', 2 * K + 32, 6.2, '#4a2f12', 11, 'center');
       bilderRahmen(c, 6 * K + 4, 8, 12, 9, 0); bilderRahmen(c, 13 * K + 3, 8, 9, 11, 1);
       uhrWand(c, 8 * K + 8, 9, 5);
-      rr(c, 9 * K + 8, 3, 3 * K + 6, 8, '#f6efe0', 1.6, '#8a5a3a', 0.7); text(c, 'FRÜHSTÜCK', 10.5 * K + 6, 7, '#6a3f2a', 5.6, 'center');
-      rr(c, 14 * K + 3, 1.8, 10, 6, '#4fb0d6', 1.2); text(c, 'H₂O', 14 * K + 8, 4.8, '#fff', 4.8, 'center');
+      rr(c, 9 * K + 4, 2, 3 * K + 10, 12, '#f6efe0', 1.6, '#8a5a3a', 0.7); text(c, 'FRÜHSTÜCK', 10.5 * K + 6, 8, '#6a3f2a', 11, 'center');
+      rr(c, 14 * K, 1.5, 14, 10, '#4fb0d6', 1.2); text(c, 'H2O', 14 * K + 7, 6.5, '#fff', 11, 'center');
     } else if (id === 'restaurant') {
       flaschenRegal(c, 2 * K + 2, 12, 5 * K - 4, 9);
-      rr(c, 8 * K + 4, 2.4, 2 * K - 8, 22, '#2f3a34', 1.6, '#8a5a3a', 1); text(c, 'KARTE', 9 * K, 6, '#fff8ee', 6, 'center');
+      rr(c, 8 * K + 2, 2, 2 * K - 4, 24, '#2f3a34', 1.6, '#8a5a3a', 1); text(c, 'KARTE', 9 * K, 8, '#fff8ee', 11, 'center');
+      text(c, 'Spätzle!', 9 * K, 18, '#ffe9a8', 11, 'center');
       ['Maultaschen', 'Spätzle', 'Zwiebelrostbraten'].forEach(function (s, k) { linie(c, 8 * K + 8, 11 + k * 4.4, 10 * K - 8, 11 + k * 4.4, 'rgba(255,248,238,' + (0.8 - k * 0.1) + ')', 0.7); });
       for (i = 0; i < 5; i++) {                                                              // Pfannen und Toepfe in der Kueche
         var px = 10 * K + 6 + i * 12.5, pr = i % 2 ? 3.4 : 4.4;
@@ -339,7 +340,7 @@
       vlauf(c, 2 * K + 5, 4, 8 * K - 10, 18, 'rgba(180,200,220,0.45)', 'rgba(120,140,170,0.3)');
       flaschenRegal(c, 2 * K + 4, 8, 8 * K - 8, 18);
       zielscheibe(c, 10.5 * K, 14, 8);
-      rr(c, 11.9 * K, 3, 1.1 * K, 9, '#2a2342', 1.4, P.neonGelb, 0.8); text(c, 'BIER', 12.45 * K, 7.4, P.neonGelb, 6.4, 'center');
+      rr(c, 11.7 * K, 2, 1.5 * K, 12, '#2a2342', 1.4, P.neonGelb, 0.8); text(c, 'BIER', 12.45 * K, 8, P.neonGelb, 11, 'center');
       for (i = 0; i < 10; i++) {                                                           // Wimpelkette
         var wx = 6 + i * 20; poly(c, [[wx, 0], [wx + 7, 0], [wx + 3.5, 6]], ['#e0504a', '#ffc233', '#4fa86a', '#4a7ad8'][i % 4]);
       }
@@ -348,7 +349,7 @@
       rr(c, 6 * K + 4, 3, 6 * K - 8, 22, '#0e0a1e', 2, '#4a3d72', 0.9);                  // Videowand
       var gr = c.createLinearGradient(6 * K + 6, 0, 12 * K - 6, 0); gr.addColorStop(0, P.neonPink); gr.addColorStop(0.5, P.neonLila); gr.addColorStop(1, P.neonCyan);
       c.globalAlpha = 0.55; c.fillStyle = gr; c.fillRect(6 * K + 6, 5, 6 * K - 12, 18); c.globalAlpha = 1;
-      text(c, 'UNTERGRUND 07', 9 * K, 14, '#fff8ee', 7.4, 'center', 'rgba(20,10,50,0.8)');
+      text(c, 'UNTERGRUND 07', 9 * K, 14, '#fff8ee', 11, 'center', 'rgba(20,10,50,0.8)');
       [1.1 * K, 15.6 * K].forEach(function (lx) {                                         // Lautsprecher
         rr(c, lx - 5.5, 3, 11, 26, '#1a1530', 2, '#0e0a1e', 0.6); kreis(c, lx, 10, 3.8, '#2c2548', '#0e0a1e', 0.5); kreis(c, lx, 10, 1.4, '#5a4a8a'); kreis(c, lx, 21, 3, '#2c2548', '#0e0a1e', 0.5); kreis(c, lx, 21, 1.1, '#5a4a8a');
       });

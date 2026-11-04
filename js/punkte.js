@@ -11,12 +11,15 @@
     p.log.push({ n: n, grund: grund || '' }); if (p.log.length > 40) p.log.shift();
     return p.punkte;
   }
-  // Wertung nur bei Sieg: Bronze / Silber / Gold. Bei Niederlage keine Medaille.
-  function wertung(punkte, sieg) {
-    if (!sieg) return { medaille: '', titel: 'Umgefallen' };
-    if (punkte >= GOLD) return { medaille: 'Gold', titel: 'Kesselkönig/-königin' };
-    if (punkte >= SILBER) return { medaille: 'Silber', titel: 'Eiserner Saufi' };
-    return { medaille: 'Bronze', titel: 'Standhaft' };
+  // Wertung: bei Sieg Bronze/Silber/Gold; bei Niederlage eigener Titel je nach Grund (Team vs. Umfallen).
+  function wertung(punkte, sieg, art) {
+    if (!sieg) {
+      if (art === 'team') return { medaille: '', titel: 'Abgehängt', kopf: 'Die Truppe hat dich abgehängt' };
+      return { medaille: '', titel: 'Umgefallen', kopf: 'Press F to pay respects.' };
+    }
+    if (punkte >= GOLD) return { medaille: 'Gold', titel: 'Kesselkönig/-königin', kopf: 'Du stehst noch, Saufi.' };
+    if (punkte >= SILBER) return { medaille: 'Silber', titel: 'Eiserner Saufi', kopf: 'Du stehst noch, Saufi.' };
+    return { medaille: 'Bronze', titel: 'Standhaft', kopf: 'Du stehst noch, Saufi.' };
   }
 
   Saufi.Punkte = { SILBER: SILBER, GOLD: GOLD, erstelle: erstelle, add: add, wertung: wertung };

@@ -74,17 +74,22 @@
   }
 
   // ---------- Text ----------
-  // Duenne runde Kontur (nur wenn angegeben) plus leichter Schatten statt dicker Pixelkontur
+  // Mindestgroesse ~9 px logisch (Canvas ist hochaufgeloest; kompakte Panels brauchen 9–10).
+  var MIN_SCHRIFT = 9;
+  function schriftGroesse(size) { return Math.max(MIN_SCHRIFT, size || MIN_SCHRIFT); }
   function text(c, s, x, y, col, size, ausr, kontur) {
-    size = size || 8;
+    size = schriftGroesse(size);
     c.font = 'bold ' + size + 'px ' + SCHRIFT; c.textAlign = ausr || 'left'; c.textBaseline = 'middle';
     if (kontur) {
-      c.lineJoin = 'round'; c.lineWidth = Math.max(0.9, size * 0.14); c.strokeStyle = kontur; c.strokeText(s, x, y + 0.4);
+      c.lineJoin = 'round'; c.lineWidth = Math.max(0.9, size * 0.12); c.strokeStyle = kontur; c.strokeText(s, x, y + 0.4);
     }
+    c.shadowColor = 'rgba(30,20,50,0.18)'; c.shadowBlur = 1.2; c.shadowOffsetX = 0; c.shadowOffsetY = 0.6;
     c.fillStyle = col || P.uiTinte; c.fillText(s, x, y);
+    c.shadowColor = 'transparent'; c.shadowBlur = 0; c.shadowOffsetX = 0; c.shadowOffsetY = 0;
   }
-  function breite(c, s, size) { c.font = 'bold ' + (size || 8) + 'px ' + SCHRIFT; var m = c.measureText(s); return m && m.width ? m.width : s.length * (size || 8) * 0.55; }
+  function breite(c, s, size) { size = schriftGroesse(size); c.font = 'bold ' + size + 'px ' + SCHRIFT; var m = c.measureText(s); return m && m.width ? m.width : s.length * size * 0.55; }
   function umbruch(c, s, maxB, size) {
+    size = schriftGroesse(size);
     var worte = String(s).split(' '), zeilen = [], z = '';
     worte.forEach(function (w) {
       var t = z ? z + ' ' + w : w;
@@ -92,6 +97,17 @@
     });
     if (z) zeilen.push(z);
     return zeilen;
+  }
+  // Titel auf Spaltenbreite kuerzen (mit …)
+  function kuerze(c, s, maxB, size) {
+    s = String(s == null ? '' : s);
+    if (breite(c, s, size) <= maxB) return s;
+    var ell = '…', lo = 0, hi = s.length;
+    while (lo < hi) {
+      var mid = Math.ceil((lo + hi) / 2);
+      if (breite(c, s.slice(0, mid) + ell, size) <= maxB) lo = mid; else hi = mid - 1;
+    }
+    return lo > 0 ? s.slice(0, lo) + ell : ell;
   }
 
   // Panel mit weichem Schatten, abgerundeten Ecken und feiner Kontur
@@ -103,7 +119,7 @@
   }
 
   Saufi.Gfx = {
-    SCHRIFT: SCHRIFT, P: P, hash: hash, rgb: rgb, mix: mix, hex: hex, mischeHex: mischeHex, r: r, rundPfad: rundPfad, rr: rr, box: box, kreis: kreis, ellipse: ellipse,
-    poly: poly, linie: linie, vlauf: vlauf, glanz: glanz, herz: herz, text: text, breite: breite, umbruch: umbruch, panel: panel
+    SCHRIFT: SCHRIFT, MIN_SCHRIFT: MIN_SCHRIFT, P: P, hash: hash, rgb: rgb, mix: mix, hex: hex, mischeHex: mischeHex, r: r, rundPfad: rundPfad, rr: rr, box: box, kreis: kreis, ellipse: ellipse,
+    poly: poly, linie: linie, vlauf: vlauf, glanz: glanz, herz: herz, text: text, breite: breite, umbruch: umbruch, kuerze: kuerze, panel: panel, schriftGroesse: schriftGroesse
   };
 })(globalThis);

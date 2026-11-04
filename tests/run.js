@@ -5,7 +5,7 @@ var fs = require('fs'), path = require('path'), vm = require('vm');
 
 var ROOT = path.join(__dirname, '..');
 // Reihenfolge wie die Script-Tags in index.html
-var DATEIEN = ['js/rng', 'js/uhr', 'js/charaktere', 'js/getraenke', 'js/essen', 'js/pegel', 'js/cheats', 'js/runden', 'js/ereignisse', 'js/punkte', 'js/hinweise',
+var DATEIEN = ['js/rng', 'js/uhr', 'js/charaktere', 'js/getraenke', 'js/essen', 'js/pegel', 'js/cheats', 'js/runden', 'js/ereignisse', 'js/minispiele', 'js/punkte', 'js/hinweise',
   'js/speicher', 'js/karte', 'js/pfad', 'js/kamera', 'js/eingabe', 'js/spieler', 'js/npcs', 'js/ton', 'music/playlist', 'js/musik', 'js/gfx', 'js/szene', 'js/innen', 'js/render', 'js/main'];
 
 function ladeKontext(extra) {
@@ -589,7 +589,8 @@ test('27 Browser-Verdrahtung: Main.starte mit Fake-DOM, Saufi.debug, Start per T
   gleich(Saufi.debug.musik().quelle, 'webaudio');
   // "Scooter-Playlist abspielen" in der Liste anklicken: ueber file:// geht YouTube nicht -> Spiel-Beat plus kurzer Hinweis
   var S = Saufi.debug.zustand(); gleich(S.overlay.eintraege[0].id, 'pl_start');
-  var treffer = S.treffer[0]; wahr(treffer && treffer.i === 0, 'Playlist-Zeilen sind anklickbar');
+  var treffer = S.treffer.filter(function (t) { return t.i === 0; })[0];
+  wahr(treffer, 'Playlist-Zeilen sind anklickbar');
   (els.spiel.listeners.pointerdown || []).forEach(function (f) { f({ preventDefault: function () {}, isPrimary: true, button: 0, pointerType: 'mouse', clientX: treffer.x + treffer.w / 2, clientY: treffer.y + treffer.h / 2, timeStamp: 99999 }); });
   frame(21000);
   var mz = Saufi.debug.musik(); gleich(mz.aktiv, 'webaudio', 'file:// -> Spiel-Beat'); wahr(/localhost/.test(mz.hinweis), 'Hinweis nennt http://localhost'); wahr(mz.spielt);
@@ -632,8 +633,9 @@ test('28 Durchspielen (Sieg): Bot trinkt alle 6 Runden mit, Spiel endet um 04:00
 });
 test('29 Durchspielen (Niederlage): wer nie mittrinkt, verliert die Teamstimmung', function () {
   var r = spieleDurch(null, 1 / 20, 6);
-  gleich(r.S.zustand, 'ende'); wahr(!r.S.ende.sieg); wahr(/Teamstimmung/.test(r.S.ende.grund)); gleich(r.S.runden.team, 0); wahr(r.D.Uhr.zeitText(r.S.uhr.minute) < '19:00', 'schon nachmittags vorbei');
-  wahr(r.log.some(function (t) { return /Press F to pay respects/.test(t); }), 'Endbildschirm Niederlage');
+  gleich(r.S.zustand, 'ende'); wahr(!r.S.ende.sieg); wahr(/abgehängt|Teamstimmung/.test(r.S.ende.grund)); gleich(r.S.runden.team, 0); wahr(r.D.Uhr.zeitText(r.S.uhr.minute) < '19:00', 'schon nachmittags vorbei');
+  wahr(r.log.some(function (t) { return /abgehängt/.test(t); }), 'Endbildschirm Teamstimmung 0');
+  gleich(r.S.ende.wertung.titel, 'Abgehängt');
 });
 test('30 Rendern: alle Orte, Tageszeiten, Menues und Bildschirme ohne Fehler', function () {
   var D = lade(), log = [], cv = mockCanvas(log), R = D.Render.erstelle(cv, cv.ownerDocument), t = neuesSpielTest(D), gezeichnet = 0;
@@ -682,6 +684,115 @@ test('34 Uhr: nur das Pause-Menue haelt sie an, andere Overlays nicht', function
   wahr(r.status === 'verpasst' || S.runden.team < team, 'Frist laeuft ab, obwohl ein Overlay offen ist (' + r.status + ')');
   // Startbildschirm unveraendert: keine Uhr
   var s0 = neuesSpielTest(D, { start: false }); var ms = s0.S.uhr.minute; schritt(s0.S, s0.Sp, s0.X, 3); gleich(s0.S.uhr.minute, ms, 'Startbildschirm: Uhr steht');
+});
+
+// ---------- v02: Jukebox, Sprueche, Ereignisse, Minispiele ----------
+test('35 Jukebox: Songwahl und Esc/X/Klick daneben schliessen Overlay, Bewegung geht', function () {
+  var D = lade(), t = neuesSpielTest(D), S = t.S, X = t.X, Sp = t.Sp;
+  var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  erledigt(S); Sp.setze(S, { minute: 16 * 60 }); Sp.geheZuStation(S, 'kneipe', 'jukebox', X);
+  Sp.aktion(S, X); gleich(S.overlay.art, 'playlist');
+  Sp.waehle(S, S.overlay.eintraege[0], X); gleich(S.overlay, null, 'pl_start schliesst');
+  var x0 = S.spieler.x; X.E.setzeHalt('rechts', true); schritt(S, Sp, X, 0.4); X.E.setzeHalt('rechts', false);
+  wahr(S.spieler.x !== x0, 'Bewegung nach Songwahl');
+  Sp.playlistOverlay(S, X); wahr(S.overlay);
+  X.E.druecke('pause'); schritt(S, Sp, X, 0.05); gleich(S.overlay, null, 'Esc schliesst');
+  Sp.playlistOverlay(S, X); D.Render.zeichne(R, S); S.treffer = R.treffer; S.panel = R.panel;
+  var xBtn = S.treffer.filter(function (t2) { return t2.i === 'x'; })[0]; wahr(xBtn, 'X-Button vorhanden');
+  X.E.klicke(xBtn.x + 1, xBtn.y + 1); Sp.update(S, 0.05, X); X.E.ende(); gleich(S.overlay, null, 'X schliesst');
+  Sp.playlistOverlay(S, X); D.Render.zeichne(R, S); S.treffer = R.treffer; S.panel = R.panel;
+  X.E.klicke(1, 1); Sp.update(S, 0.05, X); X.E.ende(); gleich(S.overlay, null, 'Klick daneben schliesst');
+});
+
+test('36 Sprueche: je Figur >= 8, Pools nicht leer, max 2 Blasen', function () {
+  var D = lade(), H = D.Hinweise;
+  D.Charaktere.LISTE.forEach(function (c) {
+    wahr(H.FIGUR[c.id] && H.FIGUR[c.id].length >= 8, c.id + ' hat >= 8 Sprueche');
+  });
+  ['mittrinken', 'essen', 'wasser', 'erwischt', 'umfallen', 'aufstehen', 'scooter', 'joint'].forEach(function (k) { wahr(H.SITUATION[k].length > 0, 'Situation ' + k); });
+  ['hotel', 'restaurant', 'kneipe', 'disko', 'stadt'].forEach(function (k) { wahr(H.ORT[k].length > 0, 'Ort ' + k); });
+  ['nuechtern', 'angeheitert', 'voll', 'absturz'].forEach(function (k) { wahr(H.PEGEL[k].length > 0, 'Pegel ' + k); });
+  var t = neuesSpielTest(D), list = t.S.npcs;
+  list.forEach(function (n) { n.aktiv = true; n.liegt = false; n.karteId = 'stadt'; n.blase = null; });
+  D.NPCs.sprechen(list, t.S.rng, 'stadt', 0);
+  D.NPCs.sprechen(list, t.S.rng, 'stadt', 2.5);
+  D.NPCs.sprechen(list, t.S.rng, 'stadt', 3.5);
+  wahr(list.filter(function (n) { return n.blase; }).length <= 2, 'max 2 Sprechblasen');
+  wahr(!/privat/i.test(H.HINWEIS_VOLL), 'kein privat im Hinweis');
+});
+
+test('37 Ereignisse: mind. 20 Pannen, Stufen nach Pegel', function () {
+  var D = lade(), E = D.Ereignisse;
+  wahr(E.PANNEN.length >= 20, 'mind. 20 Ereignisse');
+  for (var st = 0; st <= 3; st++) wahr(E.panneNurStufe(st).length > 0, 'Stufe ' + st + ' vorhanden');
+  var niedrig = E.panneFuerPegel(0.2).map(function (p) { return p.stufe; });
+  wahr(niedrig.every(function (s) { return s <= 0; }) || E.stufeVonPegel(0.2) === 0, 'niedriger Pegel');
+  wahr(E.panneFuerPegel(3.2).some(function (p) { return p.stufe === 3; }), 'hohe Stufe nur bei hohem Pegel erreichbar');
+  var p = E.erstellePannen(), rng = D.RNG.erstelle(1);
+  var a = E.wuerflePanne(p, rng, 2.5); wahr(a && a.def.stufe <= 2); wahr(E.loesePanne(p, a.def.loesung));
+});
+
+test('38 Minispiele: 3 Spiele startbar, abbrechbar, Logik', function () {
+  var D = lade(), M = D.Minispiele, rng = D.RNG.erstelle(2);
+  wahr(M.IDEEN.length >= 6, 'Plan >= 6 Ideen');
+  ['deckel', 'prost', 'krug'].forEach(function (id) {
+    var mg = M.starte(id, rng); wahr(mg && mg.art === 'minispiel', id);
+    M.update(mg, 0.2, true); M.update(mg, mg.dauer, false);
+    wahr(mg.fertig || mg.t >= mg.dauer - 0.01, id + ' endet');
+    var b = M.belohnung(mg); wahr(typeof b.punkte === 'number');
+  });
+  var t = neuesSpielTest(D); t.Sp.setze(t.S, { minute: 16 * 60 }); t.Sp.geheZuStation(t.S, 'kneipe', 'tresen', t.X);
+  t.Sp.aktion(t.S, t.X); wahr(t.S.overlay && t.S.overlay.eintraege.some(function (e) { return e.id === 'minispiel'; }), 'Minispiel im Tresen-Menue');
+  var e = t.S.overlay.eintraege.filter(function (x) { return x.id === 'minispiel'; })[0];
+  t.Sp.waehle(t.S, e, t.X); gleich(t.S.overlay.art, 'minispiel');
+  t.X.E.druecke('pause'); schritt(t.S, t.Sp, t.X, 0.05); gleich(t.S.overlay, null, 'Esc bricht Minispiel ab');
+});
+
+test('39 Teamstimmung 0: eigener Titel statt Umgefallen/Press F', function () {
+  var D = lade(), t = neuesSpielTest(D);
+  t.S.runden.team = 0; schritt(t.S, t.Sp, t.X, 0.1);
+  gleich(t.S.zustand, 'ende'); gleich(t.S.ende.wertung.titel, 'Abgehängt');
+  wahr(/abgehängt/.test(t.S.ende.wertung.kopf)); wahr(/Teamstimmung 0/.test(t.S.ende.grund));
+  wahr(t.S.ende.wertung.kopf.indexOf('Press F') < 0);
+  gleich(D.Spiel.VERSION, '0.2');
+  wahr(D.Gfx.MIN_SCHRIFT >= 9);
+});
+
+test('40 privat entfernt', function () {
+  var D = lade();
+  wahr(!/privat/i.test(D.Hinweise.HINWEIS_VOLL));
+  wahr(!/Privates Spiel/.test(D.Hinweise.HINWEIS_VOLL));
+  var fs = require('fs'), path = require('path');
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  wahr(/Press11 - Saufi Saufi \(18\+\)/.test(html)); wahr(!/\(18\+, privat\)/.test(html));
+  var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+  wahr(/Neu in v02/.test(readme)); wahr(!/privates Repo, kein GitHub Pages/.test(readme));
+});
+
+test('41 Playlist-Panel passt in H (Querformat) und YouTube-Fenster weicht Overlay', function () {
+  var D = lade(), t = neuesSpielTest(D), S = t.S, X = t.X;
+  var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  D.Render.setzeBildschirm(R, false);
+  gleich(R.W, 320); gleich(R.H, 176);
+  t.Sp.playlistOverlay(S, X);
+  S.musikInfo = { quelle: 'youtube', aktiv: 'youtube', spielt: true, youtubeVerfuegbar: true, hinweis: '' };
+  D.Render.zeichne(R, S);
+  var p = R.panel;
+  wahr(p, 'Panel gesetzt');
+  wahr(p.y >= 2, 'by >= 2');
+  wahr(p.y + p.h <= R.H - 2, 'by+bh <= H-2 (Panel in H)');
+  var knoepfe = R.treffer.filter(function (tr) { return typeof tr.i === 'number'; });
+  gleich(knoepfe.length, S.overlay.eintraege.length, 'Treffer je Eintrag');
+  knoepfe.forEach(function (tr, i) {
+    wahr(tr.y >= p.y && tr.y + tr.h <= p.y + p.h + 0.01, 'Treffer ' + i + ' im Panel');
+    wahr(tr.h > 0 && tr.w > 0, 'Treffer ' + i + ' hat Flaeche');
+  });
+  var lang = D.Gfx.kuerze(R.ctx, '10. Posse (I Need You on the Floor)', 60, 9);
+  wahr(/…$/.test(lang) && lang.length < 30, 'lange Titel werden gekuerzt');
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  wahr(/#rahmen\.overlay\s*~\s*#yt-fenster/.test(html), 'CSS blendet YT bei Overlay aus');
+  var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
+  wahr(/classList\.toggle\(\s*['"]overlay['"]/.test(main), 'Rahmen bekommt Klasse overlay');
 });
 
 // ---------- Ausfuehren ----------

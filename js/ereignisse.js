@@ -1,5 +1,4 @@
-/* Challenges: Dicke Tuete (naechster Effekt doppelt, danach schwammiger Pegel) und Scooter-Boost in der Diskothek.
-   Beides ist reine Spielmechanik (fiktives Spiel-Item). Zeiten in Echtzeit-Sekunden (Zaehler t pro Objekt). */
+/* Challenges: Dicke Tuete, Scooter-Boost, Saufpannen und Mitspieler-Interaktionen (Pegel-eskaliert). */
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
@@ -11,7 +10,6 @@
     update: function (j, dt) { j.t += dt; },
     nimm: function (j) { if (j.gefunden) return false; j.gefunden = true; j.hat = true; return true; },
     benutze: function (j) { if (!j.hat || j.doppelt) return false; j.hat = false; j.doppelt = true; return true; },
-    // Faktor fuer den naechsten Effekt (Essen, Wasser, Getraenk, Boost). Verbraucht den Doppel-Effekt und startet das Gegengewicht.
     verstaerke: function (j) {
       if (!j.doppelt) return 1;
       j.doppelt = false; j.schwammigBis = j.t + SCHWAMMIG_SEK; return 2;
@@ -27,20 +25,102 @@
     erstelle: function () { return { leiste: 0, aktivBis: 0, coolBis: 0, t: 0 }; },
     update: function (b, dt) { b.t += dt; },
     aktiv: function (b) { return b.t < b.aktivBis; },
-    // Tanzen im Takt fuellt die Leiste (nur wenn der Boost nicht laeuft)
     tanz: function (b, aufBeat) { if (Boost.aktiv(b)) return b.leiste; b.leiste = Math.min(1, b.leiste + (aufBeat ? BEAT_GEWINN : OFFBEAT_GEWINN)); return b.leiste; },
     bereit: function (b) { return b.leiste >= 1 && b.t >= b.coolBis && !Boost.aktiv(b); },
     cooldownRest: function (b) { return Math.max(0, b.coolBis - b.t); },
-    // Zuenden: nur bei voller Leiste und ohne Cooldown. faktor 2 = Joint-Verstaerkung (doppelte Dauer)
     zuende: function (b, faktor) {
       if (!Boost.bereit(b)) return false;
       var dauer = BOOST_SEK * (faktor || 1);
       b.aktivBis = b.t + dauer; b.coolBis = b.t + BOOST_COOLDOWN; b.leiste = 0; return true;
     },
-    // Wirkung fuer die ganze Truppe: Verluste halbiert, Bewegung +30 %
     verlustFaktor: function (b) { return Boost.aktiv(b) ? 0.5 : 1; },
     bewegung: function (b) { return Boost.aktiv(b) ? BOOST_BEWEGUNG : 1; }
   };
 
-  Saufi.Ereignisse = { Joint: Joint, Boost: Boost, SCHWAMMIG_SEK: SCHWAMMIG_SEK };
+  // ---------- Saufpannen / Mitspieler-Interaktionen (mind. 20, Stufen nach Pegel) ----------
+  // stufe 0 = nuechtern..leicht, 1 = angeheitert, 2 = voll, 3 = absturz
+  var PANNEN = [
+    // Stufe 0
+    { id: 'freund_wecken_hint', stufe: 0, art: 'interaktion', text: 'Jemand gähnt verdächtig. Q bereit halten.', loesung: 'wasser', effekt: { hinweis: true } },
+    { id: 'handy_gesucht', stufe: 0, art: 'interaktion', text: 'Handy vom Kumpel piept unter dem Tisch. E: zurückbringen.', loesung: 'aktion', effekt: { punkte: 40, team: 0 } },
+    { id: 'doener_teilen', stufe: 0, art: 'interaktion', text: 'Döner-Hälften-Diplomatie: E teilt, Team freut sich.', loesung: 'aktion', effekt: { punkte: 30, team: 1, stand: 2 } },
+    { id: 'schuh_suchen', stufe: 0, art: 'panne', text: 'Ein Schuh fehlt – klassisch. E: Suchaktion.', loesung: 'aktion', effekt: { punkte: 25 } },
+    { id: 'freund_stuetzen', stufe: 0, art: 'interaktion', text: 'Kumpel schwankt. E: stützen (Stand + klein).', loesung: 'aktion', effekt: { stand: 5, punkte: 35, team: 1 } },
+    // Stufe 1
+    { id: 'bierdeckel_haar', stufe: 1, art: 'panne', text: 'Bierdeckel im Haar. E: entfernen, Stil retten.', loesung: 'aktion', effekt: { punkte: 20 } },
+    { id: 'falsche_jacke', stufe: 1, art: 'panne', text: 'Falsche Jacke angezogen (karriert statt Neon). E: tauschen.', loesung: 'aktion', effekt: { punkte: 30 } },
+    { id: 'klo_holen', stufe: 1, art: 'interaktion', text: 'Kumpel hängt am Klo-Flur. E: abholen.', loesung: 'aktion', effekt: { punkte: 50, team: 1 } },
+    { id: 'kebab_hemd', stufe: 1, art: 'panne', text: 'Kebab auf dem Hemd. E: abtupfen (Würde ±0).', loesung: 'aktion', effekt: { punkte: 15, stand: 2 } },
+    { id: 'brezel_taube', stufe: 1, art: 'panne', text: 'Taube klaut die Brezel. E: Würde bewahren.', loesung: 'aktion', effekt: { punkte: 10 } },
+    // Stufe 2
+    { id: 'hose_verloren', stufe: 2, art: 'panne', text: 'Hose? War eben noch da. E: improvisieren.', loesung: 'aktion', effekt: { punkte: 45, stand: -3 } },
+    { id: 'schuh_weg', stufe: 2, art: 'panne', text: 'Beide Schuhe weg. Barfuß-Chic. E: Suche 2.0.', loesung: 'aktion', effekt: { punkte: 40, stand: -2 } },
+    { id: 'dixi_nickerchen', stufe: 2, art: 'panne', text: 'Gerücht: jemand nickt im Dixi. E: klopfen.', loesung: 'aktion', effekt: { punkte: 55, team: 1 } },
+    { id: 'jacke_verdreht', stufe: 2, art: 'panne', text: 'Jacke falschrum, Reißverschluss philosophisch. E: drehen.', loesung: 'aktion', effekt: { punkte: 25 } },
+    { id: 'glas_verwechselt', stufe: 2, art: 'panne', text: 'Falsches Glas – war Wasser? War Pils? E: klären.', loesung: 'aktion', effekt: { pegel: 0.05, punkte: 20 } },
+    // Stufe 3
+    { id: 'hose_galerie', stufe: 3, art: 'panne', text: 'Hose als Fahne missverstanden. E: Crisis Mode.', loesung: 'aktion', effekt: { punkte: 60, stand: -5, team: -0 } },
+    { id: 'freund_tragen', stufe: 3, art: 'interaktion', text: 'Kumpel will getragen werden. E: Schulter anbieten.', loesung: 'aktion', effekt: { punkte: 70, team: 1, stand: -4 } },
+    { id: 'disco_spiegel', stufe: 3, art: 'panne', text: 'Du begrüßt dein Spiegelbild. E: Abbruch der Verhandlung.', loesung: 'aktion', effekt: { punkte: 35 } },
+    { id: 'kebab_krone', stufe: 3, art: 'panne', text: 'Kebab als Krone. Königlich. E: absetzen.', loesung: 'aktion', effekt: { punkte: 40, stand: -2 } },
+    { id: 'lallen_chor', stufe: 3, art: 'panne', text: 'Spontaner Lall-Chor. E: Dirigent sein.', loesung: 'aktion', effekt: { punkte: 50, team: 1 } },
+    { id: 'feinstaub_ausrede', stufe: 3, art: 'panne', text: '„Feinstaubalarm, deswegen lalle ich.“ E: nicken.', loesung: 'aktion', effekt: { punkte: 15 } },
+    { id: 'ms_marathon', stufe: 2, art: 'panne', text: 'Jemand vergleicht den Abend mit MS-Marathon. E: lachen.', loesung: 'aktion', effekt: { punkte: 33, team: 1 } }
+  ];
+
+  function stufeVonPegel(pegel) {
+    if (pegel >= 3.0) return 3;
+    if (pegel >= 2.0) return 2;
+    if (pegel >= 1.0) return 1;
+    return 0;
+  }
+
+  function panneFuerPegel(pegel) {
+    var st = stufeVonPegel(pegel);
+    return PANNEN.filter(function (p) { return p.stufe <= st; });
+  }
+
+  function panneNurStufe(stufe) {
+    return PANNEN.filter(function (p) { return p.stufe === stufe; });
+  }
+
+  function erstellePannen() {
+    return { t: 0, coolBis: 0, aktiv: null, gesehen: {} };
+  }
+
+  function updatePannen(p, dt) { p.t += dt; if (p.aktiv) { p.aktiv.rest -= dt; if (p.aktiv.rest <= 0) p.aktiv = null; } }
+
+  // Zufaellige Panne vorschlagen, wenn Cooldown vorbei und Pegel-Stufe passt. Hoehere Stufen nur bei hoeherem Pegel.
+  function wuerflePanne(p, rng, pegel) {
+    if (p.aktiv || p.t < p.coolBis) return null;
+    var pool = panneFuerPegel(pegel);
+    if (!pool.length) return null;
+    // Bevorzuge ungesehene und hoehere Stufen leicht
+    var st = stufeVonPegel(pegel);
+    var gewichtet = pool.slice();
+    if (rng.next() < 0.55) {
+      var hoch = pool.filter(function (x) { return x.stufe === st; });
+      if (hoch.length) gewichtet = hoch;
+    }
+    var wahl = rng.pick(gewichtet);
+    p.aktiv = { id: wahl.id, def: wahl, rest: 12 };
+    p.gesehen[wahl.id] = true;
+    p.coolBis = p.t + 45 + rng.next() * 40;
+    return p.aktiv;
+  }
+
+  function loesePanne(p, via) {
+    if (!p.aktiv) return null;
+    var def = p.aktiv.def;
+    if (via !== def.loesung && !(def.loesung === 'wasser' && via === 'wasser')) return null;
+    var out = { def: def, effekt: def.effekt || {} };
+    p.aktiv = null;
+    return out;
+  }
+
+  Saufi.Ereignisse = {
+    Joint: Joint, Boost: Boost, SCHWAMMIG_SEK: SCHWAMMIG_SEK,
+    PANNEN: PANNEN, stufeVonPegel: stufeVonPegel, panneFuerPegel: panneFuerPegel, panneNurStufe: panneNurStufe,
+    erstellePannen: erstellePannen, updatePannen: updatePannen, wuerflePanne: wuerflePanne, loesePanne: loesePanne
+  };
 })(globalThis);
