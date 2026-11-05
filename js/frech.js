@@ -4,14 +4,14 @@
   var Saufi = g.Saufi = g.Saufi || {};
 
   var RAPHI = [
-    'Raphi, noch Anwärter. Gib mehr Gas!',
-    'Raphi, kein Press11. Noch Anwärter.',
-    'Raphi, streng dich an, dann klappts mit Press11.',
-    'Raphi, Aufnahmeprüfung. Mehr Einsatz!',
-    'Press11? Raphi, du bist nur Anwärter.',
-    'Raphi, ohne Fleiß kein Press11-Ausweis.',
-    'Raphi, noch kein Mitglied. Schieb mehr!',
-    'Raphael bleibt Anwärter, bis er Gas gibt.'
+    'Probst, noch Anwärter. Gib mehr Gas!',
+    'Probst, kein Press11. Noch Anwärter.',
+    'Probst, streng dich an, dann klappts mit Press11.',
+    'Probst, Aufnahmeprüfung. Mehr Einsatz!',
+    'Press11? Probst, du bist nur Anwärter.',
+    'Probst, ohne Fleiß kein Press11-Ausweis.',
+    'Probst, noch kein Mitglied. Schieb mehr!',
+    'Probst bleibt Anwärter, bis er Gas gibt.'
   ];
   var FRECH = [
     'Probst, du Arschloch!',

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Press11 Feedback</title>
+<meta name="description" content="Rückmeldung zu Press11, einem fiktiven Spaß-Spiel ab 18. Der Text öffnet einen Issue-Entwurf auf GitHub.">
+<meta name="theme-color" content="#1b1530">
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-32.png">
+<link rel="canonical" href="https://topsentopsen.github.io/press11-saufi-saufi/feedback/">
+<style>
+  html { height: 100%; }
+  body {
+    margin: 0; min-height: 100%; min-height: 100dvh;
+    background: #1b1530; color: #fff8ee;
+    font-family: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+    font-size: 1rem; line-height: 1.45;
+    padding: calc(1.25rem + env(safe-area-inset-top, 0px)) calc(1rem + env(safe-area-inset-right, 0px)) calc(2rem + env(safe-area-inset-bottom, 0px)) calc(1rem + env(safe-area-inset-left, 0px));
+  }
+  .seite { width: min(100%, 34rem); margin: 0 auto; }
+  a { color: #ffd36e; }
+  a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible {
+    outline: 3px solid #ffd36e; outline-offset: 2px;
+  }
+  .zurueck { margin: 0 0 1.25rem; font-size: 0.95rem; }
+  h1 { margin: 0 0 0.6rem; font-size: 1.75rem; line-height: 1.15; letter-spacing: -0.02em; }
+  .lead { margin: 0 0 1.25rem; color: #fff8ee; }
+  form {
+    background: #2a2342; border-radius: 14px; padding: 1.1rem 1rem 1.15rem;
+    box-shadow: 0 0 0 3px #ff4fa0, 0 0 0 6px #4fe6ff;
+  }
+  label { display: block; font-weight: 700; margin: 0 0 0.35rem; }
+  label + label, .feld + .feld { margin-top: 0.95rem; }
+  .opt { font-weight: 500; color: #e3dbea; }
+  input, textarea {
+    display: block; width: 100%; box-sizing: border-box;
+    margin: 0; padding: 0.75rem 0.8rem;
+    font: inherit; font-size: 1rem; line-height: 1.4;
+    color: #2a2342; background: #fff8ee;
+    border: 0; border-radius: 10px;
+    box-shadow: 0 0 0 2px #4a3560;
+  }
+  textarea { min-height: 9rem; resize: vertical; }
+  button {
+    display: block; width: 100%; box-sizing: border-box;
+    margin-top: 1rem; min-height: 48px; padding: 0.75rem 1rem;
+    font: inherit; font-size: 1rem; font-weight: 700;
+    color: #2a2342; background: #ff4fa0;
+    border: 0; border-radius: 999px; cursor: pointer;
+    box-shadow: 0 0 0 3px #4a3560;
+  }
+  button:active { transform: translateY(1px); }
+  .klein { margin: 0.85rem 0 0; color: #e3dbea; font-size: 0.92rem; }
+  .bestaetigung {
+    margin-top: 1rem; padding: 0.8rem 0.85rem; border-radius: 10px;
+    background: #1b1530; box-shadow: inset 0 0 0 2px #ff4fa0;
+  }
+  .bestaetigung p { margin: 0; }
+  .bestaetigung p + p { margin-top: 0.6rem; }
+  .fuss { margin: 1.25rem 0 0; color: #e3dbea; font-size: 0.85rem; }
+  [hidden] { display: none !important; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main class="seite">
+  <p class="zurueck"><a href="../">Zurück zum Spiel</a></p>
+  <h1>Press11 Feedback</h1>
+  <p class="lead">Fiktives Spaß-Spiel, ab 18. Schreib kurz, was dir auffällt. Absenden öffnet einen vorausgefüllten Issue-Entwurf auf GitHub. Ein Klick dort auf „Submit new issue“ erstellt ihn.</p>
+  <form id="feedback-form">
+    <div class="feld">
+      <label for="name">Name <span class="opt">(optional)</span></label>
+      <input id="name" name="name" type="text" autocomplete="name" maxlength="80">
+    </div>
+    <div class="feld">
+      <label for="text">Feedback <span class="opt">(Pflicht)</span></label>
+      <textarea id="text" name="text" required maxlength="4000" rows="8"></textarea>
+    </div>
+    <button type="submit">Issue-Entwurf öffnen</button>
+    <p class="klein">Kein Konto auf dieser Seite. GitHub fragt dich, falls du nicht angemeldet bist.</p>
+    <div id="bestaetigung" class="bestaetigung" tabindex="-1" hidden>
+      <p data-meldung aria-live="polite"></p>
+      <p data-linkzeile hidden><a data-issue-link href="https://github.com/topsentopsen/press11-saufi-saufi/issues/new" target="_blank" rel="noopener noreferrer">Issue-Entwurf bei GitHub öffnen</a></p>
+    </div>
+  </form>
+  <p class="fuss">Press11 0.25 · fiktives Spaß-Spiel, ab 18</p>
+</main>
+<noscript>
+  <p class="seite">Für den vorausgefüllten Entwurf braucht diese Seite JavaScript. Ohne Skript geht es direkt zu <a href="https://github.com/topsentopsen/press11-saufi-saufi/issues/new">einem neuen GitHub-Issue</a>.</p>
+</noscript>
+<script src="feedback.js?v=0.25"></script>
+<script>
+  Press11Feedback.bind(document.getElementById('feedback-form'));
+</script>
+</body>
+</html>

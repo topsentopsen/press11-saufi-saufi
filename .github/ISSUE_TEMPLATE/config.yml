@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Press11 Feedback-Seite
+    url: https://topsentopsen.github.io/press11-saufi-saufi/feedback/
+    about: Formular, das einen Issue-Entwurf vorausfüllt. Ein Klick auf GitHub erstellt das Issue.

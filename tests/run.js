@@ -200,7 +200,8 @@ test('6 Standfestigkeit: sinkt ueber 3,0, steigt durch Essen, bei 0 Umfallen', f
 // ---------- 7 Zweites Leben ----------
 test('7 Zweites Leben: Raphael und Himmelsbach stehen einmal wieder auf, Tobi nicht', function () {
   var S = lade(), P = S.Pegel;
-  gleich(S.Charaktere.holen('Raphi').id, 'raphael', 'Raphi ist Raphael');
+  gleich(S.Charaktere.holen('raphael').id, 'raphael', 'id bleibt raphael');
+  gleich(S.Charaktere.holen('raphael').name, 'Probst', 'sichtbarer Name Probst');
   ['raphael', 'himmelsbach'].forEach(function (id) {
     var f = P.neu(S.Charaktere.holen(id)); gleich(f.leben, 2, id); f.pegel = 2.0; f.stand = 0;
     gleich(P.pruefe(f), 'aufstehbar', id); wahr(P.aufstehen(f), id + ' steht auf');
@@ -788,7 +789,7 @@ test('39 Teamstimmung 0: eigener Titel statt Umgefallen/Press F', function () {
   gleich(t.S.zustand, 'ende'); gleich(t.S.ende.wertung.titel, 'Abgehängt');
   wahr(/abgehängt/.test(t.S.ende.wertung.kopf)); wahr(/Teamstimmung 0/.test(t.S.ende.grund));
   wahr(t.S.ende.wertung.kopf.indexOf('Press F') < 0);
-  gleich(D.Spiel.VERSION, '0.24');
+  gleich(D.Spiel.VERSION, '0.25');
   wahr(D.Gfx.MIN_SCHRIFT <= 7);
 });
 
@@ -843,9 +844,9 @@ test('42 DPR-Begrenzung: MAX_DPR = 2, setzeAufloesung und begrenzDpr kappen', fu
   wahr(sk === R.canvas.width / R.W, 'Skala konsistent');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
   wahr(/begrenzDpr|MAX_DPR/.test(main), 'main nutzt DPR-Begrenzung');
-  wahr(/VERSION\s*=\s*['"]0\.24['"]/.test(main), 'VERSION 0.24');
+  wahr(/VERSION\s*=\s*['"]0\.25['"]/.test(main), 'VERSION 0.25');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  wahr(/main\.js\?v=0\.24/.test(html), 'Cache-Buster v=0.24');
+  wahr(/main\.js\?v=0\.25/.test(html), 'Cache-Buster v=0.25');
 });
 
 test('43 Hochformat-Layout: Playlist und Menues passen in PORT_H', function () {
@@ -1358,11 +1359,11 @@ test('72 Quer BASE 320x176: VH == H/zoom, Flaeche >= 3', function () {
 
 test('73 Versionen: VERSION 0.13, ?v=0.13, README v10, Bau-Bericht v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.24');
+  gleich(D.Spiel.VERSION, '0.25');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster vorhanden');
-  vs.forEach(function (v) { gleich(v, '?v=0.24', 'Cache-Buster ' + v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.25', 'Cache-Buster ' + v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v13/.test(readme), 'README Neu in v13');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
@@ -1660,11 +1661,11 @@ test('82 Stick: Totzone, cancel=0, zweiter Finger ignoriert, E gleichzeitig', fu
 
 test('83 Versionen: VERSION 0.13, ?v=0.13, README v10, Bau-Bericht v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.24');
+  gleich(D.Spiel.VERSION, '0.25');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.24', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.25', v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v13/.test(readme), 'README Neu in v13');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
@@ -2035,10 +2036,10 @@ test('96 Durchspiel-Bot Seeds 1/7/42 Hoch-Touch und Quer', function () {
 
 test('97 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.24');
+  gleich(D.Spiel.VERSION, '0.25');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
-  vs.forEach(function (v) { gleich(v, '?v=0.24', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.25', v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v13/.test(readme), 'README Neu in v13');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
@@ -2265,11 +2266,11 @@ test('106 Bot-Durchspiel Seeds 1/7/42 Hoch+Quer ohne Soft-Lock/…', function ()
 
 test('107 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.24');
+  gleich(D.Spiel.VERSION, '0.25');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0);
-  vs.forEach(function (v) { gleich(v, '?v=0.24', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.25', v); });
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
@@ -2628,12 +2629,12 @@ test('117 Bot Seeds 1/7/42 Hoch+Quer, Darstellung ändert Logik nicht', function
 
 test('118 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.24');
+  gleich(D.Spiel.VERSION, '0.25');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0);
-  vs.forEach(function (v) { gleich(v, '?v=0.24', v); });
-  wahr(/partikel\.js\?v=0\.24/.test(html), 'partikel eingebunden');
+  vs.forEach(function (v) { gleich(v, '?v=0.25', v); });
+  wahr(/partikel\.js\?v=0\.25/.test(html), 'partikel eingebunden');
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
@@ -3036,9 +3037,9 @@ test('132 Touch-Größen v10 ≥44 / Kreis ≥36', function () {
 
 test('133 Versionen v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.24');
+  gleich(D.Spiel.VERSION, '0.25');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.24', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.25', v); });
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
@@ -3202,20 +3203,20 @@ function versionMitte(log, W) {
   if (!log.meta) return null;
   for (var i = 0; i < log.meta.length; i++) {
     var m = log.meta[i];
-    if (m.text === 'v0.24' && m.align === 'center' && Math.abs(m.x - W / 2) <= 1 && !m.stroke) return m;
+    if (m.text === 'v0.25' && m.align === 'center' && Math.abs(m.x - W / 2) <= 1 && !m.stroke) return m;
   }
   return null;
 }
 
 test('149 Versionen v14: VERSION, Cache-Buster, README, Bau-Bericht', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.24');
+  gleich(D.Spiel.VERSION, '0.25');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
-  wahr(/VERSION\s*=\s*['"]0\.24['"]/.test(main), 'main.js VERSION 0.24');
+  wahr(/VERSION\s*=\s*['"]0\.25['"]/.test(main), 'main.js VERSION 0.25');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.24', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.25', v); });
   wahr(/Neu in v14/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v14');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v14.md')), 'bau-bericht-v14.md');
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v13 bleibt');
@@ -3246,7 +3247,7 @@ test('150 Versionsanzeige mittig: Start/Spiel/Ende in drei Layouts', function ()
       else { t.S.zustand = 'start'; }
       D.Render.zeichne(R, t.S);
       if (z === 'start' && !lay.hoch) wahr(R.hudVersion && R.hudVersion.y > 20, 'v16: Version im Quer-Startbild nicht auf dem Titel');
-      else wahr(!!versionMitte(log, R.W), 'v0.24 mittig @ ' + z + ' hoch=' + lay.hoch + ' touch=' + !!lay.touch);
+      else wahr(!!versionMitte(log, R.W), 'v0.25 mittig @ ' + z + ' hoch=' + lay.hoch + ' touch=' + !!lay.touch);
       var hv = R.hudVersion; wahr(!!hv, 'hudVersion gesetzt');
       var schneidet = function (a, b) { return a && b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; };
       if (lay.hoch) {
@@ -3270,7 +3271,9 @@ test('151 Raphael: Charakterdaten, pinkes Shirt, Raphi-Alias', function () {
   D.Charaktere.LISTE.forEach(function (c) { if (shirtPink(c.shirt)) pinkN++; });
   gleich(pinkN, 1, 'genau ein pinkes Shirt');
   wahr(!shirtPink(D.Charaktere.holen('ritzi').shirt), 'Ritzi nicht pink');
-  gleich(D.Charaktere.holen('Raphi').id, 'raphael');
+  gleich(rap.name, 'Probst');
+  wahr(!rap.alias, 'kein Raphi-Alias');
+  gleich(D.Charaktere.holen('Raphi'), null);
 });
 
 test('152 Raphael zeichnen: figur alle Richtungen, kaeppi im Quelltext', function () {
@@ -3295,7 +3298,7 @@ test('153 Namensschild: kein Schild, kein alleinstehendes Raphael ohne Blase', f
     D.Render.zeichne(R, t.S);
     return log;
   }
-  function allein(log) { return log.some(function (s) { return s === 'Raphael'; }); }
+  function allein(log) { return log.some(function (s) { return s === 'Probst'; }); }
   var tr = neuesSpielTest(D, { figur: 'raphael' });
   tr.Sp.setze(tr.S, { minute: 14 * 60 });
   tr.S.spieler.x = 25 * K + 8; tr.S.spieler.y = 13 * K + 8;
@@ -3313,8 +3316,7 @@ test('153 Namensschild: kein Schild, kein alleinstehendes Raphael ohne Blase', f
   wahr(!allein(logNpc), 'NPC Raphael ohne Namensschild');
   rap.blase = { text: 'Hyper Hyper!', rest: D.Hinweise.BLASE_SEK };
   var logBlase = zeichneSpiel(tt, tt.S.spieler.x, tt.S.spieler.y - 8);
-  wahr(hatRaphaelImLog(logBlase), 'echte Blase bleibt im Log');
-  wahr(logBlase.some(function (s) { return typeof s === 'string' && s.indexOf('Raphael:') === 0; }), 'Prefix Raphael:');
+  wahr(logBlase.some(function (s) { return typeof s === 'string' && s.indexOf('Probst:') === 0; }), 'Prefix Probst:');
   wahr(!allein(logBlase), 'Blase ist kein Namensschild');
 });
 
@@ -3894,11 +3896,11 @@ test('181 Starship-Modell bei S21: Prop in propsFuer, Y-sortiert', function () {
 
 test('182 Versionstest v14', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.24');
+  gleich(D.Spiel.VERSION, '0.25');
   wahr(/Neu in v14/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v14.md')));
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  wahr(/motocross\.js\?v=0\.24/.test(html) && /s21\.js\?v=0\.24/.test(html), 'Module in index');
+  wahr(/motocross\.js\?v=0\.25/.test(html) && /s21\.js\?v=0\.25/.test(html), 'Module in index');
   wahr(!!D.Motocross && !!D.S21, 'Module geladen');
 });
 
@@ -3926,14 +3928,14 @@ test('183 Render-Smoke: Kamera S21 und Motocross, drei Layouts', function () {
 // ---------- v15: Elon, Maenner, Bierkasten ----------
 test('184 Version v15: VERSION, Cache-Buster, elon.js, README, Bau-Bericht', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.24');
+  gleich(D.Spiel.VERSION, '0.25');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
-  wahr(/VERSION\s*=\s*['"]0\.24['"]/.test(main), 'main.js VERSION 0.24');
+  wahr(/VERSION\s*=\s*['"]0\.25['"]/.test(main), 'main.js VERSION 0.25');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.24', v); });
-  wahr(/elon\.js\?v=0\.24/.test(html), 'elon.js in index');
+  vs.forEach(function (v) { gleich(v, '?v=0.25', v); });
+  wahr(/elon\.js\?v=0\.25/.test(html), 'elon.js in index');
   wahr(/Neu in v15/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v15');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v15.md')), 'bau-bericht-v15.md');
   wahr(!!D.Elon, 'Elon geladen');
@@ -4163,9 +4165,8 @@ test('196 Raphi-Gag: Pool, Sprecher nie Raphael, Blasen im Spiel', function () {
   var D = lade(), F = D.Frech;
   wahr(F.RAPHI.length >= 6, 'mehrere Varianten');
   F.RAPHI.forEach(function (t) {
-    wahr(/Raphi|Raphael/.test(t) && !/—|–/.test(t), t);
+    wahr(/Probst/.test(t) && !/Raphi|Raphael|Raffi/.test(t) && !/—|–/.test(t), t);
     wahr(/Anwärter|Gas|Einsatz|Press11|Mitglied/.test(t), 'nur Anwärter-Neckerei: ' + t);
-    if (/Raphael/.test(t)) wahr(/Anwärter/.test(t), 'Raphael nur in der Anwärter-Neckerei: ' + t);
   });
   wahr(F.RAPHI.some(function (t) { return /Press11/.test(t); }));
   wahr(F.RAPHI.some(function (t) { return /Gas|Einsatz/.test(t); }), 'mehr Gas');
@@ -4214,12 +4215,12 @@ test('198 Frech: Zwei-Blasen-Limit, Pool nur bei Sprecher weiter, kurze Raphi-Sa
 // ---------- v16: Auswahl, MxEvent, Himmelsbach, Motiv ----------
 test('199 Versionen 0.20: VERSION, Cache-Buster, README v16-Abschnitt bleibt', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.24');
+  gleich(D.Spiel.VERSION, '0.25');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.24', v); });
-  wahr(/mxevent\.js\?v=0\.24/.test(html) && /motiv\.js\?v=0\.24/.test(html), 'neue Module');
+  vs.forEach(function (v) { gleich(v, '?v=0.25', v); });
+  wahr(/mxevent\.js\?v=0\.25/.test(html) && /motiv\.js\?v=0\.25/.test(html), 'neue Module');
   wahr(/Neu in v16/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v16');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v16.md')), 'bau-bericht-v16.md');
   wahr(!!D.MxEvent && !!D.Motiv, 'Module geladen');
@@ -4295,8 +4296,10 @@ test('203 AUSWAHL-Daten: 9 Karten, Reihenfolge, Namen, keine NPCs-only', functio
   gleich(D.Charaktere.holen('bundschuh').name, 'Bundschuh');
   chars.forEach(function (c) {
     wahr(c.auswahl && c.auswahl.rolle && c.auswahl.plus, c.id + ' auswahl');
-    if (c.id === 'schwinki') wahr(!c.auswahl.minus, 'Schwinki ohne Schwäche');
+    if (c.id === 'schwinki') gleich(c.auswahl.minus, 'keine Schwäche');
     else wahr(c.auswahl.minus, c.id + ' minus');
+    if (c.id === 'tobi') { gleich(c.auswahl.rolle, 'Tesla-Tobi, Elon-Fanboy'); gleich(c.auswahl.plus, 'Elon-Sprüche, neu dabei'); }
+    if (c.id === 'raphael') { gleich(c.name, 'Probst'); wahr(!c.alias, 'Karte zeigt den Namen, kein Raphi-Alias'); }
   });
   ['tobias', 'schwickendorf', 'probst'].forEach(function (id) {
     wahr(!A.some(function (e) { return e.id === id; }), id + ' nicht in AUSWAHL');
@@ -4491,8 +4494,8 @@ test('210 Auswahl-Layout 9 Karten: kein Overlap, Knöpfe und Titel sichtbar', fu
     var nx = Object.keys(xs).length;
     if (lay.hoch) wahr(nx <= 3, 'hoch Spalten');
     else gleich(nx, 3, 'quer 3 Spalten');
-    ['Vernünftig', 'Zeise', 'Raphi', 'Bundschuh', 'Schwinki', 'Siebold'].forEach(function (w) {
-      wahr(log.some(function (s) { return typeof s === 'string' && s.indexOf(w) >= 0; }), w);
+    ['Vernünftig', 'Zeise', 'Probst', 'Bundschuh', 'Schwinki', 'Siebold', 'neu dabei', 'keine Schwäche'].forEach(function (w) {
+      wahr(log.some(function (s) { return typeof s === 'string' && s.indexOf(w) >= 0; }), w + ' @' + (lay.hoch ? 'hoch' : 'quer'));
     });
     var minusN = log.filter(function (s) { return typeof s === 'string' && /^- /.test(s); }).length;
     wahr(minusN >= 8, 'Minus-Zeilen ohne Schwinki @' + (lay.hoch ? 'hoch' : 'quer') + (lay.touch ? ' touch' : '') + ': ' + minusN);
@@ -4506,9 +4509,12 @@ test('211 Umbenennungen v18: keine alten Namen in js/*.js, ids, Alias, Version',
     var code = q.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
     wahr(!/Raffi|RAFFI|raffi|Kevin|kevin|Seabolt|Bunschu|Buntschu|buntschuh/.test(code), f + ' ohne alte Namen');
   });
-  gleich(D.Charaktere.holen('raphael').alias, 'Raphi');
-  gleich(D.Charaktere.holen('Raphi').id, 'raphael');
+  gleich(D.Charaktere.holen('raphael').name, 'Probst');
+  wahr(!D.Charaktere.holen('raphael').alias, 'Alias Raphi weg');
+  gleich(D.Charaktere.holen('Raphi'), null);
   gleich(D.Charaktere.holen('raffi'), null);
+  gleich(D.Charaktere.holen('probst').id, 'probst');
+  gleich(D.Charaktere.holen('probst').name, 'Probst');
   gleich(D.Charaktere.holen('bundschuh').name, 'Bundschuh');
   gleich(D.Charaktere.holen('buntschuh'), null);
   gleich(D.Charaktere.holen('siebold').name, 'Siebold');
@@ -4517,9 +4523,9 @@ test('211 Umbenennungen v18: keine alten Namen in js/*.js, ids, Alias, Version',
   gleich(D.Charaktere.holen('schwickendorf').name, 'Schwickendorf');
   wahr(!!D.Hinweise.FIGUR.schwinki && !!D.Hinweise.FIGUR.tobi && !D.Hinweise.FIGUR.bundschuh && !D.Hinweise.FIGUR.buntschuh && !D.Hinweise.FIGUR.kevin, 'FIGUR-Keys');
   wahr(!!D.Frech.RAPHI && !D.Frech.RAFFI, 'Frech RAPHI');
-  gleich(D.Spiel.VERSION, '0.24');
+  gleich(D.Spiel.VERSION, '0.25');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.24', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.25', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v17/.test(rd) && !/Raffi/.test(rd.split('## Neu in v16')[0]), 'README v17');
   wahr(/Neu in v18/.test(rd), 'README Neu in v18');
@@ -4598,7 +4604,8 @@ test('214 Scooter-Blasen: Pool >= 24, <= 40 Zeichen, spruch nur aus Pool, rng ge
   wahr(!!n1 && S.indexOf(n1.blase.text) >= 0, 'sprechen nutzt Scooter-Pool');
   wahr(D.Frech.FRECH.indexOf('Probst, du Arschloch!') >= 0, 'Frech.FRECH Probst');
   wahr(D.Frech.RAPHI.every(function (x) { return /Anwärter|Gas|Einsatz|Press11|Mitglied/.test(x); }), 'Raphi-Gag nur Anwärter');
-  wahr(D.Frech.RAPHI.some(function (x) { return /Raphael/.test(x) && /Anwärter/.test(x); }), 'Raphael nur in der Neckerei');
+  wahr(D.Frech.RAPHI.some(function (x) { return /Probst bleibt Anwärter/.test(x); }), 'Probst in der Neckerei');
+  wahr(!D.Frech.RAPHI.some(function (x) { return /Raphi|Raphael|Raffi/.test(x); }), 'Gag ohne alten Namen');
   wahr(!!D.S21, 'S21 vorhanden');
   wahr(!!D.Elon, 'Elon vorhanden');
   wahr(!!D.Motiv, 'Motiv vorhanden');
@@ -4612,8 +4619,11 @@ test('215 Nachtrag v18: Schwinki Nachschub und frueh heim, Tobi ohne starke Rund
   var D = lade(), C = D.Charaktere;
   var sw = C.holen('schwinki'), tb = C.holen('tobi'), rp = C.holen('raphael');
   gleich(sw.auswahl.plus, 'hat immer Nachschub dabei');
-  wahr(!sw.auswahl.minus && !sw.gehtAb, 'Schwinki ohne Schwäche und ohne frühes Heim');
-  wahr(!/Vernünftig|früher|heim|Schwäche/.test(JSON.stringify(sw.auswahl)), 'Karte ohne Schwäche');
+  gleich(sw.auswahl.minus, 'keine Schwäche');
+  wahr(!sw.gehtAb, 'Schwinki geht nicht früher heim');
+  wahr(!/Vernünftig|früher|heim/.test(JSON.stringify(sw.auswahl)), 'Karte ohne Heim-Text');
+  gleich(tb.auswahl.rolle, 'Tesla-Tobi, Elon-Fanboy');
+  gleich(tb.auswahl.plus, 'Elon-Sprüche, neu dabei');
   var ze = C.holen('zeise');
   gleich(ze.gehtAb, 25 * 60);
   gleich(ze.auswahl.rolle, 'Der Vernünftige');
@@ -4799,9 +4809,9 @@ test('221 Karten im Spiel: Nachschub, Gas, Trinkspiel, Überblick, Heim', functi
 
 test('222 v20: Zeise heim, Schwinki ohne Bremse, Tobi Elon, Siebold-Spiele, Raphi-Gag', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.24');
+  gleich(D.Spiel.VERSION, '0.25');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.24', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.25', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v20/.test(rd) && /Neu in v19/.test(rd), 'README v20 und v19');
   wahr(/Legendäres Gründungsmitglied/.test(rd), 'README Zeise');
@@ -4855,12 +4865,12 @@ test('222 v20: Zeise heim, Schwinki ohne Bremse, Tobi Elon, Siebold-Spiele, Raph
 
 test('224 v21 Versionen', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.24');
+  gleich(D.Spiel.VERSION, '0.25');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.24', v); });
-  wahr(/stadtvolk\.js\?v=0\.24/.test(html), 'stadtvolk.js im HTML');
+  vs.forEach(function (v) { gleich(v, '?v=0.25', v); });
+  wahr(/stadtvolk\.js\?v=0\.25/.test(html), 'stadtvolk.js im HTML');
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v21/.test(rd) && /Neu in v20/.test(rd) && /Neu in v19/.test(rd), 'README v21, v20, v19');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v21.md')), 'bau-bericht-v21.md');
@@ -5068,10 +5078,10 @@ test('223 v20 Zoom: Hoch+Touch naeher, Quer bleibt 0.5', function () {
 
 test('230 v22: Namensschild weg, Blasen 4,5 s, Zeise Legendär', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.24');
+  gleich(D.Spiel.VERSION, '0.25');
   gleich(D.Hinweise.BLASE_SEK, 4.5);
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.24', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.25', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v22/.test(rd) && /Namensschild über Raphael entfernt/.test(rd), 'README v22');
   wahr(/Neu in v21/.test(rd), 'README v21 bleibt');
@@ -5091,7 +5101,7 @@ test('230 v22: Namensschild weg, Blasen 4,5 s, Zeise Legendär', function () {
   gleich(ze.auswahl.minus, 'geht immer früher nach Hause');
   gleich(ze.gehtAb, 25 * 60);
   wahr(!/Bier/.test(ze.spruch), 'Spruch ohne Bier');
-  wahr(D.Frech.RAPHI.indexOf('Raphael bleibt Anwärter, bis er Gas gibt.') >= 0, 'Anwärter-Neckerei bleibt');
+  wahr(D.Frech.RAPHI.indexOf('Probst bleibt Anwärter, bis er Gas gibt.') >= 0, 'Anwärter-Neckerei bleibt');
   wahr(!D.Hinweise.SCOOTER.some(function (x) { return /Raphael/.test(x); }), 'Scooter ohne Raphael');
   var list = D.NPCs.erstelle('tobi');
   list.forEach(function (n) { if (!n.char.kommtAb) { n.aktiv = true; n.liegt = false; n.karteId = 'stadt'; n.blase = null; } });
@@ -5104,14 +5114,14 @@ test('230 v22: Namensschild weg, Blasen 4,5 s, Zeise Legendär', function () {
 
 test('231 v23 Titel: Press11 - Stuttgart Edition', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.24');
+  gleich(D.Spiel.VERSION, '0.25');
   gleich(D.Hinweise.TITEL, 'Press11 - Stuttgart Edition');
   wahr(D.Hinweise.HINWEIS_VOLL.indexOf('Press11 - Stuttgart Edition') === 0, 'Hinweis beginnt mit dem Titel');
   wahr(!/Saufi Saufi/.test(D.Hinweise.HINWEIS_VOLL), 'Hinweis ohne alten Titel');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   wahr(/<title>Press11 - Stuttgart Edition \(18\+\)<\/title>/.test(html), 'Seitentitel');
   wahr(/aria-label="Press11 - Stuttgart Edition"/.test(html), 'Canvas-Name');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.24', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.25', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/^# Press11 - Stuttgart Edition$/m.test(rd), 'README-Ueberschrift');
   wahr(/Neu in v23/.test(rd) && /Neu in v22/.test(rd), 'README v23 und v22');
@@ -5124,7 +5134,7 @@ test('231 v23 Titel: Press11 - Stuttgart Edition', function () {
 
 test('232 v24 PRESSELF-Vorschaubild', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.24');
+  gleich(D.Spiel.VERSION, '0.25');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var bild = 'https://topsentopsen.github.io/press11-saufi-saufi/assets/og-presself.png';
   wahr(/property="og:title" content="Press11 - Stuttgart Edition"/.test(html), 'og:title');
@@ -5151,6 +5161,134 @@ test('232 v24 PRESSELF-Vorschaubild', function () {
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v24/.test(rd) && /og-presself\.png/.test(rd), 'README v24');
   wahr(/Neu in v23/.test(rd), 'README v23 bleibt');
+});
+
+function ladeFeedback() {
+  var ctx = { console: console, Math: Math, encodeURIComponent: encodeURIComponent, decodeURIComponent: decodeURIComponent };
+  vm.createContext(ctx);
+  vm.runInContext('globalThis.globalThis = globalThis;', ctx);
+  var f = path.join(ROOT, 'feedback', 'feedback.js');
+  vm.runInContext(fs.readFileSync(f, 'utf8'), ctx, { filename: f });
+  return ctx.Press11Feedback;
+}
+function feedbackQuery(url) {
+  var q = String(url).split('?')[1] || '';
+  var o = {};
+  q.split('&').forEach(function (p) {
+    var i = p.indexOf('=');
+    o[decodeURIComponent(p.slice(0, i))] = decodeURIComponent(p.slice(i + 1));
+  });
+  return o;
+}
+function fakeFeedbackForm(name, text) {
+  function knoten() { return { hidden: true, textContent: '', href: '', value: '' }; }
+  var els = {
+    '[name="name"]': { value: name },
+    '[name="text"]': { value: text },
+    '#bestaetigung': knoten(),
+    '[data-meldung]': knoten(),
+    '[data-linkzeile]': knoten(),
+    '[data-issue-link]': knoten()
+  };
+  var handler = null;
+  return {
+    els: els,
+    querySelector: function (sel) { return els[sel] || null; },
+    addEventListener: function (typ, fn) { if (typ === 'submit') handler = fn; },
+    abschicken: function () {
+      var ev = { prevented: false, preventDefault: function () { this.prevented = true; } };
+      handler(ev);
+      return ev;
+    }
+  };
+}
+
+test('233 v25 Feedback-Seite: Formular, Entwurf, keine Schlüssel', function () {
+  var D = lade();
+  gleich(D.Spiel.VERSION, '0.25');
+  var spiel = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  wahr(!/feedback\//.test(spiel) && !/Press11 Feedback/.test(spiel), 'Spielseite ohne Feedback-Link');
+  ['js/main.js', 'js/render.js', 'js/hinweise.js'].forEach(function (f) {
+    var src = fs.readFileSync(path.join(ROOT, f), 'utf8');
+    wahr(src.indexOf('feedback/') < 0 && src.indexOf('Press11 Feedback') < 0, f + ' ohne Feedback-Link');
+  });
+  var seite = path.join(ROOT, 'feedback', 'index.html');
+  var jsPfad = path.join(ROOT, 'feedback', 'feedback.js');
+  wahr(fs.existsSync(seite), 'feedback/index.html');
+  wahr(fs.existsSync(jsPfad), 'feedback/feedback.js');
+  var html = fs.readFileSync(seite, 'utf8');
+  var js = fs.readFileSync(jsPfad, 'utf8');
+  wahr(/<title>Press11 Feedback<\/title>/.test(html), 'Titel');
+  wahr(/lang="de"/.test(html), 'deutsch');
+  wahr(/ab 18/.test(html) && /[Ff]iktives Spaß-Spiel/.test(html), 'Hinweis 18+');
+  wahr(/<form id="feedback-form">/.test(html), 'Formular');
+  wahr(/<input id="name" name="name" type="text"/.test(html), 'Name-Feld');
+  wahr(!/<input id="name"[^>]*\srequired/.test(html), 'Name nicht Pflicht');
+  wahr(/<textarea id="text" name="text" required/.test(html), 'Feedback Pflicht');
+  wahr(/<button type="submit">/.test(html), 'Submit');
+  wahr(/id="bestaetigung"/.test(html) && /data-meldung/.test(html) && /data-issue-link/.test(html), 'Bestaetigung');
+  wahr(/src="feedback\.js\?v=0\.25"/.test(html), 'Skript eingebunden');
+  wahr(/Press11Feedback\.bind\(/.test(html), 'Submit haengt an bind');
+  wahr(/Press11 0\.25/.test(html), 'Versionszeile');
+  wahr(!/<canvas/.test(html), 'keine Spielflaeche');
+  wahr(!/Schwäch|Nubi|neu dabei/.test(html), 'Feedback-Seite ohne Schwächen-Feld und ohne Nubi');
+  wahr(!/location\.(href|assign|replace)/.test(js), 'Seite bleibt stehen');
+  wahr(!/\bfetch\s*\(|XMLHttpRequest|api\.github\.com/.test(js), 'kein API-Aufruf');
+  var geheim = html + '\n' + js + '\n' + fs.readFileSync(path.join(ROOT, '.github', 'ISSUE_TEMPLATE', 'feedback.md'), 'utf8');
+  wahr(!/ghp_|github_pat_|gho_|access_token|Authorization\s*:|PRIVATE KEY/.test(geheim), 'keine Schlüssel');
+  wahr(js.indexOf('https://github.com/topsentopsen/press11-saufi-saufi/issues/new') >= 0, 'Ziel-Repo');
+  var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+  wahr(/Neu in v25/.test(rd) && /feedback\//.test(rd), 'README v25');
+  wahr(/Neu in v24/.test(rd), 'README v24 bleibt');
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v25.md')), 'bau-bericht-v25.md');
+  wahr(fs.existsSync(path.join(ROOT, '.github', 'ISSUE_TEMPLATE', 'feedback.md')), 'Issue-Vorlage');
+  var F = ladeFeedback();
+  gleich(F.koerper('   ', 'Hallo'), 'Hallo');
+  gleich(F.koerper('Ada', 'Hallo'), 'Name: Ada\n\nHallo');
+  gleich(F.titel('Hallo'), '[Feedback] Hallo');
+  gleich(F.titel('Zeile 1\nZeile 2'), '[Feedback] Zeile 1 Zeile 2');
+  var lang = new Array(81).join('a');
+  wahr(F.titel(lang).indexOf('[Feedback] ') === 0 && /…$/.test(F.titel(lang)) && F.titel(lang).indexOf('\n') < 0, 'Titel-Vorschau');
+  var url = F.issueUrl('O\'Neil "Max"', 'A & B?\n#C');
+  wahr(url.indexOf('https://github.com/topsentopsen/press11-saufi-saufi/issues/new?') === 0, 'New-Issue-URL');
+  wahr(url.indexOf(' ') < 0, 'kodiert');
+  var q = feedbackQuery(url);
+  gleich(q.title, '[Feedback] A & B? #C');
+  gleich(q.body, 'Name: O\'Neil "Max"\n\nA & B?\n#C');
+  wahr(q.body.indexOf('wurde hier gekürzt') < 0, 'kurzer Text bleibt ganz');
+  var viel = new Array(4001).join('ä');
+  var langUrl = F.issueUrl('N', viel);
+  wahr(langUrl.length < 8192, 'Issue-URL ' + langUrl.length);
+  var login = 'https://github.com/login?return_to=' + encodeURIComponent(langUrl);
+  wahr(login.length < 8000, 'Login-Redirect ' + login.length);
+  var body = decodeURIComponent(langUrl.split('&body=')[1]);
+  wahr(body.indexOf('Name: N') === 0 && body.indexOf('wurde hier gekürzt') >= 0, 'langer Text gekürzt, Anfang bleibt');
+  var calls = [];
+  var form = fakeFeedbackForm('Ada', 'Super Runde');
+  F.bind(form, { oeffner: function (u) { calls.push(u); return true; } });
+  var ev = form.abschicken();
+  wahr(ev.prevented, 'Submit bricht Navigation ab');
+  gleich(calls.length, 1);
+  wahr(calls[0].indexOf('issues/new?') >= 0, 'Entwurf ohne API');
+  wahr(form.els['#bestaetigung'].hidden === false, 'Bestaetigung sichtbar');
+  wahr(form.els['[data-meldung]'].textContent.indexOf('bereit') >= 0, 'Text der Bestaetigung');
+  wahr(form.els['[data-meldung]'].textContent.indexOf('Submit new issue') >= 0, 'Hinweis auf den Klick bei GitHub');
+  gleich(form.els['[data-issue-link]'].href, calls[0]);
+  wahr(form.els['[data-linkzeile]'].hidden === false, 'Link zum Entwurf');
+  var leerCalls = [];
+  var leer = fakeFeedbackForm('Ada', '   \n  ');
+  F.bind(leer, { oeffner: function (u) { leerCalls.push(u); return true; } });
+  var evLeer = leer.abschicken();
+  wahr(evLeer.prevented, 'leeres Feedback bleibt auf der Seite');
+  gleich(leerCalls.length, 0, 'kein Entwurf ohne Text');
+  wahr(leer.els['[data-meldung]'].textContent.indexOf('Feedback') >= 0, 'Hinweis Pflichtfeld');
+  wahr(leer.els['[data-linkzeile]'].hidden === true, 'kein Link ohne Text');
+  var zu = fakeFeedbackForm('', 'Nur Text');
+  F.bind(zu, { oeffner: function () { return false; } });
+  zu.abschicken();
+  wahr(zu.els['[data-meldung]'].textContent.indexOf('bereit') >= 0, 'Bestaetigung auch wenn das Fenster blockiert ist');
+  wahr(zu.els['[data-issue-link]'].href.indexOf('issues/new?title=') >= 0, 'Link traegt den Entwurf');
+  gleich(feedbackQuery(zu.els['[data-issue-link]'].href).body, 'Nur Text');
 });
 
 tests.forEach(function (t) {
