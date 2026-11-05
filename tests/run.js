@@ -4169,6 +4169,21 @@ test('197 Freche Blasen: Varianten, Probst-Spruch, kein rng-Einfluss', function 
   gleich(t1.S.rng.next(), t2.S.rng.next(), 'rng unberuehrt');
 });
 
+test('198 Frech: Zwei-Blasen-Limit, Pool nur bei Sprecher weiter, kurze Raffi-Saetze', function () {
+  var D = lade(), F = D.Frech;
+  F.RAFFI.forEach(function (t) { wahr(t.length <= 50, 'kurz: ' + t); });
+  var t = neuesSpielTest(D); erledigt(t.S);
+  t.S.npcs.forEach(function (n, i) { n.karteId = t.S.ort; n.aktiv = true; n.liegt = false; n.blase = i < 2 ? { text: 'x', rest: 99 } : null; });
+  t.S.frech = { zuletzt: -999, n: 0, r: 0, f: 0 };
+  schritt(t.S, t.Sp, t.X, 0.2);
+  gleich(t.S.frech.n, 0, 'nicht weitergeschoben');
+  gleich(t.S.npcs.filter(function (n) { return n.blase; }).length, 2, 'Limit gehalten');
+  t.S.npcs[0].blase = null;
+  schritt(t.S, t.Sp, t.X, 0.2);
+  gleich(t.S.frech.n, 1, 'jetzt gesprochen');
+  wahr(t.S.npcs.some(function (n) { return n.blase && F.RAFFI.indexOf(n.blase.text) >= 0; }), 'erste Blase Raffi-Gag');
+});
+
 tests.forEach(function (t) {
   try { t.fn(); ok++; ausgabe.push('  ok   ' + t.name); }
   catch (e) { fehler++; ausgabe.push('  FAIL ' + t.name + '\n         ' + (e && e.stack ? e.stack.split('\n').slice(0, 3).join('\n         ') : e)); }

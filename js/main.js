@@ -744,10 +744,9 @@
     if (Saufi.Frech && !S.overlay && !S.uebergang) {
       if (!S.frech) S.frech = { zuletzt: 0, n: 0, r: 0, f: 0 };
       if (S.spielSek - S.frech.zuletzt >= Saufi.Frech.intervall(S.frech.n)) {
-        var fe = Saufi.Frech.naechster(S.frech);
-        var fn = Saufi.Frech.sprecher(S.npcs, S.ort, fe, S.frech.n);
-        S.frech.zuletzt = S.spielSek;
-        if (fn) fn.blase = { text: fe.text, rest: 3.5 };
+        var fe = Saufi.Frech.vorschau(S.frech);
+        var fn = Saufi.Frech.sprecher(S.npcs, S.ort, fe, (S.frech.n | 0) + 1);
+        if (fn) { Saufi.Frech.naechster(S.frech); S.frech.zuletzt = S.spielSek; fn.blase = { text: fe.text, rest: 3.5 }; }   // nur weiterschieben, wenn wirklich gesprochen
       }
     }
     // Starship-Meldungen (auch drinnen)

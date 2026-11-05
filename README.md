@@ -222,3 +222,7 @@ tests/run.js        Test-Runner
 ```
 
 Namespace: `window.Saufi`. Alle Orte, Straßen und Produkte sind erfunden.
+
+### v15 Nachtrag
+
+Raffi-Gag und freche Sprechblasen (js/frech.js) halten das Zwei-Blasen-Limit ein, Blasen werden gegeneinander gestaffelt, die Raffi-Sätze sind kurz.

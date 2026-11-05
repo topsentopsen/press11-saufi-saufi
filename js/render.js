@@ -409,7 +409,7 @@
     textInBox(c, name, x - tw / 2 + 1, y - 4, tw - 2, 8, 5.5, { col: P.uiTinte, ausr: 'center', min: 5, maxZeilen: 1 });
   }
 
-  function blase(c, x, y, s, vermeide) {
+  function blase(c, x, y, s, vermeide, belegt) {
     var pad = 8, maxW = Math.min(VW - 10, 150), ziel = 8;
     var mess = textInBox(c, s, 0, 0, maxW - pad, 48, ziel, { ausr: 'center', mess: true });
     var tw = Math.max(28, Math.min(maxW - pad, mess.w));
@@ -430,6 +430,15 @@
           by = Math.round(y - bh - 4);
         }
       }
+    }
+    // v15: Blasen gegeneinander staffeln (nach oben schieben, bis frei)
+    if (belegt) {
+      for (var gi = 0; gi < 6; gi++) {
+        var hit = belegt.filter(function (r) { return !(bx + bw <= r.x || r.x + r.w <= bx || by + bh <= r.y || r.y + r.h <= by); })[0];
+        if (!hit) break;
+        by = Math.round(hit.y - bh - 3);
+      }
+      belegt.push({ x: bx, y: by, w: bw, h: bh });
     }
     panel(c, bx, by, bw, bh, P.uiFlaeche, 5);
     poly(c, [[x - 2.2, by + bh - 0.8], [x + 2.2, by + bh - 0.8], [x, by + bh + 3.4]], P.uiFlaeche);
@@ -609,7 +618,7 @@
       c.restore();
     }
     // Blasen nach Lichtern (lesbar ueber Fensterlichtern)
-    (R.blasen || []).forEach(function (b) { blase(c, b.x, b.y, b.text, b.vermeide); });
+    var belegt = []; (R.blasen || []).forEach(function (b) { blase(c, b.x, b.y, b.text, b.vermeide, belegt); });
     var nacht = karte.innen ? 0 : Sz.nachtGrad(S.uhr.minute / 60);
     if (nacht > 0.05) {                                           // weiche Vignette in der Nacht
       var vg = c.createRadialGradient(viewW / 2, viewH / 2, viewH * 0.28, viewW / 2, viewH / 2, Math.max(viewW, viewH) * 0.72);
