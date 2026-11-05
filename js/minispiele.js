@@ -10,18 +10,34 @@
     { id: 'kings', name: 'Kings-Cup-light', ort: ['restaurant', 'kneipe'], dauer: 40 },
     { id: 'flunky', name: 'Flunkyball-Light', ort: ['disko'], dauer: 35 },
     { id: 'rhytmus', name: 'Zapfhahn-Rhythmus', ort: ['kneipe'], dauer: 20 },
-    { id: 'truth', name: 'Wahrheit oder Kurzer (soft)', ort: ['restaurant'], dauer: 30 }
+    { id: 'truth', name: 'Wahrheit oder Kurzer (soft)', ort: ['restaurant'], dauer: 30 },
+    { id: 'maexle', name: 'Mäxle', ort: ['kneipe', 'restaurant', 'disko'], dauer: 15 },
+    { id: 'dampfhammer', name: 'Dampfhammer', ort: ['kneipe', 'disko'], dauer: 25 },
+    { id: 'sinnlos', name: 'Sinnlos saufen', ort: ['kneipe', 'restaurant', 'disko'], dauer: 20 }
   ];
+
+  var SIEBOLD_ALIAS = { maexle: 'prost', dampfhammer: 'krug', sinnlos: 'deckel' };
+  var SIEBOLD_TITEL = { maexle: 'Mäxle', dampfhammer: 'Dampfhammer', sinnlos: 'Sinnlos saufen' };
 
   function eintraegeFuerOrt(ort) {
     return [
       { id: 'deckel', label: 'Minispiel: Bierdeckel-Flip', ortOk: ort === 'kneipe' },
       { id: 'prost', label: 'Minispiel: Reaktions-Prost', ortOk: ort === 'kneipe' || ort === 'restaurant' || ort === 'disko' },
-      { id: 'krug', label: 'Minispiel: Maßkrugstemmen', ortOk: ort === 'kneipe' || ort === 'disko' }
+      { id: 'krug', label: 'Minispiel: Maßkrugstemmen', ortOk: ort === 'kneipe' || ort === 'disko' },
+      { id: 'maexle', label: 'Mäxle', siebold: true, ortOk: ort === 'kneipe' || ort === 'restaurant' || ort === 'disko' },
+      { id: 'dampfhammer', label: 'Dampfhammer', siebold: true, ortOk: ort === 'kneipe' || ort === 'disko' },
+      { id: 'sinnlos', label: 'Sinnlos saufen', siebold: true, ortOk: ort === 'kneipe' || ort === 'restaurant' || ort === 'disko' }
     ].filter(function (e) { return e.ortOk; });
   }
 
   function starte(id, rng) {
+    if (SIEBOLD_ALIAS[id]) {
+      var genannt = starte(SIEBOLD_ALIAS[id], rng);
+      if (!genannt) return null;
+      genannt.angebot = id;
+      genannt.titel = SIEBOLD_TITEL[id];
+      return genannt;
+    }
     if (id === 'deckel') {
       return { id: id, art: 'minispiel', titel: 'Bierdeckel-Flip', t: 0, dauer: 18, ziel: 5, score: 0, phase: 'bereit', cool: 0,
         hinweis: 'E / Tippen im richtigen Moment (Balken voll). 5 Treffer!', index: 0,
@@ -81,11 +97,14 @@
   }
 
   function belohnung(mg) {
-    if (!mg || !mg.erfolg) return { punkte: 5, pegel: 0.02, team: 0, text: 'Abgebrochen/daneben. Trost-Schluck mental.' };
-    if (mg.id === 'deckel') return { punkte: 80, pegel: 0.05, team: 1, text: 'Bierdeckel-König! Team +1' };
-    if (mg.id === 'prost') return { punkte: 70, pegel: 0.08, team: 1, text: 'Reaktions-Prost gemeistert!' };
-    if (mg.id === 'krug') return { punkte: 90, pegel: 0.1, team: 0, stand: 3, text: 'Maßkrug gehalten. Arme aus Stahl(filz).' };
-    return { punkte: 40, pegel: 0.05, team: 0, text: 'Minispiel geschafft.' };
+    var b;
+    if (!mg || !mg.erfolg) b = { punkte: 5, pegel: 0.02, team: 0, text: 'Abgebrochen/daneben. Trost-Schluck mental.' };
+    else if (mg.id === 'deckel') b = { punkte: 80, pegel: 0.05, team: 1, text: 'Bierdeckel-König! Team +1' };
+    else if (mg.id === 'prost') b = { punkte: 70, pegel: 0.08, team: 1, text: 'Reaktions-Prost gemeistert!' };
+    else if (mg.id === 'krug') b = { punkte: 90, pegel: 0.1, team: 0, stand: 3, text: 'Maßkrug gehalten. Arme aus Stahl(filz).' };
+    else b = { punkte: 40, pegel: 0.05, team: 0, text: 'Minispiel geschafft.' };
+    if (mg && mg.angebot && mg.titel) b.text = mg.titel + ': ' + b.text;
+    return b;
   }
 
   Saufi.Minispiele = { IDEEN: IDEEN, eintraegeFuerOrt: eintraegeFuerOrt, starte: starte, update: update, belohnung: belohnung };

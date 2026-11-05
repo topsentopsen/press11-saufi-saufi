@@ -36,7 +36,8 @@
     'Suzuki!', 'Scooter!', 'Always Hardcore!', 'Respect to the man in the ice cream van!'
   ];
   var SPRUECHE = SCOOTER;
-  var FIGUR = {}; ['tobi','raphael','tobias','schwickendorf','bundschuh','ritzi','siebold','schwinki','stoeckle','probst','himmelsbach','zeise'].forEach(function (id) { FIGUR[id] = SCOOTER; });
+  // v20: Tobi und Bundschuh nicht im Scooter-Pool. Tobi bekommt den Elon-Pool aus elon.js.
+  var FIGUR = {}; ['raphael','tobias','schwickendorf','ritzi','siebold','schwinki','stoeckle','probst','himmelsbach','zeise'].forEach(function (id) { FIGUR[id] = SCOOTER; });
   var SITUATION = {}; ['mittrinken','essen','wasser','erwischt','umfallen','aufstehen','scooter','joint'].forEach(function (k) { SITUATION[k] = SCOOTER; });
   var ORT = {}; ['hotel','restaurant','kneipe','disko','stadt','motocross'].forEach(function (k) { ORT[k] = SCOOTER; });
   var PEGEL = {}; ['nuechtern','angeheitert','voll','absturz'].forEach(function (k) { PEGEL[k] = SCOOTER; });
@@ -59,12 +60,19 @@
 
   function pick(rng, arr) { return arr && arr.length ? (rng && rng.pick ? rng.pick(arr) : arr[Math.floor((rng ? rng.next() : Math.random()) * arr.length)]) : ''; }
 
-  // v18: immer Scooter-Pool. rng-Verbrauch wie vorher: genau 2 Aufrufe (next fuer Poolwahl, pick fuer Spruch)
+  // rng-Verbrauch: genau 2 Aufrufe (next fuer Poolwahl, pick fuer Spruch). Tobi nur Elon, Bundschuh gar kein Scooter.
   function spruch(rng, opt) {
     opt = opt || {};
-    var pools = [SCOOTER];
-    var chosenPool = pools[Math.floor((rng && rng.next ? rng.next() : Math.random()) * pools.length)] || SCOOTER;
-    return lallen(pick(rng, chosenPool) || SCOOTER[0], opt.pegel || 0);
+    if (opt.id === 'bundschuh') {
+      if (rng && rng.next) rng.next();
+      pick(rng, ['']);
+      return '';
+    }
+    var basis = SCOOTER;
+    if (opt.id === 'tobi' && Saufi.Elon && Saufi.Elon.ALLGEMEIN && Saufi.Elon.ALLGEMEIN.length) basis = Saufi.Elon.ALLGEMEIN;
+    var pools = [basis];
+    var chosenPool = pools[Math.floor((rng && rng.next ? rng.next() : Math.random()) * pools.length)] || basis;
+    return lallen(pick(rng, chosenPool) || basis[0], opt.pegel || 0);
   }
 
   function erstelle() { return { liste: [], t: 0 }; }

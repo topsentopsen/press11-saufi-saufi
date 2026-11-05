@@ -4,6 +4,14 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v20
+
+- Schwinki hat keine Schwäche: Nachschub bleibt, er geht nicht früher heim und wird nach 01:00 nicht langsamer.
+- Zeise ist der Vernünftige und Gründungsmitglied, mit allen Bieren dieser Welt gewaschen. Er geht früher nach Hause; spielt man ihn, werden die Beine nach 01:00 schwer.
+- Tobi redet nur über Elon. Bundschuh und Tobi nutzen keine Scooter-Sprechblasen.
+- Siebold schlägt als Game Master Mäxle, Dampfhammer und Sinnlos saufen vor (Hinweis, Blase, Tresen-Menü).
+- Raphi-Gag nur noch als Anwärter-Neckerei: noch kein Press11, mehr Gas. „Raphael“ nur in dieser Neckerei.
+
 ## Neu in v19
 
 - Tanzen wertet den Takt, den die Musik gerade spielt (96–150 BPM, Boost 172), nicht mehr fest 150. Die Tanzfläche pulst im selben Takt.

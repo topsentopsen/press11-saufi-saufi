@@ -224,7 +224,7 @@
   function ankommen(list, minute, karte, tx, ty) {
     var neu = [];
     list.forEach(function (n) {
-      // v18: Schwinki geht frueher nach Hause (ab gehtAb weg, kein rng)
+      // v20: Zeise geht frueher nach Hause (ab gehtAb weg, kein rng). Schwinki bleibt.
       if (n.aktiv && n.char.gehtAb && minute >= n.char.gehtAb) { n.aktiv = false; n.blase = null; n.weg = true; n.melde = 'heim'; return; }
       if (!n.aktiv && n.char.kommtAb && minute >= n.char.kommtAb) {
         n.aktiv = true; neu.push(n);
@@ -238,7 +238,12 @@
   function sprechen(list, rng, karteId, pegel) {
     var aktivBlasen = list.filter(function (n) { return n.blase; }).length;
     if (aktivBlasen >= 2) return null;
-    var kandidaten = list.filter(function (n) { return n.aktiv && !n.liegt && n.karteId === karteId && !n.blase; });
+    // v20: Bundschuh und Tobi nicht aus dem Scooter-Pool. Tobi redet nur Elon (main.js).
+    var kandidaten = list.filter(function (n) {
+      if (!n.aktiv || n.liegt || n.karteId !== karteId || n.blase) return false;
+      if (n.id === 'bundschuh' || n.id === 'tobi') return false;
+      return true;
+    });
     if (!kandidaten.length) return null;
     var n = rng.pick(kandidaten);
     var text = (Saufi.Hinweise && Saufi.Hinweise.spruch)

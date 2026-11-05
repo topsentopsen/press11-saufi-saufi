@@ -48,5 +48,9 @@
     return text;
   }
 
+  if (Saufi.Hinweise && Saufi.Hinweise.FIGUR) {
+    Saufi.Hinweise.FIGUR.tobi = ALLGEMEIN.concat(KONTEXT.tribuene, KONTEXT.s21, KONTEXT.kneipe);
+  }
+
   Saufi.Elon = { ALLGEMEIN: ALLGEMEIN, KONTEXT: KONTEXT, intervall: intervall, naechster: naechster };
 })(globalThis);

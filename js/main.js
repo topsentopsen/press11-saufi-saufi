@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.19', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.20', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function wendeCharStats(S, char) {
@@ -723,6 +723,8 @@
     if (!selbst && !npc) return;
     if (S.overlay || S.uebergang || S.zustand !== 'spiel') return;
     var spiele = Saufi.Minispiele.eintraegeFuerOrt(S.ort);
+    var benannt = spiele.filter(function (e) { return e.siebold; });
+    if (benannt.length) spiele = benannt;
     if (!spiele.length || Saufi.Runden.aktive(S.runden)) return;
     if (S.spielSek - S.gm.zuletzt < 55) return;
     S.gm.zuletzt = S.spielSek;
@@ -841,7 +843,7 @@
       var heimMul = 1;
       if (S.char && S.char.gehtAb && m >= S.char.gehtAb) {
         heimMul = 0.86;
-        if (!S.heimHinweis) { S.heimHinweis = true; sag(S, 'Schwinki will früher heim. Die Beine werden schwer.', 3, 'info'); }
+        if (!S.heimHinweis) { S.heimHinweis = true; sag(S, S.char.name + ' will früher heim. Die Beine werden schwer.', 3, 'info'); }
       }
       var faktor = Saufi.Ereignisse.Boost.bewegung(S.boost) * Saufi.Pegel.bewegung(fig, m) * Saufi.Ereignisse.Joint.bewegung(S.joint) * (S.char.tempo != null ? S.char.tempo : 1) * heimMul;
       Saufi.Spieler.bewegung(sp, achse, fig.pegel, dt, S.t, faktor, S.karte);
@@ -858,26 +860,43 @@
         if (freund && !freund.blase) freund.blase = { text: spr, rest: 3.5 };
       }
     }
-    // Elon-Spruch (nur Tobi, kein rng, nach S21-Block wegen Abklingzeit)
-    if (Saufi.Elon && S.char && S.char.id === 'tobi' && !S.overlay && !S.uebergang && !sp.liegt && sp.isst <= 0) {
-      if (!S.elon) S.elon = { zuletzt: 0, n: 0, idx: {} };
-      if (!S.s21) S.s21 = { zuletzt: -999, n: 0, gemeldet: null };
-      var elonOk = S.spielSek - S.elon.zuletzt >= Saufi.Elon.intervall(S.elon.n);
-      var s21Frei = S.spielSek - S.s21.zuletzt >= 12;
-      var grossAktiv = S.hinweise.liste.some(function (h) { return h.art === 'gross' && h.rest > 0; });
-      if (elonOk && s21Frei && !grossAktiv) {
-        var eKon = null;
-        if (S.ort === 'kneipe') eKon = 'kneipe';
-        else if (S.ort === 'stadt') {
-          if (S.karte.s21 && Saufi.S21.naheBeiBaustelle(sp.x, sp.y, S.karte.s21, 40)) eKon = 's21';
-          else {
-            var trib = stationDe(S.karte, 'tribuene');
-            if (trib && Saufi.Karte.abstand(sp.x, sp.y, trib) <= 48) eKon = 'tribuene';
-          }
+    // Elon-Spruch (Tobi, kein rng). Als Spieler Hinweis, als NPC nur Elon-Blase, nie Scooter.
+    if (Saufi.Elon && !S.overlay && !S.uebergang) {
+      var tobiSelbst = S.char && S.char.id === 'tobi' && !sp.liegt && sp.isst <= 0;
+      var tobiFreund = null;
+      if (!tobiSelbst) {
+        var ti;
+        for (ti = 0; ti < S.npcs.length; ti++) {
+          var tn = S.npcs[ti];
+          if (tn.id === 'tobi' && tn.aktiv && !tn.liegt && !tn.weg && tn.karteId === S.ort && !tn.blase) { tobiFreund = tn; break; }
         }
-        var eTxt = Saufi.Elon.naechster(S.elon, eKon);
-        S.elon.zuletzt = S.spielSek;
-        sag(S, 'Tobi: ' + eTxt, 3.5, 'info');
+      }
+      if (tobiSelbst || tobiFreund) {
+        var elonState = tobiSelbst ? S.elon : S.elonNpc;
+        if (!elonState) {
+          elonState = { zuletzt: 0, n: 0, idx: {} };
+          if (tobiSelbst) S.elon = elonState; else S.elonNpc = elonState;
+        }
+        if (!S.s21) S.s21 = { zuletzt: -999, n: 0, gemeldet: null };
+        var elonOk = S.spielSek - elonState.zuletzt >= Saufi.Elon.intervall(elonState.n);
+        var s21Frei = S.spielSek - S.s21.zuletzt >= 12;
+        var grossAktiv = S.hinweise.liste.some(function (h) { return h.art === 'gross' && h.rest > 0; });
+        if (elonOk && s21Frei && !grossAktiv) {
+          var eKon = null;
+          var ex = tobiFreund ? tobiFreund.x : sp.x, ey = tobiFreund ? tobiFreund.y : sp.y;
+          if (S.ort === 'kneipe') eKon = 'kneipe';
+          else if (S.ort === 'stadt') {
+            if (S.karte.s21 && Saufi.S21.naheBeiBaustelle(ex, ey, S.karte.s21, 40)) eKon = 's21';
+            else {
+              var trib = stationDe(S.karte, 'tribuene');
+              if (trib && Saufi.Karte.abstand(ex, ey, trib) <= 48) eKon = 'tribuene';
+            }
+          }
+          var eTxt = Saufi.Elon.naechster(elonState, eKon);
+          elonState.zuletzt = S.spielSek;
+          if (tobiSelbst) sag(S, 'Tobi: ' + eTxt, 3.5, 'info');
+          else tobiFreund.blase = { text: eTxt, rest: 3.5 };
+        }
       }
     }
     // v15: Raphi-Gag und freche Blasen (eigener Zaehler, kein rng)
