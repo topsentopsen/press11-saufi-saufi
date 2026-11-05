@@ -5227,7 +5227,7 @@ test('233 v25 Feedback-Seite: Formular, Entwurf, keine Schlüssel', function () 
   wahr(/<textarea id="text" name="text" required/.test(html), 'Feedback Pflicht');
   wahr(/<button type="submit">/.test(html), 'Submit');
   wahr(/id="bestaetigung"/.test(html) && /data-meldung/.test(html) && /data-issue-link/.test(html), 'Bestaetigung');
-  wahr(/src="feedback\.js\?v=0\.26"/.test(html), 'Skript eingebunden');
+  wahr(/src="feedback\.js\?v=0\.26\.1"/.test(html), 'Skript eingebunden');
   wahr(/Press11Feedback\.bind\(/.test(html), 'Submit haengt an bind');
   wahr(/Press11 0\.26/.test(html), 'Versionszeile');
   wahr(!/<canvas/.test(html), 'keine Spielflaeche');
@@ -5411,6 +5411,66 @@ test('235 v26 Auswahl-Musik: eigener Hardstyle-Loop, kein Track-File', function 
   wahr(!music.some(function (n) { return /\.mp3$/i.test(n); }), 'kein MP3 in music/');
   var bericht = fs.readFileSync(path.join(ROOT, 'docs', 'bau-bericht-v26.md'), 'utf8');
   wahr(/WebAudio/.test(bericht) && /kein Scooter-MP3|kein kommerzielles Track/i.test(bericht), 'Bau-Bericht');
+});
+
+test('236 Feedback: leeres ziel.json faellt auf raw und Worker zurueck', function () {
+  var F = ladeFeedback();
+  var FALLBACK = 'https://press11-feedback-eingang.zengel-tobias.workers.dev';
+  var RAW = 'https://raw.githubusercontent.com/topsentopsen/press11-saufi-saufi/main/feedback/ziel.json';
+  var html = fs.readFileSync(path.join(ROOT, 'feedback', 'index.html'), 'utf8');
+  wahr(/Live-Pfad: feedback\/ziel\.json zeigt auf https:\/\/press11-feedback-eingang\.zengel-tobias\.workers\.dev/.test(html), 'HTML-Kommentar Worker-URL');
+  var ziel = JSON.parse(fs.readFileSync(path.join(ROOT, 'feedback', 'ziel.json'), 'utf8'));
+  gleich(ziel.url, FALLBACK);
+  var js = fs.readFileSync(path.join(ROOT, 'feedback', 'feedback.js'), 'utf8');
+  wahr(js.indexOf('FALLBACK_EINGANG') >= 0 && js.indexOf(RAW) >= 0, 'Fallback-Kette');
+  wahr(!/ghp_|github_pat_|gho_|access_token|Authorization\s*:|PRIVATE KEY/.test(js), 'kein Geheimnis');
+  function jsonRes(data) {
+    return { ok: true, json: function () { return Promise.resolve(data); } };
+  }
+  function sendeMit(hole) {
+    return F.sende('Ada', 'Hallo', 'feedback', { hole: hole });
+  }
+  var calls1 = [];
+  return sendeMit(function (url, opt) {
+    calls1.push(url);
+    if (url === 'ziel.json') return Promise.resolve(jsonRes({ url: 'https://eingang.test/direkt' }));
+    if (opt && opt.method === 'POST') return Promise.resolve(jsonRes({ ok: true }));
+    throw new Error('unerwartet ' + url);
+  }).then(function (erg) {
+    gleich(erg.ok, true);
+    gleich(calls1.join('|'), 'ziel.json|https://eingang.test/direkt');
+    var calls2 = [];
+    return sendeMit(function (url, opt) {
+      calls2.push(url);
+      if (url === 'ziel.json') return Promise.resolve(jsonRes({ url: '' }));
+      if (url === RAW) return Promise.resolve(jsonRes({ url: FALLBACK }));
+      if (opt && opt.method === 'POST') return Promise.resolve(jsonRes({ ok: true }));
+      throw new Error('unerwartet ' + url);
+    }).then(function (erg2) {
+      gleich(erg2.ok, true);
+      gleich(calls2.join('|'), 'ziel.json|' + RAW + '|' + FALLBACK);
+      var calls3 = [];
+      return sendeMit(function (url, opt) {
+        calls3.push(url);
+        if (opt && opt.method === 'POST') return Promise.resolve(jsonRes({ ok: true }));
+        return Promise.resolve(jsonRes({ url: '  ' }));
+      }).then(function (erg3) {
+        gleich(erg3.ok, true);
+        gleich(calls3.join('|'), 'ziel.json|' + RAW + '|' + FALLBACK);
+        var calls4 = [];
+        return sendeMit(function (url, opt) {
+          calls4.push(url);
+          if (opt && opt.method === 'POST') return Promise.resolve(jsonRes({ ok: true }));
+          return Promise.reject(new Error('netz'));
+        }).then(function (erg4) {
+          gleich(erg4.ok, true);
+          gleich(calls4[0], 'ziel.json');
+          gleich(calls4[1], RAW);
+          gleich(calls4[calls4.length - 1], FALLBACK);
+        });
+      });
+    });
+  });
 });
 
 (async function () {
