@@ -1669,8 +1669,10 @@
       if (S.overlay.art === 'playlist') playlistBild(R, S);
       else if (S.overlay.art === 'info') textFeld(R, 'Hinweis 18+', [Saufi.Hinweise.HINWEIS_VOLL], [{ label: 'Zurück' }], 0);
       else if (S.overlay.art === 'minispiel') {
-        var mg = S.overlay, kopf = [mg.hinweis || '', mg.feedback || '', (mg.score != null ? 'Treffer: ' + mg.score + (mg.ziel ? '/' + mg.ziel : '') : '')];
+        var mg = S.overlay, kopf = [mg.untertitel || '', mg.hinweis || '', mg.feedback || '', (mg.score != null ? 'Treffer: ' + mg.score + (mg.ziel ? '/' + mg.ziel : '') : '')];
+        if (mg.restSek != null) kopf.push('Noch ' + Math.max(0, mg.restSek).toFixed(1) + ' s');
         if (mg.balken != null) kopf.push('Balken: ' + Math.round(Math.min(1, mg.balken) * 100) + '%');
+        if (mg.haltText) kopf.push(mg.haltText);
         zeichneListe(R, mg.titel, kopf.filter(Boolean), mg.eintraege, mg.index || 0, mg.opt);
       } else zeichneListe(R, S.overlay.titel, S.overlay.kopf || [], S.overlay.eintraege, S.overlay.index, S.overlay.opt);
     }

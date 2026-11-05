@@ -13,3 +13,5 @@ Kurz (< 45 s), Tastatur + Touch, jederzeit Esc / X / Klick daneben abbrechbar. U
 | 7 | Wahrheit oder Kurzer (soft) | Gasthaus | A/B wählen | ~30 s | (Idee) |
 
 **Eingebaut (beste 3):** Bierdeckel-Flip, Reaktions-Prost, Maßkrugstemmen — `js/minispiele.js`, Start über Tresen-/Bar-Menü („Minispiel: …“).
+
+**v27:** Maßkrugstemmen hält im engen Fenster (nicht nur tippen). Disko Shot-Train: zwei Kurze in fünf Sekunden, nur an der Disko. Mäxle, Dampfhammer und Sinnlos saufen bleiben als Gag-Alias mit dem Hinweis „eigentlich dasselbe“.

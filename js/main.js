@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.26', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.27', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function wendeCharStats(S, char) {
@@ -100,6 +100,22 @@
     funken(S, x, y, '#ffe84f', 14);
     if (Saufi.Partikel && Saufi.Partikel.schaum) Saufi.Partikel.schaum(S, x, y, 6);
   }
+  function prostRuf(S) {
+    if (Saufi.Hinweise && Saufi.Hinweise.prostFuer) return Saufi.Hinweise.prostFuer(S.ort);
+    return { ruf: Saufi.Hinweise.PROST[0], prompt: '', ton: 'normal' };
+  }
+  function prostZeile(S, zusatz) {
+    var pr = prostRuf(S);
+    return pr.ruf + (pr.prompt ? ' ' + pr.prompt : '') + (zusatz ? ' ' + zusatz : '');
+  }
+  function sagProst(S, T, zusatz, dauer) {
+    var pr = prostRuf(S);
+    sag(S, prostZeile(S, zusatz), dauer || 2.2, 'gross');
+    if (T && T.prost) T.prost(pr.ton);
+    S.prost = 1.4;
+    prostEffekte(S, S.spieler.x, S.spieler.y - 20);
+  }
+  function minispielOpt(E) { return { halten: !!(E && E.halt && E.halt('aktion')) }; }
   function stub(X) {
     X = X || {};
     if (!X.T) X.T = Saufi.Ton.erstelle(null);
@@ -208,7 +224,7 @@
       var rest = r.rest; res = Saufi.Runden.trinke(rs, r, minute(S));
       pegelWerte(rest); npcsTrinken(); S.stats.getrunken += rest;
       Saufi.Punkte.add(S.punkte, res.punkte, 'Mittrunde');
-      sag(S, Saufi.Hinweise.PROST[0] + ' +' + res.punkte, 2.2, 'gross'); T.prost(); S.prost = 1.4; prostEffekte(S, S.spieler.x, S.spieler.y - 20);
+      sagProst(S, T, '+' + res.punkte, 2.2);
       nachRunde(S, res);
     } else if (art === 'runde_frei') {
       res = Saufi.Runden.tausche(rs, r, S.cheats, S.rng, minute(S), probstDa(S));
@@ -221,7 +237,7 @@
         if (Saufi.Runden.verloren(rs)) beende(S, false, 'Teamstimmung 0: alle gehen heim.', X);
       } else if (res.fertig) {
         npcsTrinken(); Saufi.Punkte.add(S.punkte, res.punkte, 'Mittrunde (Alkoholfrei)');
-        sag(S, 'PROST! Niemand hat was gemerkt. +' + res.punkte, 2.4, 'gross'); T.prost(); S.prost = 1.4; prostEffekte(S, S.spieler.x, S.spieler.y - 20);
+        sagProst(S, T, 'Niemand hat was gemerkt. +' + res.punkte, 2.4);
         nachRunde(S, res);
       } else {
         sag(S, 'Heimlich getauscht! Noch ' + res.rest + ' Glas.', 2, 'gut'); T.pling();
@@ -271,10 +287,11 @@
       return;
     }
     var frei = Saufi.Cheats.MAX_PRO_RUNDE - S.cheats.rundeTricks, gl = Saufi.Getraenke.LISTE[r.getraenk].label;
-    oeffneMenue(S, 'RUNDE! Alle mittrinken!', ['Noch ' + r.rest + ' Glas: ' + gl],
-      [{ label: 'Mittrinken (' + r.rest + ' × ' + gl + ')', id: 'runde_trinken' },
-        { label: 'Alkoholfrei tauschen (heimlich)', rechts: frei + ' frei', id: 'runde_frei', aktiv: frei > 0 },
-        { label: 'Ablehnen (Team -1, Standf. -15)', id: 'runde_ablehnen' }]);
+    var zeilen = [{ label: 'Mittrinken (' + r.rest + ' × ' + gl + ')', id: 'runde_trinken' },
+      { label: 'Alkoholfrei tauschen (heimlich)', rechts: frei + ' frei', id: 'runde_frei', aktiv: frei > 0 },
+      { label: 'Ablehnen (Team -1, Standf. -15)', id: 'runde_ablehnen' }];
+    if (r.ort === 'disko' && r.getraenk === 'kurzer' && r.rest === 2) zeilen.push({ label: 'Shot-Train: zwei Kurze in 5 s', id: 'minispiel', daten: 'shottrain', anRunde: true });
+    oeffneMenue(S, 'RUNDE! Alle mittrinken!', ['Noch ' + r.rest + ' Glas: ' + gl], zeilen);
   }
   function pauseMenue(S, X) {
     var M = X.M;
@@ -329,20 +346,35 @@
       case 'ruhig': S.ruhig = !S.ruhig; if (S.speicher) S.speicher.setzeBool('ruhig', S.ruhig); pauseMenue(S, X); S.overlay.index = 3; break;
       case 'info': infoOverlay(S); break;
       case 'neustart': S.neustart = true; break;
-      case 'minispiel': starteMinispiel(S, e.daten, X); break;
-      case 'mg_aktion': if (S.overlay && S.overlay.art === 'minispiel') Saufi.Minispiele.update(S.overlay, 0, true); break;
+      case 'minispiel': starteMinispiel(S, e.daten, X, { anRunde: !!e.anRunde }); break;
+      case 'mg_aktion': if (S.overlay && S.overlay.art === 'minispiel') Saufi.Minispiele.update(S.overlay, 0, true, minispielOpt(X && X.E)); break;
       case 'panne_ok': loeseAktivePanne(S, 'aktion', X); break;
     }
   }
 
-  function starteMinispiel(S, id, X) {
-    var mg = Saufi.Minispiele.starte(id, S.rng);
+  function starteMinispiel(S, id, X, opt) {
+    var mg = Saufi.Minispiele.starte(id, S.rng, S.ort);
     if (!mg) return;
+    if (opt && opt.anRunde) mg.anRunde = true;
     S.overlay = mg;
   }
   function beendeMinispiel(S, X) {
     var mg = S.overlay;
     if (!mg || mg.art !== 'minispiel') { schliesse(S); return; }
+    if (mg.anRunde && mg.id === 'shottrain') {
+      var laufend = Saufi.Runden.aktive(S.runden);
+      var passt = !!(mg.erfolg && laufend && laufend.ort === 'disko' && laufend.getraenk === 'kurzer' && laufend.rest === 2);
+      if (passt || !mg.erfolg) {
+        S.overlay = null;
+        if (passt) {
+          runde(S, 'runde_trinken', X);
+          sag(S, 'Shot-Train sitzt. Zwei Kurze, die Runde ist durch.', 2.6, 'gut');
+        } else sag(S, 'Shot-Train gerissen. Die Runde wartet noch, wenn die Frist hält.', 2.8, 'schlecht');
+        if (!passt && X && X.T && X.T.pling) X.T.pling();
+        return;
+      }
+      mg.anRunde = false;
+    }
     var bel = Saufi.Minispiele.belohnung(mg);
     Saufi.Punkte.add(S.punkte, bel.punkte || 0, 'Minispiel');
     if (bel.pegel) S.fig.pegel = Math.max(0, Math.min(4, S.fig.pegel + bel.pegel));
@@ -665,6 +697,7 @@
         Saufi.Cheats.neueRunde(S.cheats);
         sag(S, 'RUNDE! Alle mittrinken!', 3, 'gross'); X.T.glocke();
         sag(S, 'Tobi: "Wer hat Durst?" Ab zum Stammtisch: ' + Saufi.Karte.NAMEN[r.ort], 4, 'info');
+        if (r.ort === 'disko' && r.getraenk === 'kurzer') sag(S, 'An der Bar: Shot-Train, zwei Kurze in fünf Sekunden.', 3.2, 'info');
       } else if (e.typ === 'verpasst') {
         Saufi.NPCs.trinkeRunde(S.npcs, r);
         Saufi.Pegel.schaden(S.fig, -e.effekt.stand); Saufi.Punkte.add(S.punkte, e.effekt.punkte, 'Runde verpasst');
@@ -726,7 +759,8 @@
       trinke(S, a.getraenk, X);
       S.npcs.forEach(function (q) { if (q.aktiv && !q.liegt && q.karteId === S.karte.id) Saufi.Pegel.trinke(q.fig, a.getraenk, 1); });
       Saufi.Runden.teamAendern(S.runden, 1); Saufi.Punkte.add(S.punkte, 60, 'Spontanrunde');
-      S.prost = 1.2; sag(S, 'PROST! Team +1', 2.5, 'gut');
+      S.prost = 1.2; sag(S, prostZeile(S, 'Team +1'), 2.5, 'gut');
+      if (X && X.T && X.T.prost) X.T.prost(prostRuf(S).ton);
     } else {
       Saufi.Runden.teamAendern(S.runden, -1);
       sag(S, a.npc.char.name + ' ist beleidigt. Team -1', 2.5, 'schlecht');
@@ -1043,7 +1077,7 @@
     var o = S.overlay;
     if (!E) return;
     if (o.art === 'minispiel') {
-      Saufi.Minispiele.update(o, 0, false);
+      Saufi.Minispiele.update(o, 0, false, minispielOpt(E));
       if (o.fertig) { beendeMinispiel(S, X); return; }
     }
     var n = o.eintraege.length, aktivIdx = function (d) {
@@ -1159,7 +1193,7 @@
     else if (S.overlay) {
       if (!istPause(S.overlay) && S.zustand === 'spiel') uhrLaeuft(S, dt, X);
       if (S.overlay && S.overlay.spontan && S.zustand === 'spiel') spontanePruefen(S, X, dt);
-      if (S.overlay && S.overlay.art === 'minispiel') Saufi.Minispiele.update(S.overlay, dt, false);
+      if (S.overlay && S.overlay.art === 'minispiel') Saufi.Minispiele.update(S.overlay, dt, false, minispielOpt(E));
       if (S.overlay && S.overlay.art === 'minispiel' && S.overlay.fertig) beendeMinispiel(S, X);
       if (S.overlay) { updateOverlay(S, X, E); S.hilfe = ''; }
     }
@@ -1443,18 +1477,26 @@
         var warTouch = !!E.touch;
         E.touch = true;
         if (!warTouch || !R.touch) { touchGemeldet = true; groesse(); }
-        E.tippe(aktion2);
+        if (E.halte) E.halte(aktion2, true); else E.tippe(aktion2);
+      }
+      function los(ev) {
+        if (ev && ev.preventDefault) ev.preventDefault();
+        if (E.halte) E.halte(aktion2, false);
       }
       b.addEventListener('pointerdown', function (ev) {
         pointerMs = typeof ev.timeStamp === 'number' ? ev.timeStamp : Date.now();
         feuer(ev);
+        if (b.setPointerCapture && ev.pointerId != null) { try { b.setPointerCapture(ev.pointerId); } catch (err) { /* egal */ } }
       });
+      b.addEventListener('pointerup', los);
+      b.addEventListener('pointercancel', los);
       b.addEventListener('touchstart', function (ev) {
         var ts = typeof ev.timeStamp === 'number' ? ev.timeStamp : Date.now();
         if (pointerMs >= 0 && Math.abs(ts - pointerMs) < 80) { if (ev.preventDefault) ev.preventDefault(); return; }
         feuer(ev);
       }, { passive: false });
-      b.addEventListener('touchend', function (ev) { if (ev.preventDefault) ev.preventDefault(); }, { passive: false });
+      b.addEventListener('touchend', los, { passive: false });
+      b.addEventListener('touchcancel', los, { passive: false });
     }
     tippKnopf('knopf-aktion', 'aktion'); tippKnopf('knopf-wasser', 'wasser'); tippKnopf('knopf-item', 'item'); tippKnopf('knopf-f', 'pressF');
 
