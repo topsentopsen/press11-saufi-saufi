@@ -1211,7 +1211,7 @@
     var raster = hoch ? KARTEN_RASTER.hoch : KARTEN_RASTER.quer;
     var titelH = hoch ? 14 : 10, unterH = hoch ? 10 : 0;
     var y0 = hoch ? Math.max(4, Math.min(40, Math.ceil(R.obenUnten || 0) + 2)) : 2;   // v16: unter die #oben-Knoepfe
-    textInBox(c, 'Press11 - Saufi Saufi', 8, y0, W - 16, titelH, hoch ? 12 : 9, { col: '#fff8ee', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
+    textInBox(c, Saufi.Hinweise.TITEL, 8, y0, W - 16, titelH, hoch ? 12 : 9, { col: '#fff8ee', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
     if (hoch) textInBox(c, 'Wen spielst Du?', 20, y0 + titelH, W - 40, unterH, 8, { col: '#fff3c8', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
     var knopfBlock = (!hoch ? rowH + 4 : 2 * (rowH + rowGap)) + (hoch ? 14 : 8);
     var kartenY = y0 + titelH + unterH + (hoch ? 4 : 1);

@@ -3,7 +3,7 @@
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
 
-  var TITEL = 'Press11 - Saufi Saufi';
+  var TITEL = 'Press11 - Stuttgart Edition';
   // Voller Hinweis (Info-Knopf, README) – ohne "privat"
   var HINWEIS_VOLL = TITEL + ' ist ein fiktives Spaß-Spiel für Erwachsene (ab 18). Alle Personen, Orte, Getränke und Werte sind erfunden. ' +
     'Die Promille-Anzeige ist ein Spielelement und kein Maßstab. Das Spiel ruft nicht zum Trinken auf. ' +
