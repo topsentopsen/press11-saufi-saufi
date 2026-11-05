@@ -24,7 +24,7 @@
   var DOPPEL_MS = 280, DOPPEL_PX = 8;
 
   function erstelle(win, canvas, W, H) {
-    var halt = {}, frisch = {}, klicks = [], letzter = null, ersatzMs = 0;
+    var halt = {}, frisch = {}, klicks = [], doppel = [], letzter = null, ersatzMs = 0;
     W = W || 320; H = H || 176;
     var e = {
       stick: { x: 0, y: 0 },      // virtueller Joystick, -1 bis 1
@@ -40,13 +40,18 @@
         return { x: x, y: y };
       },
       klicke: function (x, y, quelle) { if (isFinite(x) && isFinite(y)) klicks.push({ x: x, y: y, zeiger: !!quelle }); },
-      // Pointer mit Zeitstempel: Doppeltipper herausfiltern. Rueckgabe true, wenn der Tipp zaehlt
+      // Pointer mit Zeitstempel: Doppeltipper herausfiltern (kein zweiter Klick).
+      // Der zweite Punkt liegt in doppelTaps(), damit ein Doppeltipp auf eine liegende Figur weckt.
       zeiger: function (x, y, ms) {
-        if (letzter && ms - letzter.ms >= 0 && ms - letzter.ms < DOPPEL_MS && Math.hypot(x - letzter.x, y - letzter.y) < DOPPEL_PX) return false;
+        if (letzter && ms - letzter.ms >= 0 && ms - letzter.ms < DOPPEL_MS && Math.hypot(x - letzter.x, y - letzter.y) < DOPPEL_PX) {
+          doppel.push({ x: x, y: y, ms: ms });
+          return false;
+        }
         letzter = { x: x, y: y, ms: ms };
         e.klicke(x, y, 'zeiger');
         return true;
       },
+      doppelTaps: function () { return doppel; },
       aktiv: function () { return klicks.length > 0 || Object.keys(frisch).length > 0 || Object.keys(halt).some(function (c) { return halt[c]; }); },
       // Knopf auf dem Bildschirm: wirkt wie ein kurzer Tastendruck
       tippe: function (a) { if (AKTIONEN[a]) frisch[AKTIONEN[a][0]] = true; },
@@ -59,7 +64,7 @@
       touch: false,
       setzeMass: function (nw, nh) { if (nw > 0) W = nw; if (nh > 0) H = nh; },
       klicks: function () { return klicks; },
-      ende: function () { frisch = {}; klicks = []; }
+      ende: function () { frisch = {}; klicks = []; doppel = []; }
     };
     if (win && win.addEventListener) {
       var imFeld = function (ev) { var t = ev && ev.target, n = t && t.tagName ? String(t.tagName).toUpperCase() : ''; return n === 'TEXTAREA' || n === 'INPUT'; };

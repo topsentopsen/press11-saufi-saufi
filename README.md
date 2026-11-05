@@ -4,6 +4,12 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v29
+
+- Handy hochkant: die Welt füllt den Rahmen. Kein dunkles Bedienfeld darunter. Uhr und Rundenbanner sitzen oben, die Version unten rechts. E und Trinken liegen als Paar auf der Welt, F und Item darüber. Zoom steht links, nicht über der Jukebox in Sophies Brauhaus. Die Auswahl behält ihre Leiste. Die Höhenformel bleibt.
+- Trinken ist 80×80 px und zeigt das Wort. Aktionsmenüs, Playlist und Hinweise liegen über dem Spielfeld. Die Charakterauswahl bleibt.
+- Teamstimmung 0 heißt „Feierabend“: „Die Truppe ist ohne dich weitergezogen.“ Wer früher geht, steht als Karte „ist heim“ da, mit Restzahl. Bei Stimmung 1 kommt eine Warnung. Press F: das Meme bleibt oben, die untere Hälfte ist die Tippfläche. Unten eine Teamleiste mit Köpfen.
+
 ## Neu in v28
 
 - Autos sind weg. Die waren zu klein. Frau Hilde, die Jugend im Südpark, die Kinder, die Hunde, die Vögel und die Fahrräder bleiben. Ute geht den Halbhöhenweg, ein Rad fährt den Südweg, ein Vogel mehr kreist über dem Bach. Alles etwas flotter.

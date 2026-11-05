@@ -65,6 +65,12 @@
   #bedien { display: none; position: relative; flex: 0 0 auto; width: 100%; height: 0; overflow: visible; z-index: 1; }
   #rahmen.touch #bedien { display: block; }
   #rahmen.touch.hoch #bedien { position: relative; height: var(--bedien, 112px); background: #1b1530; border-radius: 0; }
+  /* Im Spiel: Leiste über der Welt, kein eigener dunkler Streifen. Auswahl behält die Regel oben. */
+  #rahmen.touch.hoch.spiel #bedien {
+    position: absolute; left: 0; right: 0; bottom: 0; height: var(--bedien, 132px);
+    background: linear-gradient(to top, rgba(27,21,48,0.22) 0%, rgba(27,21,48,0) 72%);
+    pointer-events: none; z-index: 3; }
+  #rahmen.touch.hoch.spiel #stick, #rahmen.touch.hoch.spiel #touch { pointer-events: auto; }
   /* Touch: Joystick links, Aktionsknoepfe rechts; ohne Touch / bei Overlay keine Pointer-Events */
   #stick { display: none; position: absolute; left: 0; bottom: 0; width: 50%; height: 100%;
     touch-action: none; pointer-events: none; z-index: 1; }
@@ -81,16 +87,27 @@
   #touch { display: none; position: absolute; right: max(8px, env(safe-area-inset-right, 0px)); bottom: max(8px, env(safe-area-inset-bottom, 0px)); z-index: 2; pointer-events: auto; }
   #rahmen.touch #touch { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
   #rahmen.ende #knopf-aktion, #rahmen.ende #knopf-wasser, #rahmen.ende #knopf-item, #rahmen.ende #knopf-f { display: none !important; }
-  /* Hochformat: das Body-Padding ist das eine Safe-Area-Inset. */
+  /* Hochformat: das Body-Padding ist das eine Safe-Area-Inset. Auswahl bleibt eine Zeile. */
   #rahmen.touch.hoch #touch { top: 0; bottom: 8px; right: 8px; flex-direction: row-reverse; align-items: center; }
+  #knopf-reihe, #knopf-haupt { display: contents; }
+  /* Im Spiel: Daumencluster auf der Welt. Oben F und Item (56), unten E und Trinken. */
+  #rahmen.touch.hoch.spiel #touch {
+    top: auto; bottom: 20px; right: 10px; width: max-content;
+    flex-direction: column; align-items: flex-end; gap: 8px; }
+  #rahmen.touch.hoch.spiel #knopf-reihe,
+  #rahmen.touch.hoch.spiel #knopf-haupt { display: flex; flex-direction: row; gap: 8px; align-items: flex-end; }
+  #rahmen.touch.hoch.spiel #knopf-f,
+  #rahmen.touch.hoch.spiel #knopf-item {
+    width: 56px; height: 56px; min-width: 56px; min-height: 56px; font-size: 16px; }
   #rahmen.touch.hoch #stick { left: 0; bottom: 0; }
   /* Im Spiel größer (+30 %). Auswahl behält die Maße oben. */
   #rahmen.spiel #stick-basis { width: 104px; height: 104px; margin: -52px 0 0 -52px; }
   #rahmen.spiel #stick-dau { left: 32px; top: 32px; width: 40px; height: 40px; }
   #rahmen.spiel #knopf-aktion { min-width: 94px; width: max(73px, calc(var(--s, 3) * 23px)); height: max(73px, calc(var(--s, 3) * 23px)); font-size: 21px !important; }
-  #rahmen.spiel #knopf-wasser { min-width: 73px; width: max(58px, calc(var(--s, 3) * 17px)); height: max(58px, calc(var(--s, 3) * 17px)); font-size: 16px; }
+  #rahmen.spiel #knopf-wasser { min-width: 80px; width: 80px; height: 80px; font-size: 15px; }
   #rahmen.spiel #knopf-item, #rahmen.spiel #knopf-f { width: max(58px, calc(var(--s, 3) * 17px)); height: max(58px, calc(var(--s, 3) * 17px)); font-size: 16px; }
-  #zoom { display: none; position: absolute; right: 8px; top: 70px; z-index: 4; flex-direction: column; gap: 8px; }
+  /* Links unter dem HUD, nicht oben rechts: dort liegt in Sophies Brauhaus die Jukebox. */
+  #zoom { display: none; position: absolute; left: 8px; right: auto; top: 156px; z-index: 4; flex-direction: column; gap: 8px; }
   #rahmen.spiel:not(.overlay):not(.ende) #zoom { display: flex; }
   #zoom .knopf { width: 56px; height: 56px; border-radius: 16px; background: #fff8ee; color: #4a3560; box-shadow: 0 0 0 3px #4a3560; font-size: 28px; }
   #touch .knopf { border-radius: 50%; background: #fff8ee; box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 5px #ffb037; min-width: 44px; min-height: 44px; }
@@ -142,10 +159,14 @@
   <div id="bedien">
     <div id="stick" aria-hidden="true"><div id="stick-basis"><div id="stick-dau"></div></div></div>
     <div id="touch">
-      <button id="knopf-f" class="knopf" type="button" aria-label="Press F">F</button>
-      <button id="knopf-item" class="knopf" type="button" aria-label="Item benutzen">R</button>
-      <button id="knopf-wasser" class="knopf" type="button" aria-label="Wasser trinken">Wasser</button>
-      <button id="knopf-aktion" class="knopf" type="button" aria-label="Aktion">E</button>
+      <div id="knopf-reihe">
+        <button id="knopf-f" class="knopf" type="button" aria-label="Press F">F</button>
+        <button id="knopf-item" class="knopf" type="button" aria-label="Item benutzen">R</button>
+      </div>
+      <div id="knopf-haupt">
+        <button id="knopf-aktion" class="knopf" type="button" aria-label="Aktion">E</button>
+        <button id="knopf-wasser" class="knopf" type="button" aria-label="Wasser trinken">Wasser</button>
+      </div>
     </div>
   </div>
 </div>
@@ -156,40 +177,40 @@
 </div>
 <div id="ton-hinweis" hidden>Tippen für Ton</div>
 <pre id="debug" hidden></pre>
-<script src="js/rng.js?v=0.28"></script>
-<script src="js/uhr.js?v=0.28"></script>
-<script src="js/charaktere.js?v=0.28"></script>
-<script src="js/getraenke.js?v=0.28"></script>
-<script src="js/essen.js?v=0.28"></script>
-<script src="js/pegel.js?v=0.28"></script>
-<script src="js/cheats.js?v=0.28"></script>
-<script src="js/runden.js?v=0.28"></script>
-<script src="js/ereignisse.js?v=0.28"></script>
-<script src="js/minispiele.js?v=0.28"></script>
-<script src="js/punkte.js?v=0.28"></script>
-<script src="js/hinweise.js?v=0.28"></script>
-<script src="js/speicher.js?v=0.28"></script>
-<script src="js/karte.js?v=0.28"></script>
-<script src="js/motocross.js?v=0.28"></script>
-<script src="js/mxevent.js?v=0.28"></script>
-<script src="js/s21.js?v=0.28"></script>
-<script src="js/elon.js?v=0.28"></script>
-<script src="js/frech.js?v=0.28"></script>
-<script src="js/motiv.js?v=0.28"></script>
-<script src="js/pfad.js?v=0.28"></script>
-<script src="js/kamera.js?v=0.28"></script>
-<script src="js/eingabe.js?v=0.28"></script>
-<script src="js/spieler.js?v=0.28"></script>
-<script src="js/npcs.js?v=0.28"></script>
-<script src="js/stadtvolk.js?v=0.28"></script>
-<script src="js/ton.js?v=0.28"></script>
-<script src="music/playlist.js?v=0.28"></script>
-<script src="js/musik.js?v=0.28"></script>
-<script src="js/gfx.js?v=0.28"></script>
-<script src="js/szene.js?v=0.28"></script>
-<script src="js/innen.js?v=0.28"></script>
-<script src="js/partikel.js?v=0.28"></script>
-<script src="js/render.js?v=0.28"></script>
-<script src="js/main.js?v=0.28"></script>
+<script src="js/rng.js?v=0.29"></script>
+<script src="js/uhr.js?v=0.29"></script>
+<script src="js/charaktere.js?v=0.29"></script>
+<script src="js/getraenke.js?v=0.29"></script>
+<script src="js/essen.js?v=0.29"></script>
+<script src="js/pegel.js?v=0.29"></script>
+<script src="js/cheats.js?v=0.29"></script>
+<script src="js/runden.js?v=0.29"></script>
+<script src="js/ereignisse.js?v=0.29"></script>
+<script src="js/minispiele.js?v=0.29"></script>
+<script src="js/punkte.js?v=0.29"></script>
+<script src="js/hinweise.js?v=0.29"></script>
+<script src="js/speicher.js?v=0.29"></script>
+<script src="js/karte.js?v=0.29"></script>
+<script src="js/motocross.js?v=0.29"></script>
+<script src="js/mxevent.js?v=0.29"></script>
+<script src="js/s21.js?v=0.29"></script>
+<script src="js/elon.js?v=0.29"></script>
+<script src="js/frech.js?v=0.29"></script>
+<script src="js/motiv.js?v=0.29"></script>
+<script src="js/pfad.js?v=0.29"></script>
+<script src="js/kamera.js?v=0.29"></script>
+<script src="js/eingabe.js?v=0.29"></script>
+<script src="js/spieler.js?v=0.29"></script>
+<script src="js/npcs.js?v=0.29"></script>
+<script src="js/stadtvolk.js?v=0.29"></script>
+<script src="js/ton.js?v=0.29"></script>
+<script src="music/playlist.js?v=0.29"></script>
+<script src="js/musik.js?v=0.29"></script>
+<script src="js/gfx.js?v=0.29"></script>
+<script src="js/szene.js?v=0.29"></script>
+<script src="js/innen.js?v=0.29"></script>
+<script src="js/partikel.js?v=0.29"></script>
+<script src="js/render.js?v=0.29"></script>
+<script src="js/main.js?v=0.29"></script>
 </body>
 </html>
