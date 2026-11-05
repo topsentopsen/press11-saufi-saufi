@@ -1095,7 +1095,7 @@ test('52 Overlay-Schrift ueberschreitet Panelbreite nicht', function () {
   spiel.S.npcs.forEach(function (n) { n.aktiv = true; n.liegt = false; n.karteId = spiel.S.karte.id; n.blase = { text: 'Das ist ein ziemlich langer Spruch fuer die Blase!' }; n.x = spiel.S.spieler.x; n.y = spiel.S.spieler.y; });
   D.Render.zeichne(R2, spiel.S);
   wahr(blaseLog.length > 0, 'Sprechblasen-Text gezeichnet');
-  wahr(D.Render.WELT_FLAECHE_HOCH >= 1.9 && D.Render.WELT_FLAECHE_HOCH <= 2.5, 'Hoch-Weltflaeche ~2.4 (v10)');
+  wahr(D.Render.WELT_FLAECHE_HOCH >= 1.3 && D.Render.WELT_FLAECHE_HOCH <= 1.7, 'Hoch-Weltflaeche ~1.5 (v20)');
   wahr(D.Render.WELT_FLAECHE_QUER >= 3.0, 'Quer-Weltflaeche v04 staerker raus');
 });
 
@@ -2165,9 +2165,7 @@ test('103 Hoch-Zoom/Karte: 60/960, Fläche ≥1.15×v07, Schrift ≥8 CSS', func
   D.Render.setzeBildschirm(R, true, { h: h390, touch: true });
   wahr(R.weltH <= R.stadtPxH + 0.01, 'weltH ≤ stadtPxH');
   wahr(R.VH <= R.stadtPxH + 0.01, 'VH ≤ stadtPxH');
-  var flaeche = R.VW * R.VH;
-  var v07Approx = 392 * 768;
-  wahr(flaeche >= v07Approx * 1.15, 'Ausschnitt ≥ 1.15×v07 (' + Math.round(flaeche) + ')');
+  wahr(R.VW >= 350 && R.VW <= 420, 'Hoch-VW ~350–420 (' + Math.round(R.VW) + ')');
   var nameSz = 11 * R.weltZoom * (390 / 320);
   wahr(nameSz >= 8 - 0.05, 'Gebäudename ≥ 8 CSS-px (ist ' + nameSz.toFixed(2) + ')');
   var t = neuesSpielTest(D); t.S.kamera.viewW = R.VW; t.S.kamera.viewH = R.VH;
@@ -2910,7 +2908,7 @@ test('124 Playlist-Schrift einheitlich', function () {
 
 test('125 Zoom/Grafik Süd-Deko', function () {
   var D = lade();
-  wahr(D.Render.WELT_FLAECHE_HOCH === 2.4 || D.Render.WELT_FLAECHE_HOCH === 2.1, 'Hoch-Fläche 2.4|2.1');
+  gleich(D.Render.WELT_FLAECHE_HOCH, 1.5);
   gleich(D.Render.WELT_FLAECHE_QUER, 4.0);
   gleich(D.Render.MIN_WELT_ZOOM, 0.5);
   function nameCss(cssW, cssH) {
@@ -4836,6 +4834,20 @@ test('222 v20: Zeise heim, Schwinki ohne Bremse, Tobi Elon, Siebold-Spiele, Raph
   gleich(mg.titel, 'Mäxle'); gleich(mg.art, 'minispiel');
   wahr(D.Frech.RAPHI.every(function (z) { return /Anwärter|Gas|Einsatz|Press11|Mitglied/.test(z); }));
   wahr(!D.Frech.RAPHI.some(function (z) { return /Käppi|Pils/.test(z); }), 'Gag ohne Nebenpfade');
+});
+
+test('223 v20 Zoom: Hoch+Touch naeher, Quer bleibt 0.5', function () {
+  var D = lade();
+  gleich(D.Render.WELT_FLAECHE_HOCH, 1.5);
+  gleich(D.Render.WELT_FLAECHE_QUER, 4.0);
+  gleich(D.Render.MIN_WELT_ZOOM, 0.5);
+  var R = D.Render.erstelle(mockCanvas(), mockCanvas().ownerDocument);
+  var h = D.Render.berechnePortH(390, 844);
+  D.Render.setzeBildschirm(R, true, { h: h, touch: true });
+  wahr(R.weltZoom >= 0.8, 'Hoch+Touch zoom ≥ 0.8 (' + R.weltZoom.toFixed(3) + ')');
+  wahr(R.VW >= 350 && R.VW <= 420, 'Hoch-VW ' + Math.round(R.VW));
+  D.Render.setzeBildschirm(R, false);
+  nah(R.weltZoom, 0.5, 0.02, 'Quer zoom ~0.5');
 });
 
 tests.forEach(function (t) {
