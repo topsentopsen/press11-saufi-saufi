@@ -9,7 +9,7 @@ Stand: 04.11.2026. Aufträge: `aufgabe-v02.md`, `aufgabe-v02b.md`, `auftrag-curs
 - **Setting:** Größere Ortsschilder, Kehrwoche-/Spätzle-/Feinstaub-Gags an den Fassaden.
 - **Teamstimmung 0:** Endtitel „Die Truppe hat dich abgehängt“ / Wertung „Abgehängt“ (nicht Press F / Umgefallen).
 - **„privat“ entfernt:** `index.html`-Titel, README, `hinweise.js` (18+ bleibt).
-- **Humor & Sprüche:** Pools je Figur (≥8), Situation, Ort, Pegel (lallend ab hoch); max. 2 Sprechblasen; MS-Marathon-Gags, Getränke-/Essensnamen.
+- **Humor & Sprüche:** Pools je Figur (≥8), Situation, Ort, Pegel (lallend ab hoch); max. 2 Sprechblasen; MS-Marathon-Gags *(entfernt in v18)*, Getränke-/Essensnamen.
 - **Ereignisse:** `docs/ereignisse-plan.md` + ≥20 Pannen in `ereignisse.js`, pegelgestuft, E/Q zum Lösen.
 - **Minispiele:** `docs/minispiele-plan.md` + 3 Spiele (Deckel, Prost, Krug) in `minispiele.js`, abbrechbar.
 - **VERSION** bleibt `0.2`. README-Abschnitt „Neu in v02“.
@@ -29,7 +29,7 @@ Stand: 04.11.2026. Aufträge: `aufgabe-v02.md`, `aufgabe-v02b.md`, `auftrag-curs
 ## Teil 2 (aufgabe-v02b)
 
 1. [x] Jukebox/Overlay schließen (Esc/X/daneben/Songwahl)
-2. [x] Humorvoller Ton (MS-Marathon, Schwaben-Gags)
+2. [x] Humorvoller Ton (MS-Marathon *(entfernt in v18)*, Schwaben-Gags)
 3. [x] Sprechblasen/Sprüche ausgebaut
 4. [x] Trinkspiel-Minispiele (3)
 5. [x] Weitere Gags (Schilder, Getränke, Essen)

@@ -193,11 +193,13 @@
     list.forEach(function (n) { if (n.aktiv && !n.liegt) { Saufi.Pegel.trinke(n.fig, runde.getraenk, runde.glaeser); n.mitgetrunken += 1; } });
   }
   // Zwischendurch trinken die Mutigen mehr: Trinkfestigkeit ab 1,1 (Schwinki, Raphael, Tobias, Zeise) nimmt jede Spielstunde einen Kurzen
-  function stunde(list, rng) {
+  function stunde(list, rng, minute) {
     list.forEach(function (n) {
       if (!n.aktiv || n.liegt) return;
       if (n.char.trink >= 1.1) Saufi.Pegel.trinke(n.fig, 'kurzer', 1);
       else if (rng.next() < 0.3) Saufi.Pegel.trinke(n.fig, 'pils', 1);
+      // Raphi: am Anfang noch einen Kurzen obendrauf (kein zusaetzliches rng)
+      if (n.char.gasBis && minute != null && minute < n.char.gasBis) Saufi.Pegel.trinke(n.fig, 'kurzer', 1);
     });
   }
   function abbau(list, stunden, minute) { list.forEach(function (n) { if (n.aktiv && !n.liegt) Saufi.Pegel.abbau(n.fig, stunden, minute); }); }
@@ -223,7 +225,7 @@
     var neu = [];
     list.forEach(function (n) {
       // v18: Schwinki geht frueher nach Hause (ab gehtAb weg, kein rng)
-      if (n.aktiv && n.char.gehtAb && minute >= n.char.gehtAb) { n.aktiv = false; n.blase = null; n.weg = true; return; }
+      if (n.aktiv && n.char.gehtAb && minute >= n.char.gehtAb) { n.aktiv = false; n.blase = null; n.weg = true; n.melde = 'heim'; return; }
       if (!n.aktiv && n.char.kommtAb && minute >= n.char.kommtAb) {
         n.aktiv = true; neu.push(n);
         var p = nahKacheln(karte, tx, ty, 2)[1] || { x: tx, y: ty };

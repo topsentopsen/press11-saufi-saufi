@@ -390,7 +390,7 @@
 
   // Strahler, Discokugel mit Lichtpunkten, DJ-Equalizer und Nebel (additiv, nach der Toenung)
   function diskoLichter(c, S, cx, cy) {
-    var t = S.t, K2 = K, boost = S.boostAktiv, ph = (t / Saufi.Ton.BEAT) % 1, i, k;
+    var t = S.t, K2 = K, boost = S.boostAktiv, beatLen = S.beat > 0 ? S.beat : Saufi.Ton.BEAT, ph = (t / beatLen) % 1, i, k;
     // 2–3 langsam rotierende Spots, Alpha ≤ 0.25, kein reinweisser Kern
     for (i = 0; i < 3; i++) {
       var ang = t * 0.35 + i * 2.1, bx = 9 * K2 - cx + Math.cos(ang) * 20, by = 3.2 * K2 - cy;

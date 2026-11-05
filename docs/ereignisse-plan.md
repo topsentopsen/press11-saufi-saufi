@@ -19,7 +19,7 @@ Harmlos-lustig, keine echten Personen bloßstellen. Eskalation nach Pegel-Stufe.
 | 2 | 2–3 | Im Dixi eingeschlafen | E | +55 Team +1 |
 | 2 | 2–3 | Jacke falschrum | E | +25 |
 | 2 | 2–3 | Glas verwechselt | E | +20 Pegel +0,05 |
-| 2 | 2–3 | MS-Marathon-Vergleich | E | +33 Team +1 |
+| 2 | 2–3 | MS-Marathon-Vergleich *(entfernt in v18; im Spiel: „Jemand vergleicht den Abend mit letztem Jahr.“)* | E | +33 Team +1 |
 | 3 | ≥3 | Hose als Fahne | E | +60 Stand −5 |
 | 3 | ≥3 | Freund tragen | E | +70 Team +1 Stand −4 |
 | 3 | ≥3 | Spiegelbild begrüßen | E | +35 |

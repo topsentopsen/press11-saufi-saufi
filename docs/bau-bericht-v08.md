@@ -49,7 +49,7 @@ Basis: v07 (97/97 Tests), Branch `v08-wip`. Alle Teile aus `auftrag-v08.md`.
 ## Restprobleme
 - Quer-Touch-Knöpfe nur per CSS-Scale verkleinert (kein Layoutumbau); Kneipentür-Abdeckung abhängig von Zoom/Kamera.
 - Lange Info-18+-Texte dürfen weiter mit `…` kürzen (Test 81 Ausnahme).
-- Agent-Shell erlaubt hier nur `ls`; frischer Lauf `node tests/run.js` → Ausgabe in `tests/_ls_out.txt` (bitte lokal nachziehen).
+- Agent-Shell erlaubt hier nur `ls`; frischer Lauf `node tests/run.js` → Ausgabe in `tests/_ls_out.txt` (bitte lokal nachziehen). *(Die versehentliche Datei `tests/_ls_out.txt` ist in v19 aus dem Repo entfernt.)*
 
 ## Abhakliste
 1. [x] Tests 98–107 + Versionen; Agent-Shell blockierte `node` zeitweise — lokal `node tests/run.js` (≥ 107)
