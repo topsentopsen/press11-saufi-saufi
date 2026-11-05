@@ -1,8 +1,12 @@
-# Press11 - Saufi Saufi
+# Press11 - Stuttgart Edition
 
 Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar unter [GitHub Pages](https://topsentopsen.github.io/press11-saufi-saufi/).
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
+
+## Neu in v23
+
+- Titel: Press11 - Stuttgart Edition.
 
 ## Neu in v22
 

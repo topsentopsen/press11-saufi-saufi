@@ -392,15 +392,15 @@ test('17 Eingabe: Tasten-Mapping, Achse, Entprellung', function () {
 // ---------- 18 Hinweistext ----------
 test('18 Hinweistext: Hinweis 18+ ist im Startbildschirm und im Titel', function () {
   var D = lade(), H = D.Hinweise;
-  wahr(/ab 18/.test(H.HINWEIS_VOLL) && /Press11 - Saufi Saufi/.test(H.HINWEIS_VOLL) && /Joint/.test(H.HINWEIS_VOLL) && /Steuer/.test(H.HINWEIS_VOLL), 'voller Text');
+  wahr(/ab 18/.test(H.HINWEIS_VOLL) && /Press11 - Stuttgart Edition/.test(H.HINWEIS_VOLL) && /Joint/.test(H.HINWEIS_VOLL) && /Steuer/.test(H.HINWEIS_VOLL), 'voller Text');
   wahr(H.HINWEIS_START.some(function (z) { return /18/.test(z); }), 'Kurztext nennt 18');
-  gleich(H.TITEL, 'Press11 - Saufi Saufi');
+  gleich(H.TITEL, 'Press11 - Stuttgart Edition');
   var log = [], cv = mockCanvas(log), R = D.Render.erstelle(cv, cv.ownerDocument), S = D.Spiel.neu({ seed: 1 });
   gleich(S.zustand, 'start'); D.Render.zeichne(R, S);
-  wahr(log.indexOf('Press11 - Saufi Saufi') >= 0, 'Titel auf dem Startbildschirm');
+  wahr(log.indexOf('Press11 - Stuttgart Edition') >= 0, 'Titel auf dem Startbildschirm');
   wahr(log.some(function (t) { return /Ab 18/.test(t); }), 'Hinweis 18+ auf dem Startbildschirm');
   wahr(log.some(function (t) { return /Scooter-Playlist/.test(t); }), 'Playlist-Knopf auf dem Startbildschirm');
-  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'); wahr(/<title>Press11 - Saufi Saufi/.test(html), 'Seitentitel');
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'); wahr(/<title>Press11 - Stuttgart Edition/.test(html), 'Seitentitel');
   var X = { E: fakeE() }; D.Spiel.update(S, 0.1, X); gleich(S.zustand, 'start', 'ohne Bestaetigung geht es nicht los');
   X.E.druecke('aktion'); D.Spiel.update(S, 0.1, X); gleich(S.zustand, 'spiel', 'nach Bestaetigung');
 });
@@ -788,7 +788,7 @@ test('39 Teamstimmung 0: eigener Titel statt Umgefallen/Press F', function () {
   gleich(t.S.zustand, 'ende'); gleich(t.S.ende.wertung.titel, 'Abgehängt');
   wahr(/abgehängt/.test(t.S.ende.wertung.kopf)); wahr(/Teamstimmung 0/.test(t.S.ende.grund));
   wahr(t.S.ende.wertung.kopf.indexOf('Press F') < 0);
-  gleich(D.Spiel.VERSION, '0.22');
+  gleich(D.Spiel.VERSION, '0.23');
   wahr(D.Gfx.MIN_SCHRIFT <= 7);
 });
 
@@ -798,7 +798,7 @@ test('40 privat entfernt', function () {
   wahr(!/Privates Spiel/.test(D.Hinweise.HINWEIS_VOLL));
   var fs = require('fs'), path = require('path');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  wahr(/Press11 - Saufi Saufi \(18\+\)/.test(html)); wahr(!/\(18\+, privat\)/.test(html));
+  wahr(/Press11 - Stuttgart Edition \(18\+\)/.test(html)); wahr(!/\(18\+, privat\)/.test(html));
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v02/.test(readme)); wahr(/Neu in v03/.test(readme)); wahr(!/privates Repo, kein GitHub Pages/.test(readme));
 });
@@ -843,9 +843,9 @@ test('42 DPR-Begrenzung: MAX_DPR = 2, setzeAufloesung und begrenzDpr kappen', fu
   wahr(sk === R.canvas.width / R.W, 'Skala konsistent');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
   wahr(/begrenzDpr|MAX_DPR/.test(main), 'main nutzt DPR-Begrenzung');
-  wahr(/VERSION\s*=\s*['"]0\.22['"]/.test(main), 'VERSION 0.22');
+  wahr(/VERSION\s*=\s*['"]0\.23['"]/.test(main), 'VERSION 0.23');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  wahr(/main\.js\?v=0\.22/.test(html), 'Cache-Buster v=0.22');
+  wahr(/main\.js\?v=0\.23/.test(html), 'Cache-Buster v=0.23');
 });
 
 test('43 Hochformat-Layout: Playlist und Menues passen in PORT_H', function () {
@@ -1054,7 +1054,7 @@ test('51 textInBox passt immer (Laengen/Breiten)', function () {
     { t: 'Supercalifragilisticexpialidocious ohne Leerzeichen', w: 50, h: 30, g: 16 },
     { t: 'A B C D E F G H I J K L M N O P Q R S T U V W X Y Z', w: 40, h: 50, g: 11 },
     { t: '', w: 30, h: 14, g: 10 },
-    { t: 'Press11 - Saufi Saufi · Stuttgart Kessel Nacht', w: 90, h: 16, g: 18 }
+    { t: 'Press11 - Stuttgart Edition · Stuttgart Kessel Nacht', w: 90, h: 16, g: 18 }
   ].forEach(function (f, i) {
     var info = G.textInBox(c, f.t, 0, 0, f.w, f.h, f.g, { mess: true, ausr: 'center' });
     wahr(info.size >= G.MIN_SCHRIFT || !f.t, 'Fall ' + i + ' size>=min');
@@ -1358,11 +1358,11 @@ test('72 Quer BASE 320x176: VH == H/zoom, Flaeche >= 3', function () {
 
 test('73 Versionen: VERSION 0.13, ?v=0.13, README v10, Bau-Bericht v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.22');
+  gleich(D.Spiel.VERSION, '0.23');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster vorhanden');
-  vs.forEach(function (v) { gleich(v, '?v=0.22', 'Cache-Buster ' + v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.23', 'Cache-Buster ' + v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v13/.test(readme), 'README Neu in v13');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
@@ -1660,11 +1660,11 @@ test('82 Stick: Totzone, cancel=0, zweiter Finger ignoriert, E gleichzeitig', fu
 
 test('83 Versionen: VERSION 0.13, ?v=0.13, README v10, Bau-Bericht v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.22');
+  gleich(D.Spiel.VERSION, '0.23');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.22', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.23', v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v13/.test(readme), 'README Neu in v13');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
@@ -2035,10 +2035,10 @@ test('96 Durchspiel-Bot Seeds 1/7/42 Hoch-Touch und Quer', function () {
 
 test('97 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.22');
+  gleich(D.Spiel.VERSION, '0.23');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
-  vs.forEach(function (v) { gleich(v, '?v=0.22', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.23', v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v13/.test(readme), 'README Neu in v13');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
@@ -2265,11 +2265,11 @@ test('106 Bot-Durchspiel Seeds 1/7/42 Hoch+Quer ohne Soft-Lock/…', function ()
 
 test('107 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.22');
+  gleich(D.Spiel.VERSION, '0.23');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0);
-  vs.forEach(function (v) { gleich(v, '?v=0.22', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.23', v); });
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
@@ -2628,12 +2628,12 @@ test('117 Bot Seeds 1/7/42 Hoch+Quer, Darstellung ändert Logik nicht', function
 
 test('118 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.22');
+  gleich(D.Spiel.VERSION, '0.23');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0);
-  vs.forEach(function (v) { gleich(v, '?v=0.22', v); });
-  wahr(/partikel\.js\?v=0\.22/.test(html), 'partikel eingebunden');
+  vs.forEach(function (v) { gleich(v, '?v=0.23', v); });
+  wahr(/partikel\.js\?v=0\.23/.test(html), 'partikel eingebunden');
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
@@ -3036,9 +3036,9 @@ test('132 Touch-Größen v10 ≥44 / Kreis ≥36', function () {
 
 test('133 Versionen v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.22');
+  gleich(D.Spiel.VERSION, '0.23');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.22', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.23', v); });
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
@@ -3202,20 +3202,20 @@ function versionMitte(log, W) {
   if (!log.meta) return null;
   for (var i = 0; i < log.meta.length; i++) {
     var m = log.meta[i];
-    if (m.text === 'v0.22' && m.align === 'center' && Math.abs(m.x - W / 2) <= 1 && !m.stroke) return m;
+    if (m.text === 'v0.23' && m.align === 'center' && Math.abs(m.x - W / 2) <= 1 && !m.stroke) return m;
   }
   return null;
 }
 
 test('149 Versionen v14: VERSION, Cache-Buster, README, Bau-Bericht', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.22');
+  gleich(D.Spiel.VERSION, '0.23');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
-  wahr(/VERSION\s*=\s*['"]0\.22['"]/.test(main), 'main.js VERSION 0.22');
+  wahr(/VERSION\s*=\s*['"]0\.23['"]/.test(main), 'main.js VERSION 0.23');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.22', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.23', v); });
   wahr(/Neu in v14/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v14');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v14.md')), 'bau-bericht-v14.md');
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v13 bleibt');
@@ -3246,7 +3246,7 @@ test('150 Versionsanzeige mittig: Start/Spiel/Ende in drei Layouts', function ()
       else { t.S.zustand = 'start'; }
       D.Render.zeichne(R, t.S);
       if (z === 'start' && !lay.hoch) wahr(R.hudVersion && R.hudVersion.y > 20, 'v16: Version im Quer-Startbild nicht auf dem Titel');
-      else wahr(!!versionMitte(log, R.W), 'v0.22 mittig @ ' + z + ' hoch=' + lay.hoch + ' touch=' + !!lay.touch);
+      else wahr(!!versionMitte(log, R.W), 'v0.23 mittig @ ' + z + ' hoch=' + lay.hoch + ' touch=' + !!lay.touch);
       var hv = R.hudVersion; wahr(!!hv, 'hudVersion gesetzt');
       var schneidet = function (a, b) { return a && b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; };
       if (lay.hoch) {
@@ -3894,11 +3894,11 @@ test('181 Starship-Modell bei S21: Prop in propsFuer, Y-sortiert', function () {
 
 test('182 Versionstest v14', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.22');
+  gleich(D.Spiel.VERSION, '0.23');
   wahr(/Neu in v14/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v14.md')));
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  wahr(/motocross\.js\?v=0\.22/.test(html) && /s21\.js\?v=0\.22/.test(html), 'Module in index');
+  wahr(/motocross\.js\?v=0\.23/.test(html) && /s21\.js\?v=0\.23/.test(html), 'Module in index');
   wahr(!!D.Motocross && !!D.S21, 'Module geladen');
 });
 
@@ -3926,14 +3926,14 @@ test('183 Render-Smoke: Kamera S21 und Motocross, drei Layouts', function () {
 // ---------- v15: Elon, Maenner, Bierkasten ----------
 test('184 Version v15: VERSION, Cache-Buster, elon.js, README, Bau-Bericht', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.22');
+  gleich(D.Spiel.VERSION, '0.23');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
-  wahr(/VERSION\s*=\s*['"]0\.22['"]/.test(main), 'main.js VERSION 0.22');
+  wahr(/VERSION\s*=\s*['"]0\.23['"]/.test(main), 'main.js VERSION 0.23');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.22', v); });
-  wahr(/elon\.js\?v=0\.22/.test(html), 'elon.js in index');
+  vs.forEach(function (v) { gleich(v, '?v=0.23', v); });
+  wahr(/elon\.js\?v=0\.23/.test(html), 'elon.js in index');
   wahr(/Neu in v15/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v15');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v15.md')), 'bau-bericht-v15.md');
   wahr(!!D.Elon, 'Elon geladen');
@@ -4214,12 +4214,12 @@ test('198 Frech: Zwei-Blasen-Limit, Pool nur bei Sprecher weiter, kurze Raphi-Sa
 // ---------- v16: Auswahl, MxEvent, Himmelsbach, Motiv ----------
 test('199 Versionen 0.20: VERSION, Cache-Buster, README v16-Abschnitt bleibt', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.22');
+  gleich(D.Spiel.VERSION, '0.23');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.22', v); });
-  wahr(/mxevent\.js\?v=0\.22/.test(html) && /motiv\.js\?v=0\.22/.test(html), 'neue Module');
+  vs.forEach(function (v) { gleich(v, '?v=0.23', v); });
+  wahr(/mxevent\.js\?v=0\.23/.test(html) && /motiv\.js\?v=0\.23/.test(html), 'neue Module');
   wahr(/Neu in v16/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v16');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v16.md')), 'bau-bericht-v16.md');
   wahr(!!D.MxEvent && !!D.Motiv, 'Module geladen');
@@ -4349,7 +4349,7 @@ test('205 Auswahl-Rendering: Treffer und Layouts', function () {
     });
     wahr(R.treffer.some(function (t) { return t.i === 0; }), 'Start i:0');
     wahr(R.treffer.some(function (t) { return t.i === 1; }), 'Playlist i:1');
-    wahr(log.some(function (s) { return s === 'Press11 - Saufi Saufi' || (typeof s === 'string' && /Press11 - Saufi Saufi/.test(s)); }), 'Titel');
+    wahr(log.some(function (s) { return s === 'Press11 - Stuttgart Edition' || (typeof s === 'string' && /Press11 - Stuttgart Edition/.test(s)); }), 'Titel');
     wahr(log.some(function (s) { return typeof s === 'string' && /Ab 18/.test(s); }), 'Ab 18');
   });
 });
@@ -4486,7 +4486,7 @@ test('210 Auswahl-Layout 9 Karten: kein Overlap, Knöpfe und Titel sichtbar', fu
     var maxKU = 0; karten.forEach(function (t) { maxKU = Math.max(maxKU, t.y + t.h); });
     wahr(start.y >= maxKU - 1 && play.y >= maxKU - 1, 'Knöpfe unter Karten');
     wahr(start.y + start.h <= R.H + 0.5 && play.y + play.h <= R.H + 0.5, 'Knöpfe im Bild');
-    wahr(log.some(function (s) { return s === 'Press11 - Saufi Saufi' || (typeof s === 'string' && /Press11 - Saufi Saufi/.test(s)); }), 'Titel');
+    wahr(log.some(function (s) { return s === 'Press11 - Stuttgart Edition' || (typeof s === 'string' && /Press11 - Stuttgart Edition/.test(s)); }), 'Titel');
     var xs = {}; karten.forEach(function (t) { xs[Math.round(t.x)] = 1; });
     var nx = Object.keys(xs).length;
     if (lay.hoch) wahr(nx <= 3, 'hoch Spalten');
@@ -4517,9 +4517,9 @@ test('211 Umbenennungen v18: keine alten Namen in js/*.js, ids, Alias, Version',
   gleich(D.Charaktere.holen('schwickendorf').name, 'Schwickendorf');
   wahr(!!D.Hinweise.FIGUR.schwinki && !!D.Hinweise.FIGUR.tobi && !D.Hinweise.FIGUR.bundschuh && !D.Hinweise.FIGUR.buntschuh && !D.Hinweise.FIGUR.kevin, 'FIGUR-Keys');
   wahr(!!D.Frech.RAPHI && !D.Frech.RAFFI, 'Frech RAPHI');
-  gleich(D.Spiel.VERSION, '0.22');
+  gleich(D.Spiel.VERSION, '0.23');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.22', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.23', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v17/.test(rd) && !/Raffi/.test(rd.split('## Neu in v16')[0]), 'README v17');
   wahr(/Neu in v18/.test(rd), 'README Neu in v18');
@@ -4799,9 +4799,9 @@ test('221 Karten im Spiel: Nachschub, Gas, Trinkspiel, Überblick, Heim', functi
 
 test('222 v20: Zeise heim, Schwinki ohne Bremse, Tobi Elon, Siebold-Spiele, Raphi-Gag', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.22');
+  gleich(D.Spiel.VERSION, '0.23');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.22', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.23', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v20/.test(rd) && /Neu in v19/.test(rd), 'README v20 und v19');
   wahr(/Legendäres Gründungsmitglied/.test(rd), 'README Zeise');
@@ -4855,12 +4855,12 @@ test('222 v20: Zeise heim, Schwinki ohne Bremse, Tobi Elon, Siebold-Spiele, Raph
 
 test('224 v21 Versionen', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.22');
+  gleich(D.Spiel.VERSION, '0.23');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.22', v); });
-  wahr(/stadtvolk\.js\?v=0\.22/.test(html), 'stadtvolk.js im HTML');
+  vs.forEach(function (v) { gleich(v, '?v=0.23', v); });
+  wahr(/stadtvolk\.js\?v=0\.23/.test(html), 'stadtvolk.js im HTML');
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v21/.test(rd) && /Neu in v20/.test(rd) && /Neu in v19/.test(rd), 'README v21, v20, v19');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v21.md')), 'bau-bericht-v21.md');
@@ -5068,10 +5068,10 @@ test('223 v20 Zoom: Hoch+Touch naeher, Quer bleibt 0.5', function () {
 
 test('230 v22: Namensschild weg, Blasen 4,5 s, Zeise Legendär', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.22');
+  gleich(D.Spiel.VERSION, '0.23');
   gleich(D.Hinweise.BLASE_SEK, 4.5);
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.22', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.23', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v22/.test(rd) && /Namensschild über Raphael entfernt/.test(rd), 'README v22');
   wahr(/Neu in v21/.test(rd), 'README v21 bleibt');
@@ -5100,6 +5100,26 @@ test('230 v22: Namensschild weg, Blasen 4,5 s, Zeise Legendär', function () {
   var volk = D.Stadtvolk.erstelle(D.Karte.erstelleWelt(D.RNG.erstelle(1)), 1);
   D.Stadtvolk.sprich(volk[0], null);
   gleich(volk[0].blase.rest, 4.5);
+});
+
+test('231 v23 Titel: Press11 - Stuttgart Edition', function () {
+  var D = lade();
+  gleich(D.Spiel.VERSION, '0.23');
+  gleich(D.Hinweise.TITEL, 'Press11 - Stuttgart Edition');
+  wahr(D.Hinweise.HINWEIS_VOLL.indexOf('Press11 - Stuttgart Edition') === 0, 'Hinweis beginnt mit dem Titel');
+  wahr(!/Saufi Saufi/.test(D.Hinweise.HINWEIS_VOLL), 'Hinweis ohne alten Titel');
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  wahr(/<title>Press11 - Stuttgart Edition \(18\+\)<\/title>/.test(html), 'Seitentitel');
+  wahr(/aria-label="Press11 - Stuttgart Edition"/.test(html), 'Canvas-Name');
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.23', v); });
+  var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+  wahr(/^# Press11 - Stuttgart Edition$/m.test(rd), 'README-Ueberschrift');
+  wahr(/Neu in v23/.test(rd) && /Neu in v22/.test(rd), 'README v23 und v22');
+  var render = fs.readFileSync(path.join(ROOT, 'js', 'render.js'), 'utf8');
+  wahr(/Hinweise\.TITEL/.test(render) && !/Saufi Saufi/.test(render), 'Startbild aus der Titelkonstante');
+  var log = [], cv = mockCanvas(log), R = D.Render.erstelle(cv, cv.ownerDocument), S = D.Spiel.neu({ seed: 1 });
+  D.Render.zeichne(R, S);
+  wahr(log.indexOf('Press11 - Stuttgart Edition') >= 0, 'Startbild');
 });
 
 tests.forEach(function (t) {
