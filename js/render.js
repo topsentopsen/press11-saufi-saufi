@@ -8,9 +8,9 @@
   var P = G.P, hash = G.hash, r = G.r, rr = G.rr, box = G.box, kreis = G.kreis, ellipse = G.ellipse, poly = G.poly, linie = G.linie, vlauf = G.vlauf, herz = G.herz;
   var text = G.text, breite = G.breite, umbruch = G.umbruch, kuerze = G.kuerze, textInBox = G.textInBox, panel = G.panel, rgb = G.rgb, mix = G.mix;
   var BASE_W = 320, BASE_H = 176, PORT_H = 400, PORT_H_MIN = 280, PORT_H_MAX = 720, K = 16;
-  // Kamera rausgezoomt; Querformat staerker (niedrigeres VH). HUD bleibt in Bildschirmkoordinaten (W×H)
+  // Kamera: Hochformat/Touch naeher (Flaeche 1.5, Zoom ~0.82). Quer weiter raus (Flaeche 4.0, Zoom 0.5). HUD bleibt in Bildschirmkoordinaten (W×H)
   // UI_RESERVE_HOCH: Dunkelfeld unten ohne Touch; UI_RESERVE_HOCH_TOUCH schmaler (DOM-Leiste darunter); STADT_PX_H = 40×60
-  var WELT_FLAECHE_HOCH = 2.4, WELT_FLAECHE_QUER = 4.0, MIN_WELT_ZOOM = 0.5, UI_RESERVE_HOCH = 80, UI_RESERVE_HOCH_TOUCH = 80, STADT_PX_H = 960;
+  var WELT_FLAECHE_HOCH = 1.5, WELT_FLAECHE_QUER = 4.0, MIN_WELT_ZOOM = 0.5, UI_RESERVE_HOCH = 80, UI_RESERVE_HOCH_TOUCH = 80, STADT_PX_H = 960;
   var WELT_FLAECHE = WELT_FLAECHE_QUER, WELT_ZOOM = 1 / Math.sqrt(WELT_FLAECHE);
   var MAX_BREITE = 4096, MAX_BG_SKALA = 6, MAX_DPR = 2;
   // Laternenkegel-Radius (Weltpixel); v06 war 44 → v08 kleiner/weicher

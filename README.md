@@ -11,6 +11,7 @@ Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 n
 - Tobi redet nur über Elon. Bundschuh und Tobi nutzen keine Scooter-Sprechblasen.
 - Siebold schlägt als Game Master Mäxle, Dampfhammer und Sinnlos saufen vor (Hinweis, Blase, Tresen-Menü).
 - Raphi-Gag nur noch als Anwärter-Neckerei: noch kein Press11, mehr Gas. „Raphael“ nur in dieser Neckerei.
+- Auf dem Handy (Hochformat) ist die Welt näher: `WELT_FLAECHE_HOCH` 1.5. Quer bleibt 4.0.
 
 ## Neu in v19
 
