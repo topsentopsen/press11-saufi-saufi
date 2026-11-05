@@ -4,6 +4,12 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v18
+
+- Zufällige NPC-Sprechblasen sind jetzt kurze Scooter-Titel und Rufe ("Hyper Hyper!", "How much is the fish?", "Nessaja!" und mehr), keine erfundenen Sprüche mehr.
+- Bei hohem Pegel wird weiter gelallt.
+- Raphi-Gag, freche Sprüche, Elon, S21, Motivatoren, Schilder und Funktionstexte bleiben unverändert.
+
 ## Neu in v17
 
 - Neun Startkarten: Zeise ist neu dabei (Brille, orange Shirt, stößt als Freund um 16:00 dazu).

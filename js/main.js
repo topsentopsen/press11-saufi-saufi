@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.17', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.18', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function wendeCharStats(S, char) {
