@@ -680,13 +680,15 @@
     ev.forEach(function (e) {
       if (e.typ === 'hinweis') sag(S, Saufi.MxEvent.HINWEISE[e.i].text, 4, 'info');
       else if (e.typ === 'dabei') {
+        var vorP = S.punkte.punkte;
         Saufi.Punkte.add(S.punkte, Saufi.MxEvent.BELOHNUNG.punkte, 'Motocross');
         Saufi.Runden.teamAendern(S.runden, Saufi.MxEvent.BELOHNUNG.team);
-        sag(S, 'Du warst beim Finale! +120, Team +1', 4, 'gut');
+        sag(S, 'Du warst beim Finale! +' + (S.punkte.punkte - vorP) + ', Team +' + Saufi.MxEvent.BELOHNUNG.team, 4, 'gut');
         if (X.T && X.T.pling) X.T.pling();
       } else if (e.typ === 'verpasst') {
+        var vorV = S.punkte.punkte;
         Saufi.Punkte.add(S.punkte, Saufi.MxEvent.STRAFE.punkte, 'Motocross verpasst');
-        sag(S, 'Finale verpasst. Die Truppe vermisst dich. -30', 4, 'schlecht');
+        sag(S, 'Finale verpasst. Die Truppe vermisst dich. -' + (vorV - S.punkte.punkte), 4, 'schlecht');
       }
     });
   }
@@ -1195,7 +1197,7 @@
     function tonHinweisAktualisieren() {
       if (!tonEl) return;
       // Ende-Bild und offenes Overlay: Hinweis ausblenden (liegt sonst ueber dem Titel)
-      if (S && (S.zustand === 'ende' || S.overlay)) { tonEl.hidden = true; return; }
+      if (S && (S.zustand === 'ende' || S.zustand === 'start' || S.overlay)) { tonEl.hidden = true; return; }
       // Kontext bereits running und entsperrt: kein erneutes Aufblitzen (visibility/pageshow)
       if (T.entsperrt && T.ctx && T.ctx.state === 'running') {
         var textRun = T.hinweis ? T.hinweis() : '';
@@ -1365,8 +1367,9 @@
       var akt = doc.getElementById('knopf-aktion'), was = doc.getElementById('knopf-wasser');
       var endeAn = S.zustand === 'ende';
       if (rahmen && rahmen.classList) rahmen.classList.toggle('ende', endeAn);
-      if (akt) akt.hidden = endeAn;
-      if (was) was.hidden = endeAn;
+      var startAn = S.zustand === 'start';   // v16: Startbild ohne E/Wasser
+      if (akt) akt.hidden = endeAn || startAn;
+      if (was) was.hidden = endeAn || startAn;
       var mkn = doc.getElementById('musik-knopf'); if (mkn && mkn.classList) mkn.classList.toggle('aus', !!S.musikAus);
       var kx = kontext(S);
       function setze(el, k, txt) {
@@ -1409,7 +1412,7 @@
     win.addEventListener('pageshow', function () { tonNachRueckkehr(); });
     win.addEventListener('focus', function () { tonNachRueckkehr(); });
 
-    var letzte = null;
+    var letzte = null, warStart = true;
     function frame(ms) {
       if (letzte === null) letzte = ms;
       var dt = Math.min(0.05, (ms - letzte) / 1000); letzte = ms;
@@ -1423,6 +1426,12 @@
       // Overlay offen: Stick-Geste abbrechen (Zone hat pointer-events:none, Restbewegung loeschen)
       if (S.overlay && stickId !== null) stickEnde();
       S.treffer = R.treffer; S.panel = R.panel || null;
+      // v16: Unterkante der #oben-Knopfleiste in Logik-Pixeln (Auswahltitel darunter)
+      var obenEl = doc.getElementById('oben'), cvEl = R.canvas;
+      if (obenEl && cvEl && obenEl.getBoundingClientRect && R.cssH) {
+        var ob = obenEl.getBoundingClientRect(), cb = cvEl.getBoundingClientRect();
+        R.obenUnten = Math.max(0, (ob.bottom - cb.top) * R.H / R.cssH);
+      }
       update(S, dt, X);
       if (S.neustart) { gewaehlt = S.auswahlId || S.char.id; erstStart = false; neuStarten(); starteSpiel(S, X); }
       musikInfoSync();
@@ -1430,7 +1439,10 @@
       S.treffer = R.treffer; S.panel = R.panel || null;
       if (rahmen && rahmen.classList) rahmen.classList.toggle('overlay', !!S.overlay);
       // Ende/Overlay: Ton-Hinweis ausblenden (liegt sonst ueber Titel/Menue)
-      if (tonEl && (S.zustand === 'ende' || S.overlay)) tonEl.hidden = true;
+      if (tonEl && (S.zustand === 'ende' || S.overlay || S.zustand === 'start')) tonEl.hidden = true;
+      // v16: Ton-Hinweis erst nach Start (nicht ueber den Auswahlkarten)
+      if (S.zustand !== 'start' && warStart) tonHinweisAktualisieren();
+      warStart = S.zustand === 'start';
       knoepfeAktualisieren();
       E.ende();
       win.requestAnimationFrame(frame);

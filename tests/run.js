@@ -3239,7 +3239,8 @@ test('150 Versionsanzeige mittig: Start/Spiel/Ende in drei Layouts', function ()
       } else if (z === 'spiel') { t.S.zustand = 'spiel'; }
       else { t.S.zustand = 'start'; }
       D.Render.zeichne(R, t.S);
-      wahr(!!versionMitte(log, R.W), 'v0.16 mittig @ ' + z + ' hoch=' + lay.hoch + ' touch=' + !!lay.touch);
+      if (z === 'start' && !lay.hoch) wahr(R.hudVersion && R.hudVersion.y > 20, 'v16: Version im Quer-Startbild nicht auf dem Titel');
+      else wahr(!!versionMitte(log, R.W), 'v0.16 mittig @ ' + z + ' hoch=' + lay.hoch + ' touch=' + !!lay.touch);
       var hv = R.hudVersion; wahr(!!hv, 'hudVersion gesetzt');
       var schneidet = function (a, b) { return a && b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; };
       if (lay.hoch) {

@@ -8,7 +8,7 @@
   var LISTE = [
     { id: 'tobi', name: 'Tobi', rolle: 'stamm', spielbar: true, trink: 1.00, leben: 1, shirt: '#d8222a', hose: '#3f4f7a', haar: '#5a3a28', extra: 'muetze', spruch: 'Wer hat Durst?',
       punkteFaktor: 1, rundenFaktor: 1.1, tempo: 1, heil: 1, abbauMul: 1,
-      auswahl: { rolle: 'Tesla-Tobi, Elon-Fanboy', plus: 'Elon-Sprüche, starke Team-Runden', minus: 'trinkt schneller' } },
+      auswahl: { rolle: 'Tesla-Tobi, Elon-Fanboy', plus: 'Elon-Sprüche, starke Team-Runden', minus: 'nur ein Leben' } },
     { id: 'raphael', name: 'Raphael', alias: 'Raffi', rolle: 'anwaerter', fortschritt: 10, fortschrittProRunde: 4, trink: 1.30, leben: 2, shirt: '#ff4fa0', hose: '#4a5a8a', haar: null, extra: 'kaeppi', spruch: 'Ich pack das!',
       tempo: 1, heil: 1, punkteFaktor: 1, abbauMul: 1,
       auswahl: { rolle: 'Anwärter Press11/Presself, zweites Leben', plus: 'Extra-Leben', minus: 'wird geneckt' } },

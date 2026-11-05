@@ -1192,8 +1192,13 @@
 
   // Version: horizontal mittig. Hochformat: unten in der Reserve (oben liegen die #oben-Knoepfe),
   // sonst oben, ausser die Uhr liegt dort (nur im Spiel, R.hudUhr gilt nur fuer den aktuellen Frame).
-  function versionsAnzeige(R, imSpiel) {
+  function versionsAnzeige(R, imSpiel, startQuer) {
     var c = R.ctx, txt = 'v' + Saufi.Spiel.VERSION, y = 2;
+    if (startQuer) {   // v16: Startbild quer, unten rechts statt auf dem Titel
+      R.hudVersion = { x: W - 44, y: H - 10, w: 40, h: 8 };
+      textInBox(c, txt, W - 44, H - 10, 40, 8, 6, { col: '#fff8ee', ausr: 'right', kontur: P.kontur, maxZeilen: 1 });
+      return;
+    }
     if (R.hochkant) {
       y = H - 10;
       [R.hudHilfe, R.hudDialog].forEach(function (b) { if (b && b.y < y + 9 && b.y + b.h > y) y = Math.max(2, b.y - 10); });
@@ -1215,7 +1220,7 @@
     var chars = (Saufi.Charaktere.auswahlChars && Saufi.Charaktere.auswahlChars()) || [];
     var raster = hoch ? KARTEN_RASTER.hoch : KARTEN_RASTER.quer;
     var titelH = hoch ? 14 : 10, unterH = hoch ? 10 : 0;
-    var y0 = hoch ? 4 : 2;
+    var y0 = hoch ? Math.max(4, Math.min(40, Math.ceil(R.obenUnten || 0) + 2)) : 2;   // v16: unter die #oben-Knoepfe
     textInBox(c, 'Press11 - Saufi Saufi', 8, y0, W - 16, titelH, hoch ? 12 : 9, { col: '#fff8ee', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
     if (hoch) textInBox(c, 'Wen spielst Du?', 20, y0 + titelH, W - 40, unterH, 8, { col: '#fff3c8', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
     var knopfBlock = (!hoch ? rowH + 4 : 2 * (rowH + rowGap)) + (hoch ? 14 : 8);
@@ -1276,16 +1281,16 @@
       }
       R.treffer.push({ x: cx, y: cy, w: kw, h: Math.max(kh, R.touch ? Math.min(touchZeile(R), kh + 2) : kh), i: 'f:' + ch.id });
     });
-    var hinweisY = gy0 + gridH + 2;
+    var hinweisY = gy0 + gridH + 2, ab18Gezeigt = false;
     if (hoch && H >= 560) {
       var zeilen = Saufi.Hinweise.HINWEIS_START, lz = H >= 640 ? 8 : 7, maxZ = H >= 640 ? 3 : 2;
       var bh = Math.min(zeilen.length, maxZ) * lz + 6;
       if (hinweisY + bh + knopfBlock < H - 2) {
         panel(c, 16, hinweisY, W - 32, bh, 'rgba(255,248,238,0.92)', 6);
         for (var zi = 0; zi < maxZ && zi < zeilen.length; zi++) {
-          textInBox(c, zi === 0 ? zeilen[0] : (zi === maxZ - 1 ? 'Ab 18 · Fiktives Spaß-Spiel' : zeilen[zi]), 24, hinweisY + 3 + zi * lz, W - 48, lz, 6.5, { col: zi === 0 ? P.bierRot : P.uiTinte, ausr: 'center', maxZeilen: 1, min: 5 });
+          textInBox(c, zeilen[zi], 24, hinweisY + 3 + zi * lz, W - 48, lz, 6.5, { col: zi === 0 ? P.bierRot : P.uiTinte, ausr: 'center', maxZeilen: 1, min: 5 });
         }
-        hinweisY += bh + 4;
+        hinweisY += bh + 4; ab18Gezeigt = true;
       }
     }
     var ey = Math.min(H - knopfBlock, Math.max(hinweisY, gy0 + gridH + (hoch ? 4 : 2)));
@@ -1307,8 +1312,9 @@
       });
     }
     var footY = !hoch ? ey + drawH + 1 : ey + 2 * (rowH + rowGap);
-    textInBox(c, S.best ? 'Bestwert: ' + S.best + ' Punkte' : 'Ab 18 · Fiktives Spaß-Spiel', 20, Math.min(footY, H - 11), W - 40, 10, 6.5, { col: '#fff3c8', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
-    versionsAnzeige(R);
+    var fussTxt = S.best ? 'Bestwert: ' + S.best + ' Punkte' : (ab18Gezeigt ? '' : 'Ab 18 · Fiktives Spaß-Spiel');
+    if (fussTxt) textInBox(c, fussTxt, 20, Math.min(footY, H - 11), W - 40, 10, 6.5, { col: '#fff3c8', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
+    versionsAnzeige(R, false, !hoch);
   }
 
   function endeBild(R, S) {
