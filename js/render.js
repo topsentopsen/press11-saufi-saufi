@@ -385,12 +385,6 @@
     if (torkelOn) c.restore();
   }
 
-  function namensschild(c, name, x, y) {
-    var tw = Math.max(28, Math.min(52, String(name).length * 4.2 + 6));
-    rr(c, x - tw / 2, y - 5, tw, 10, '#fff8ee', 3, P.kontur, 0.7);
-    textInBox(c, name, x - tw / 2 + 1, y - 4, tw - 2, 8, 5.5, { col: P.uiTinte, ausr: 'center', min: 5, maxZeilen: 1 });
-  }
-
   function blase(c, x, y, s, vermeide, belegt) {
     var pad = 8, maxW = Math.min(VW - 10, 150), ziel = 8;
     var mess = textInBox(c, s, 0, 0, maxW - pad, 48, ziel, { ausr: 'center', mess: true });
@@ -545,7 +539,6 @@
           schwips: n.fig.pegel > 1.5, tanzt: S.tanzBeat && !n.liegt, glas: S.prost > 0 && !n.liegt,
           pegel: n.fig.pegel, prost: S.prost
         });
-        if (n.char && n.char.id === 'raphael' && !n.liegt && !n.blase) namensschild(c, n.char.name, n.x - cx, n.y - cy - 28);
         if (n.blase && !n.liegt) {
           var vermeide = null;
           if (!karte.innen) karte.gebaeude.forEach(function (b) {
@@ -572,7 +565,6 @@
         });
         if (!sp.liegt) {
           var mx = sp.x - cx, my = sp.y - cy - 31 + Math.sin(t * 5) * 1.2;
-          if (ch.id === 'raphael') namensschild(c, ch.name, mx, my - 10);
           poly(c, [[mx - 3.2, my], [mx + 3.2, my], [mx, my + 4]], P.gold, P.kontur, 0.7);
         }
       }
