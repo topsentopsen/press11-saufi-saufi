@@ -8,9 +8,13 @@
   var P = G.P, hash = G.hash, r = G.r, rr = G.rr, box = G.box, kreis = G.kreis, ellipse = G.ellipse, poly = G.poly, linie = G.linie, vlauf = G.vlauf, herz = G.herz;
   var text = G.text, breite = G.breite, umbruch = G.umbruch, kuerze = G.kuerze, textInBox = G.textInBox, panel = G.panel, rgb = G.rgb, mix = G.mix;
   var BASE_W = 320, BASE_H = 176, PORT_H = 400, PORT_H_MIN = 280, PORT_H_MAX = 720, K = 16;
-  // Kamera: Hochformat/Touch naeher (Flaeche 1.5, Zoom ~0.82). Quer weiter raus (Flaeche 4.0, Zoom 0.5). HUD bleibt in Bildschirmkoordinaten (W×H)
+  // Kamera: Hochformat/Touch nah (Flaeche 1.0, Zoom 1.0). Quer weiter raus (Flaeche 4.0, Zoom 0.5). HUD bleibt in Bildschirmkoordinaten (W×H)
   // UI_RESERVE_HOCH: Dunkelfeld unten ohne Touch; UI_RESERVE_HOCH_TOUCH schmaler (DOM-Leiste darunter); STADT_PX_H = 40×60
-  var WELT_FLAECHE_HOCH = 1.5, WELT_FLAECHE_QUER = 4.0, MIN_WELT_ZOOM = 0.5, UI_RESERVE_HOCH = 80, UI_RESERVE_HOCH_TOUCH = 80, STADT_PX_H = 960;
+  // HUD_SK_HOCH_TOUCH: linkes HUD im Handy-Hochformat. Vorher (54/62)*0.85 ≈ 0.74, jetzt +30 % → 0.96.
+  var WELT_FLAECHE_HOCH = 1.0, WELT_FLAECHE_QUER = 4.0, MIN_WELT_ZOOM = 0.5, UI_RESERVE_HOCH = 80, UI_RESERVE_HOCH_TOUCH = 80, STADT_PX_H = 960;
+  var HUD_SK_HOCH_TOUCH = 0.96;
+  // Nutzer-Zoom als Faktor auf den Layout-Default (1 = WELT_FLAECHE_HOCH 1.0 bzw. Quer 0.5). Nicht die Welt kaputtzoomen.
+  var ZOOM_STUFEN = [0.75, 0.88, 1, 1.15, 1.30, 1.45];
   var WELT_FLAECHE = WELT_FLAECHE_QUER, WELT_ZOOM = 1 / Math.sqrt(WELT_FLAECHE);
   var MAX_BREITE = 4096, MAX_BG_SKALA = 6, MAX_DPR = 2;
   // Laternenkegel-Radius (Weltpixel); v06 war 44 → v08 kleiner/weicher
@@ -19,6 +23,23 @@
   var W = BASE_W, H = BASE_H, VW = BASE_W / WELT_ZOOM, VH = BASE_H / WELT_ZOOM;
   var SH = { dx: 0, lang: 0.6, a: 0 };           // Schatten der aktuellen Uhrzeit
   function weltView() { return { w: VW, h: VH, zoom: WELT_ZOOM, flaeche: WELT_FLAECHE }; }
+  function clampZoomFaktor(f) {
+    if (!(f > 0) || !isFinite(f)) return 1;
+    var best = ZOOM_STUFEN[0], bd = Math.abs(best - f), i;
+    for (i = 1; i < ZOOM_STUFEN.length; i++) {
+      var d = Math.abs(ZOOM_STUFEN[i] - f);
+      if (d < bd) { bd = d; best = ZOOM_STUFEN[i]; }
+    }
+    return best;
+  }
+  function zoomStufe(faktor, dir) {
+    var f = clampZoomFaktor(faktor), idx = 0, i;
+    for (i = 0; i < ZOOM_STUFEN.length; i++) if (ZOOM_STUFEN[i] === f) idx = i;
+    var n = idx + (dir || 0);
+    if (n < 0) n = 0;
+    if (n >= ZOOM_STUFEN.length) n = ZOOM_STUFEN.length - 1;
+    return ZOOM_STUFEN[n];
+  }
   // Logische Hochformat-Hoehe aus Viewport-Seitenverhaeltnis (W fest 320)
   function berechnePortH(availW, availH) {
     availW = Math.max(1, availW || 1); availH = Math.max(1, availH || 1);
@@ -71,7 +92,11 @@
     } else H = BASE_H;
     var altZoom = R.weltZoom, altFlaeche = R.weltFlaeche;
     WELT_FLAECHE = hoch ? WELT_FLAECHE_HOCH : WELT_FLAECHE_QUER;
-    WELT_ZOOM = Math.max(MIN_WELT_ZOOM, 1 / Math.sqrt(WELT_FLAECHE));
+    var basisZoom = Math.max(MIN_WELT_ZOOM, 1 / Math.sqrt(WELT_FLAECHE));
+    var faktor = clampZoomFaktor(opt && opt.zoomFaktor != null ? opt.zoomFaktor : (R.userZoom != null ? R.userZoom : 1));
+    R.userZoom = faktor;
+    R.zoomFaktor = faktor;
+    WELT_ZOOM = Math.max(MIN_WELT_ZOOM, basisZoom * faktor);
     R.W = W; R.H = H; R.weltFlaeche = WELT_FLAECHE;
     VW = W / WELT_ZOOM;
     var stadtPxH = (opt && opt.stadtPxH != null) ? opt.stadtPxH : (R.stadtPxH != null ? R.stadtPxH : STADT_PX_H);
@@ -442,7 +467,6 @@
   function zeichneLeben(c, a, cx, cy, t) {
     var x = a.px - cx, y = a.py - cy;
     if (a.art === 'vogel') { vogelBild(c, x, y, a); return; }
-    if (a.art === 'auto') { autoBild(c, x, y, a); return; }
     if (a.art === 'rad') { radBild(c, x, y, a); return; }
     if (a.art === 'hund') { hundBild(c, x, y, a); return; }
     var o = { dir: a.dir || 'unten', t: t, sitzt: a.haltung === 'sitzt', laeuft: !!a.laeuft, phase: a.phase || 0 };
@@ -459,17 +483,6 @@
     poly(c, [[-0.6, 0], [-5.4, 2.1 + f * 2], [-1.2, -0.3]], col);
     ellipse(c, 0.4, 0, 3.1, 1.45, col);
     poly(c, [[2.8, -0.2], [4.5, 0.25], [2.8, 0.7]], '#e8a020');
-    c.restore();
-  }
-  function autoBild(c, x, y, a) {
-    var sg = a.dir === 'links' ? -1 : 1, col = a.farbe || '#e0504a';
-    c.save(); c.translate(x, y); if (sg < 0) c.scale(-1, 1);
-    ellipse(c, 0, 0.4, 8.5, 1.8, 'rgba(50,30,80,0.25)');
-    rr(c, -8, -5.4, 16, 4.4, col, 1.6, '#4a3560', 0.55);
-    rr(c, -2.8, -8.2, 6.8, 3.4, '#9fd4f0', 1.1, '#4a3560', 0.4);
-    kreis(c, -4.4, -1.1, 1.7, '#2a2342', '#4a3560', 0.45);
-    kreis(c, 4.6, -1.1, 1.7, '#2a2342', '#4a3560', 0.45);
-    kreis(c, 6.8, -3.5, 0.65, '#ffe9a8');
     c.restore();
   }
   function radBild(c, x, y, a) {
@@ -964,7 +977,7 @@
   }
   function hud(R, S) {
     var c = R.ctx, fig = S.fig, uhr = S.uhr, i;
-    var kompakt = !R.hochkant, sk = kompakt ? 0.72 : (R.touch ? (54 / 62) * 0.85 : 54 / 62);
+    var kompakt = !R.hochkant, sk = kompakt ? 0.72 : (R.touch ? HUD_SK_HOCH_TOUCH : 54 / 62);
     var lpW = Math.round(96 * sk), lpH = Math.round(62 * sk), lx = 3, ly = 3;
     panel(c, lx, ly, lpW, lpH, '#fff8ee', kompakt ? 4 : 5);
     c.save(); c.translate(lx, ly); c.scale(sk, sk);
@@ -1615,7 +1628,7 @@
       zoom = WELT_ZOOM;
     } else {
       zoom = Math.max(W / Math.max(1, S.karte.pxW), weltH / Math.max(1, S.karte.pxH));
-      zoom = Math.max(MIN_WELT_ZOOM, zoom);
+      zoom = Math.max(MIN_WELT_ZOOM, zoom * ((R.userZoom > 0) ? R.userZoom : 1));
       kam.viewW = W / zoom;
       kam.viewH = weltH / zoom;
       kam.weltW = S.karte.pxW;
@@ -1688,6 +1701,7 @@
     UI_RESERVE_HOCH: UI_RESERVE_HOCH, UI_RESERVE_HOCH_TOUCH: UI_RESERVE_HOCH_TOUCH, STADT_PX_H: STADT_PX_H,
     LATERNE_RADIUS: LATERNE_RADIUS, LATERNE_RADIUS_V06: 44, SCHILD_NACHT_ALPHA: SCHILD_NACHT_ALPHA, UI_DUNKEL: '#1b1530',
     get WELT_FLAECHE() { return WELT_FLAECHE; }, get WELT_ZOOM() { return WELT_ZOOM; },
-    WELT_FLAECHE_HOCH: WELT_FLAECHE_HOCH, WELT_FLAECHE_QUER: WELT_FLAECHE_QUER, MIN_WELT_ZOOM: MIN_WELT_ZOOM
+    WELT_FLAECHE_HOCH: WELT_FLAECHE_HOCH, WELT_FLAECHE_QUER: WELT_FLAECHE_QUER, MIN_WELT_ZOOM: MIN_WELT_ZOOM,
+    HUD_SK_HOCH_TOUCH: HUD_SK_HOCH_TOUCH, ZOOM_STUFEN: ZOOM_STUFEN, clampZoomFaktor: clampZoomFaktor, zoomStufe: zoomStufe
   };
 })(globalThis);
