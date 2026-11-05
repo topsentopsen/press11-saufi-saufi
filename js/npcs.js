@@ -192,7 +192,7 @@
   function trinkeRunde(list, runde) {
     list.forEach(function (n) { if (n.aktiv && !n.liegt) { Saufi.Pegel.trinke(n.fig, runde.getraenk, runde.glaeser); n.mitgetrunken += 1; } });
   }
-  // Zwischendurch trinken die Mutigen mehr: Trinkfestigkeit ab 1,1 (Kevin, Raphael, Tobias) nimmt jede Spielstunde einen Kurzen
+  // Zwischendurch trinken die Mutigen mehr: Trinkfestigkeit ab 1,1 (Schwinki, Raphael, Tobias, Zeise) nimmt jede Spielstunde einen Kurzen
   function stunde(list, rng) {
     list.forEach(function (n) {
       if (!n.aktiv || n.liegt) return;

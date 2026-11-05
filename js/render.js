@@ -368,15 +368,6 @@
       if (dir === 'unten') rr(c, hx - 3, hy - 0.4, 6, 1.4, '#8a2a28', 0.7); else if (dir !== 'oben') rr(c, hx + sg * 3, hy - 0.6, 4.2 * sg, 1.5, '#8a2a28', 0.7);
       kreis(c, hx, hy - 5.5, 1, '#fff8ee');
     }
-    if (extra === 'brille' && dir !== 'oben') {
-      c.lineWidth = 0.6; c.strokeStyle = '#2a2a38';
-      var gaBr = c.globalAlpha; c.globalAlpha = gaBr * 0.55;
-      if (seite) { kreis(c, hx + sg * 2.4, hy + 0.6, 1.6, '#e8eef8', '#2a2a38', 0.6); }
-      else { kreis(c, hx - 1.9, hy + 0.7, 1.7, '#e8eef8', '#2a2a38', 0.6); kreis(c, hx + 1.9, hy + 0.7, 1.7, '#e8eef8', '#2a2a38', 0.6); }
-      c.globalAlpha = gaBr;
-      if (seite) linie(c, hx + sg * 0.8, hy + 0.5, hx - sg * 3.5, hy + 0.2, '#2a2a38', 0.5);
-      else { linie(c, hx - 0.3, hy + 0.7, hx + 0.3, hy + 0.7, '#2a2a38', 0.5); kreis(c, hx - 1.9, hy + 0.7, 0.55, '#3a2a40'); kreis(c, hx + 1.9, hy + 0.7, 0.55, '#3a2a40'); }
-    }
     if (extra === 'schnurrbart' && dir !== 'oben') {
       if (seite) rr(c, hx + sg * 1.4 - 1.4, hy + 1.9, 3.8, 1.2, '#5a3a28', 0.6); else { rr(c, hx - 3, hy + 1.8, 3, 1.3, '#5a3a28', 0.6); rr(c, hx, hy + 1.8, 3, 1.3, '#5a3a28', 0.6); }
     }
@@ -397,6 +388,11 @@
     if (extra === 'tracht') {
       rr(c, hx - 6, hy - 1.8, 12, 1.6, '#2f6a3f', 0.8); rr(c, hx - 4, hy - 6.4, 8, 5, '#2f6a3f', 2);
       linie(c, hx + 2.6, hy - 5, hx + 5, hy - 9, '#d8c070', 0.9); linie(c, hx + 2.6, hy - 5, hx + 4, hy - 9.4, '#e8d890', 0.5);
+    }
+    if (extra === 'brille' && dir !== 'oben') {
+      var gl = 'rgba(255,255,255,0.35)';
+      if (seite) kreis(c, hx + sg * 2.6, hy + 0.7, 1.7, gl, '#1a1a22', 0.6);
+      else { kreis(c, hx - 1.9, hy + 0.7, 1.7, gl, '#1a1a22', 0.6); kreis(c, hx + 1.9, hy + 0.7, 1.7, gl, '#1a1a22', 0.6); r(c, hx - 0.3, hy + 0.5, 0.6, 0.5, '#1a1a22'); }
     }
     if (extra === 'schuhe' && o.tanzt) kreis(c, hx, hy - 8, 0.8, '#ffd75e');
     // Himmelsbach: Stirnband + Trillerpfeife (maennlich)
@@ -1210,7 +1206,7 @@
     textInBox(c, txt, W / 2 - 20, y, 40, 8, 6, { col: '#fff8ee', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
   }
 
-  var KARTEN_RASTER = { hoch: { sp: 2, z: 4 }, quer: { sp: 2, z: 4 } };
+  var KARTEN_RASTER = { hoch: { sp: 2, z: 5 }, quer: { sp: 3, z: 3 } };
 
   function startBild(R, S) {
     var c = R.ctx, t = S.t, hoch = !!R.hochkant;
@@ -1231,7 +1227,7 @@
     var kw = Math.floor((W - rand * 2 - gap * (raster.sp - 1)) / raster.sp);
     var kh = Math.floor((kartenRaum - gap * (raster.z - 1)) / raster.z);
     if (hoch) kh = Math.min(kh, H >= 640 ? 78 : (H >= 560 ? 68 : 58));
-    else kh = Math.min(kh, 28);
+    else kh = Math.min(kh, 44);
     kh = Math.max(kh, hoch && R.touch ? Math.min(44, Math.floor(kartenRaum / raster.z) - 1) : (hoch ? 48 : 22));
     var gridW = raster.sp * kw + (raster.sp - 1) * gap;
     var gridH = raster.z * kh + (raster.z - 1) * gap;
@@ -1242,10 +1238,12 @@
     }
     var gx0 = Math.round((W - gridW) / 2), gy0 = kartenY;
     var selId = S.auswahlId || (S.char && S.char.id) || 'tobi';
+    var zl = (!hoch && raster.sp === 3) ? 2 : 1;
     R.treffer = [];
     chars.forEach(function (ch, i) {
       var col = i % raster.sp, row = (i / raster.sp) | 0;
       var cx = gx0 + col * (kw + gap), cy = gy0 + row * (kh + gap);
+      if (i === chars.length - 1 && chars.length % raster.sp === 1) cx = gx0 + Math.round((gridW - kw) / 2);
       var sel = ch.id === selId, blink = sel && Math.floor(t * 2) % 2 === 0;
       rr(c, cx, cy, kw, kh, sel ? (blink ? '#fff3b0' : '#ffe9a8') : 'rgba(255,248,238,0.94)', hoch ? 6 : 3, sel ? P.kontur : 'rgba(74,53,96,0.35)', 0.9);
       var figPad = hoch ? 34 : 22, figX = cx + (hoch ? 16 : 11), figY = cy + kh - (hoch ? 6 : 4);
@@ -1260,24 +1258,24 @@
       textInBox(c, nam, tx, ly, tw, nameSz + 1, nameSz, { col: P.uiTinte, ausr: 'left', maxZeilen: 1, min: 5 });
       ly += nameSz + 1;
       if (au.rolle) {
-        var rolleMax = hoch ? 2 : 1;   // quer: Rolle einzeilig, damit Plus und Minus Platz haben
+        var rolleMax = hoch ? 2 : zl;
         var rolleH = Math.min(lineH * rolleMax, cy + kh - ly - lineH * 2);
-        textInBox(c, au.rolle, tx, ly, tw, Math.max(lineH, rolleH), bodySz, { col: P.uiTinteWeich, ausr: 'left', maxZeilen: rolleMax, min: 5 });
+        textInBox(c, au.rolle, tx, ly, tw, Math.max(lineH, rolleH), bodySz, { col: P.uiTinteWeich, ausr: 'left', maxZeilen: rolleMax, min: hoch ? 5 : 4 });
         ly += Math.min(lineH * rolleMax, Math.max(lineH, rolleH));
       }
-      if (!hoch && au.plus && au.minus && ly + lineH <= cy + kh - 1 && ly + lineH * 2 > cy + kh - 1) {
+      if (!hoch && zl === 1 && au.plus && au.minus && ly + lineH <= cy + kh - 1 && ly + lineH * 2 > cy + kh - 1) {
         // quer, zu wenig Hoehe: Plus links, Minus rechts in einer Zeile
         var hw = Math.floor(tw / 2) - 1;
         textInBox(c, '+ ' + au.plus, tx, ly, hw, lineH + 1, bodySz, { col: '#2a7a4a', ausr: 'left', maxZeilen: 1, min: 4 });
         textInBox(c, '- ' + au.minus, tx + hw + 2, ly, hw, lineH + 1, bodySz, { col: '#a04040', ausr: 'left', maxZeilen: 1, min: 4 });
         au = { minus: null };
       }
-      if (au.plus && ly + lineH <= cy + kh - 1) {
-        textInBox(c, '+ ' + au.plus, tx, ly, tw, lineH + 1, bodySz, { col: '#2a7a4a', ausr: 'left', maxZeilen: 1, min: 5 });
-        ly += lineH;
+      if (au.plus && ly + lineH * zl <= cy + kh - 1) {
+        textInBox(c, '+ ' + au.plus, tx, ly, tw, lineH * zl + 1, bodySz, { col: '#2a7a4a', ausr: 'left', maxZeilen: zl, min: 5 });
+        ly += lineH * zl;
       }
-      if (au.minus && ly + lineH <= cy + kh - 1) {
-        textInBox(c, '- ' + au.minus, tx, ly, tw, lineH + 1, bodySz, { col: '#a04040', ausr: 'left', maxZeilen: 1, min: 5 });
+      if (au.minus && ly + lineH * zl <= cy + kh - 1) {
+        textInBox(c, '- ' + au.minus, tx, ly, tw, lineH * zl + 1, bodySz, { col: '#a04040', ausr: 'left', maxZeilen: zl, min: 5 });
       }
       R.treffer.push({ x: cx, y: cy, w: kw, h: Math.max(kh, R.touch ? Math.min(touchZeile(R), kh + 2) : kh), i: 'f:' + ch.id });
     });

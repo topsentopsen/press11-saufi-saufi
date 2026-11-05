@@ -33,16 +33,17 @@
   // Mindestens 8 Sprueche je Figur (eigene Stimme)
   var FIGUR = {
     tobi: ['Wer hat Durst?', 'Ich organisier des.', 'Kessel-Boss-Energie!', 'Noch eine Runde Plan!', 'Wasser isch auch Strategie.', 'Des wird a MS-Marathon.', 'Pass auf die Truppe auf.', 'Stuttgart rockt, Saufi!'],
-    raphael: ['Ich pack das!', 'Anwärter-Modus an.', 'Nur noch ein bissle.', 'Team first, Raffi second.', 'Wasser? Gerne.', 'Ich zähl die Runden.', 'Fast Stamm, glaub ich.', 'Hyper Hyper… intern.'],
+    raphael: ['Ich pack das!', 'Anwärter-Modus an.', 'Nur noch ein bissle.', 'Team first, Raphi second.', 'Wasser? Gerne.', 'Ich zähl die Runden.', 'Fast Stamm, glaub ich.', 'Hyper Hyper… intern.'],
     tobias: ['Fast drin.', '80 Prozent Gefühl.', 'Disko nimmt mich auf!', 'Noch eine für die Quote.', 'Ich lächle professionell.', 'Aufnahme bitte!', 'Ich steh noch… hoffentlich.', 'Tobias-Boost!'],
     schwickendorf: ['Also, früher...', 'Früher war mehr Kehrwoche.', 'Des war anno dazumal besser.', 'Junge, Junge.', 'Ein Pils zur Geschichte.', 'Ich erzähl nur kurz…', 'Früher ohne Feinstaub.', 'Siddsch stilvoll, Saufi.'],
-    buntschuh: ['Tanzen!', 'Schuh-Disco ready.', 'Beat im Blut.', 'Noch ein Step!', 'Fußboden isch Bühne.', 'Buntschuh never stops.', 'DJ, lauter!', 'Stäffele? Dancefloor!'],
+    bundschuh: ['Tanzen!', 'Schuh-Disco ready.', 'Beat im Blut.', 'Noch ein Step!', 'Fußboden isch Bühne.', 'Bundschuh never stops.', 'DJ, lauter!', 'Stäffele? Dancefloor!'],
     ritzi: ['Noch eine!', 'Lila Laune.', 'Ich bring Farbe.', 'Prost, Jungs!', 'Kurzer? Immer.', 'Ritzi-Power.', 'Pegel mit Stil.', 'Wir bleiben soft-hard.'],
     siebold: ['Ich rechne nach...', 'Standfestigkeit minus…', 'Statistisch ok.', 'Pegel-Excel im Kopf.', 'Team-KPI kritisch.', 'Ein Radler ist Effizienz.', 'Zahlen lügen selten.', 'Pluspunkte für Wasser.'],
-    kevin: ['Hunger!', 'Wo Brezel?', 'Maultasche ruft.', 'Ich ess nebenbei.', 'Bar-Snack-Alarm.', 'Kevin braucht Kohlehydrate.', 'Spätzle retten Leben.', 'Döner-Theorie später.'],
+    schwinki: ['Hunger!', 'Wo Brezel?', 'Maultasche ruft.', 'Ich ess nebenbei.', 'Bar-Snack-Alarm.', 'Schwinki braucht Kohlehydrate.', 'Spätzle retten Leben.', 'Döner-Theorie später.'],
     stoeckle: ['Des koschd extra!', 'Schwaben-Rechnung.', 'Net so verschwenderisch.', 'Ein Kurzer, fairer Preis.', 'Isch des im Angebot?', 'Kehrewoche zählt mit.', 'Barzahlung only.', 'Stöckle spart und prostet.'],
     probst: ['Ich sehe alles.', 'Alkoholfrei? Verdächtig.', 'Protokolliert.', 'Augen überall.', 'Probst-Radar an.', 'Heimlich? Hmm.', 'Team-Stimmung notiert.', 'Ich schweige laut.'],
-    himmelsbach: ['Auf geht\'s!', 'Ab 14 Uhr Antreiber.', 'Zweites Leben ready.', 'Pfeife bereit!', 'Naechste Runde, los!', 'Tribuene oder Stammtisch!', 'Ich zieh euch mit.', 'Himmelsbach bleibt am Ball.']
+    himmelsbach: ['Auf geht\'s!', 'Ab 14 Uhr Antreiber.', 'Zweites Leben ready.', 'Pfeife bereit!', 'Naechste Runde, los!', 'Tribuene oder Stammtisch!', 'Ich zieh euch mit.', 'Himmelsbach bleibt am Ball.'],
+    zeise: ['Neu hier, aber bereit!', 'Wo bin ich gelandet?', 'Erklärt mir die Regeln?', 'Ich lern schnell. Glaub ich.', 'Was heißt Kehrwoche?', 'Darf ich auch mal bestellen?', 'Runden? Ich bin dabei.', 'Zeise meldet sich an.']
   };
 
   var SITUATION = {

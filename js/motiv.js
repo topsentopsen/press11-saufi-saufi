@@ -1,4 +1,4 @@
-/* Motivatoren (Himmelsbach, Stoeckle, Seabolt): Runden-Anstupser. Eigener Zaehler, kein rng. */
+/* Motivatoren (Himmelsbach, Stoeckle, Siebold): Runden-Anstupser. Eigener Zaehler, kein rng. */
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};

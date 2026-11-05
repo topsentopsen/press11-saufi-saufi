@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.16', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.17', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function wendeCharStats(S, char) {
@@ -779,7 +779,7 @@
         sag(S, 'Tobi: ' + eTxt, 3.5, 'info');
       }
     }
-    // v15: Raffi-Gag und freche Blasen (eigener Zaehler, kein rng)
+    // v15: Raphi-Gag und freche Blasen (eigener Zaehler, kein rng)
     if (Saufi.Frech && !S.overlay && !S.uebergang) {
       if (!S.frech) S.frech = { zuletzt: 0, n: 0, r: 0, f: 0 };
       if (S.spielSek - S.frech.zuletzt >= Saufi.Frech.intervall(S.frech.n)) {
