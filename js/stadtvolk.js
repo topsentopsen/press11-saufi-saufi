@@ -3,7 +3,7 @@
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
   var K = 16;
-  var NAH_PX = 56, REDE_PX = 40, PAUSE = 9, BLASE_SEK = 3.2;
+  var NAH_PX = 56, REDE_PX = 40, PAUSE = 9, BLASE_SEK = Saufi.Hinweise.BLASE_SEK;
 
   var LISTE = {
     wirt: {

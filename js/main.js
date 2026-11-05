@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.21', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.22', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function wendeCharStats(S, char) {
@@ -687,7 +687,7 @@
         if (a.phase === 'angebot' && S.overlay && S.overlay.spontan) { S.overlay = null; if (!feste) sag(S, 'Runde verpufft, ' + n.char.name + ' trinkt sie allein.', 2, 'info'); }
         return;
       }
-      if (a.phase === 'holen' && n.auftrag && n.auftrag.da) { a.phase = 'bringen'; n.blase = { text: 'Runde kommt!', rest: 2.5 }; }
+      if (a.phase === 'holen' && n.auftrag && n.auftrag.da) { a.phase = 'bringen'; n.blase = { text: 'Runde kommt!', rest: Saufi.Hinweise.BLASE_SEK }; }
       if (a.phase === 'bringen') {
         var t = Saufi.NPCs.tileOf(S.spieler); n.auftrag = { x: t.x, y: t.y };
         if (Math.hypot(n.x - S.spieler.x, n.y - S.spieler.y) < 26 && !S.overlay && !S.uebergang) {
@@ -715,7 +715,7 @@
     sp.zuletzt = m; sp.anzahl += 1;
     wer.schwarm = null; wer.auftrag = { x: um[0].x, y: um[0].y };
     sp.aktiv = { npc: wer, phase: 'holen', sek: 0, getraenk: gt };
-    wer.blase = { text: 'Ich hol \'ne Runde!', rest: 3 };
+    wer.blase = { text: 'Ich hol \'ne Runde!', rest: Saufi.Hinweise.BLASE_SEK };
     sag(S, wer.char.name + ' holt eine Runde!', 2.5, 'info');
   }
   function spontanWahl(S, id, X) {
@@ -757,7 +757,7 @@
     S.gm.n += 1;
     S.gm.id = e.id;
     var label = String(e.label || 'Trinkspiel').replace(/^Minispiel:\s*/, '');
-    if (npc && !npc.blase) npc.blase = { text: 'Trinkspiel: ' + label + '!', rest: 3.5 };
+    if (npc && !npc.blase) npc.blase = { text: 'Trinkspiel: ' + label + '!', rest: Saufi.Hinweise.BLASE_SEK };
     sag(S, 'Siebold initiiert ein Trinkspiel: ' + label + '.', 3.2, 'info');
   }
   function bundschuhDa(S) {
@@ -882,7 +882,7 @@
         S.s21.zuletzt = S.spielSek;
         sag(S, spr, 4.5, 'info');
         var freund = S.npcs.filter(function (n) { return n.aktiv && !n.liegt && n.karteId === 'stadt' && Math.hypot(n.x - sp.x, n.y - sp.y) < 60; })[0];
-        if (freund && !freund.blase) freund.blase = { text: spr, rest: 3.5 };
+        if (freund && !freund.blase) freund.blase = { text: spr, rest: Saufi.Hinweise.BLASE_SEK };
       }
     }
     // Elon-Spruch (Tobi, kein rng). Als Spieler Hinweis, als NPC nur Elon-Blase, nie Scooter.
@@ -920,7 +920,7 @@
           var eTxt = Saufi.Elon.naechster(elonState, eKon);
           elonState.zuletzt = S.spielSek;
           if (tobiSelbst) sag(S, 'Tobi: ' + eTxt, 3.5, 'info');
-          else tobiFreund.blase = { text: eTxt, rest: 3.5 };
+          else tobiFreund.blase = { text: eTxt, rest: Saufi.Hinweise.BLASE_SEK };
         }
       }
     }
@@ -930,7 +930,7 @@
       if (S.spielSek - S.frech.zuletzt >= Saufi.Frech.intervall(S.frech.n)) {
         var fe = Saufi.Frech.vorschau(S.frech);
         var fn = Saufi.Frech.sprecher(S.npcs, S.ort, fe, (S.frech.n | 0) + 1);
-        if (fn) { Saufi.Frech.naechster(S.frech); S.frech.zuletzt = S.spielSek; fn.blase = { text: fe.text, rest: 3.5 }; }   // nur weiterschieben, wenn wirklich gesprochen
+        if (fn) { Saufi.Frech.naechster(S.frech); S.frech.zuletzt = S.spielSek; fn.blase = { text: fe.text, rest: Saufi.Hinweise.BLASE_SEK }; }   // nur weiterschieben, wenn wirklich gesprochen
       }
     }
     // v16: Motivatoren (eigener Zaehler, kein rng)
@@ -940,7 +940,7 @@
         var mn = Saufi.Motiv.sprecher(S.npcs, S.ort, (S.motiv.n | 0) + 1);
         if (mn) {
           var nr = Saufi.Runden.naechste(S.runden);
-          mn.blase = { text: Saufi.Motiv.text(mn.id, nr, m), rest: 3.5 };
+          mn.blase = { text: Saufi.Motiv.text(mn.id, nr, m), rest: Saufi.Hinweise.BLASE_SEK };
           if (S.char && S.char.id === 'tobi' && m >= 26 * 60) mn.blase.text = 'Tobi, nach 2 Uhr? Keine Chance.';   // v18: Tobi nach 2 Uhr schwer zu motivieren
           S.motiv.n = (S.motiv.n | 0) + 1; S.motiv.zuletzt = S.spielSek;
         }

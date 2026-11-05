@@ -33,9 +33,9 @@
     { id: 'himmelsbach', name: 'Himmelsbach', rolle: 'stamm', kommtAb: 14 * 60, trink: 1.00, leben: 2, shirt: '#3a6ea8', hose: '#2f3a52', haar: '#4a3a2a', extra: 'pfeife', spruch: 'Auf geht\'s, nächste Runde!', motivator: true,
       tempo: 1.04, heil: 0.85, punkteFaktor: 1, abbauMul: 1,
       auswahl: { rolle: 'Motivator, nächste Runde', plus: 'zieht zur Runde', minus: 'wenig Pause' } },
-    { id: 'zeise', name: 'Zeise', rolle: 'stamm', kommtAb: 16 * 60, gehtAb: 25 * 60, trink: 1.10, leben: 1, shirt: '#e8872a', hose: '#2e6e6e', haar: '#c8a050', extra: 'brille', spruch: 'Kennt jedes Bier.',
+    { id: 'zeise', name: 'Zeise', rolle: 'stamm', kommtAb: 16 * 60, gehtAb: 25 * 60, trink: 1.10, leben: 1, shirt: '#e8872a', hose: '#2e6e6e', haar: '#c8a050', extra: 'brille', spruch: 'Ich pass auf.',
       tempo: 1, heil: 1, punkteFaktor: 1, abbauMul: 1,
-      auswahl: { rolle: 'Der Vernünftige', plus: 'Gründungsmitglied, alle Biere', minus: 'geht immer früher nach Hause' } }
+      auswahl: { rolle: 'Der Vernünftige', plus: 'Legendäres Gründungsmitglied', minus: 'geht immer früher nach Hause' } }
   ];
 
   // Reihenfolge der Startkarten (erweiterbar)

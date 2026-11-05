@@ -20,6 +20,8 @@
     'harmlos: der "Joint" ist nur ein Spiel-Item.'
   ];
   var DANKE = 'Danke fürs Spielen, trink Wasser.';
+  // v22: eine Dauer für alle Sprechblasen (vorher 2,5–3,5 s)
+  var BLASE_SEK = 4.5;
 
   var SHOUTS = ['HYPER HYPER!', 'HOW MUCH IS THE FISH?', 'ONE MORE!', 'WIE VIEL IST DER KESSEL?', 'JIGGA JIGGA!'];
   var PROST = ['PROST!', 'ZUM WOHL!', 'AUF DIE TRUPPE!', 'SCHWABENTROPFEN!', 'UFF DIE KESSELWELLE!'];
@@ -92,7 +94,7 @@
     TITEL: TITEL, HINWEIS_VOLL: HINWEIS_VOLL, HINWEIS_START: HINWEIS_START, DANKE: DANKE,
     SHOUTS: SHOUTS, PROST: PROST, STAND_WEG: STAND_WEG, SPRUECHE: SPRUECHE, SCOOTER: SCOOTER,
     FIGUR: FIGUR, SITUATION: SITUATION, ORT: ORT, PEGEL: PEGEL,
-    pegelStufe: pegelStufe, lallen: lallen, spruch: spruch,
+    pegelStufe: pegelStufe, lallen: lallen, spruch: spruch, BLASE_SEK: BLASE_SEK,
     erstelle: erstelle, zeige: zeige, update: update, aktuell: aktuell
   };
 })(globalThis);
