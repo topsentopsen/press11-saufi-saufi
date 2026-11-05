@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.20', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.21', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function wendeCharStats(S, char) {
@@ -59,7 +59,7 @@
     var S = {
       version: VERSION, seed: seed, tempo: tempo, rng: Saufi.RNG.erstelle(seed + 1000), welt: welt, ort: 'stadt', karte: welt.stadt, char: char,
       fig: Saufi.Pegel.neu(char), uhr: Saufi.Uhr.erstelle(tempo), spieler: sp, kamera: Saufi.Kamera.erstelle(viewW, viewH, welt.stadt.pxW, welt.stadt.pxH),
-      npcs: Saufi.NPCs.erstelle(char.id), runden: Saufi.Runden.erstelle(), cheats: Saufi.Cheats.erstelle(), punkte: Saufi.Punkte.erstelle(),
+      npcs: Saufi.NPCs.erstelle(char.id), stadtvolk: Saufi.Stadtvolk.erstelle(welt, seed), runden: Saufi.Runden.erstelle(), cheats: Saufi.Cheats.erstelle(), punkte: Saufi.Punkte.erstelle(),
       joint: Saufi.Ereignisse.Joint.erstelle(), boost: Saufi.Ereignisse.Boost.erstelle(), boostAktiv: false, flaschen: 3, flascheGenommen: false,
       hinweise: Saufi.Hinweise.erstelle(), licht: null, t: 0, zustand: opt.start ? 'spiel' : 'start', startIndex: 0, overlay: null, uebergang: null,
       effekte: [], hilfe: '', pfeil: null, ende: null, pressF: null, hausverbote: 0, letzteStunde: Math.floor(Saufi.Uhr.START / 60), spontan: { zuletzt: -999, anzahl: 0, aktiv: null }, ortSek: 0, prost: 0, tanzBeat: false,
@@ -83,6 +83,7 @@
 
   // ---------------------------------------------------------------- Helfer
   function minute(S) { return S.uhr.minute; }
+  function quatsche(S, v) { return Saufi.Stadtvolk.sprich(v, null); }
   function sag(S, text, dauer, art) { Saufi.Hinweise.zeige(S.hinweise, text, dauer, art); }
   function jointFaktor(S) { return Saufi.Ereignisse.Joint.verstaerke(S.joint); }
   function mitteVon(st) { return { x: (st.x + st.w / 2) * K, y: (st.y + st.h / 2) * K }; }
@@ -393,6 +394,8 @@
       var d = Math.hypot(n.x - wx, n.y - 4 - wy); if (d <= bd) { bd = d; best = n; }
     });
     if (best) return { art: 'wecken', npc: best };
+    var sv = Saufi.Stadtvolk.naechster(S.stadtvolk, S.karte.id, wx, wy, 12);
+    if (sv) return { art: 'stadtvolk', v: sv };
     var st = Saufi.Karte.nahe(S.karte, wx, wy, 4);
     if (st) return { art: 'station', st: st };
     return { art: 'laufen' };
@@ -418,6 +421,10 @@
     if (z.art === 'wecken') {
       if (Math.hypot(z.npc.x - sp.x, z.npc.y - sp.y) <= Saufi.NPCs.WECK_REICHWEITE) { stoppeTippWeg(S); wasserTrinken(S, X); return 'wecken'; }
       ziele = freieNachbarn(S, Math.floor(z.npc.x / K), Math.floor(z.npc.y / K), 1); akt = z;
+    } else if (z.art === 'stadtvolk') {
+      if (Math.hypot(z.v.px - sp.x, z.v.py - sp.y) <= Saufi.Stadtvolk.REDE_PX) { stoppeTippWeg(S); quatsche(S, z.v); return 'stadtvolk'; }
+      ziele = z.v.vorne && !S.karte.blockiert(z.v.vorne.x, z.v.vorne.y) ? [{ x: z.v.vorne.x, y: z.v.vorne.y }] : freieNachbarn(S, z.v.vorne.x, z.v.vorne.y, 1);
+      akt = z;
     } else if (z.art === 'station') {
       if (Saufi.Karte.abstand(sp.x, sp.y - 2, z.st) <= TIPP_STATION_NAH) { stoppeTippWeg(S); S.marker = { x: p.x, y: p.y, t: 0 }; aktion(S, X, z.st); return 'station'; }
       ziele = Saufi.Karte.umgebung(S.karte, z.st); akt = z;
@@ -451,6 +458,7 @@
     var akt = w.aktion; S.tippWeg = null; S.marker = null; sp.vx *= 0.3; sp.vy *= 0.3;
     if (akt && akt.art === 'station') aktion(S, X, akt.st);
     else if (akt && akt.art === 'wecken' && akt.npc.liegt) wasserTrinken(S, X);
+    else if (akt && akt.art === 'stadtvolk') quatsche(S, akt.v);
     return null;
   }
 
@@ -462,7 +470,11 @@
     st = stFix || Saufi.Karte.nahe(S.karte, sp.x, sp.y - 2, 14);
     // Panne nur loesen, wenn keine Station im Weg (sonst brechen Mittrunden/Menues)
     if (!st && S.pannen && S.pannen.aktiv && S.pannen.aktiv.def.loesung === 'aktion' && loeseAktivePanne(S, 'aktion', X)) return;
-    if (!st) { sag(S, 'Hier gibt es nichts zu tun.', 1.2, 'info'); return; }
+    if (!st) {
+      var rede = Saufi.Stadtvolk.inReichweite(S.stadtvolk, S.karte.id, sp.x, sp.y);
+      if (rede) { quatsche(S, rede); return; }
+      sag(S, 'Hier gibt es nichts zu tun.', 1.2, 'info'); return;
+    }
     var m = minute(S), Uhr = Saufi.Uhr;
     switch (st.typ) {
       case 'tuer':
@@ -485,10 +497,23 @@
         oeffneMenue(S, 'Wasserspender', ['Gratis!'], [{ label: 'Wasser trinken', id: 'spender_trinken' }, { label: 'Flasche auffüllen (' + flaschenText(S) + ')', id: 'spender_fuellen' }, zurueckEintrag()]); break;
       case 'tresen_restaurant': case 'tresen_kneipe': case 'bar_disko':
         if (!Uhr.tresenOffen(S.ort, m)) { sag(S, 'Der Tresen ist schon zu.', 2, 'info'); return; }
+        if (st.typ === 'tresen_kneipe') {
+          var wirt = Saufi.Stadtvolk.fuerId(S.stadtvolk, 'wirt');
+          if (wirt && wirt.karteId === S.karte.id) Saufi.Stadtvolk.sprich(wirt, 'bestellen');
+        }
         getraenkeMenue(S, st); break;
       case 'stammtisch': stammtisch(S, X); break;
       case 'sofa': case 'bank':
-        sp.sitzt = true; sp.vx = 0; sp.vy = 0; sag(S, 'Ausruhen: die Standfestigkeit steigt. Bewegen oder E zum Aufstehen.', 2.4, 'info'); break;
+        sp.sitzt = true; sp.vx = 0; sp.vy = 0;
+        if (st.typ === 'bank' && st.id === 'bank_markt_b') {
+          var kalle = Saufi.Stadtvolk.aufBank(S.stadtvolk, 'bank_markt_b');
+          if (kalle) Saufi.Stadtvolk.sprich(kalle, 'sitzen');
+        }
+        sag(S, 'Ausruhen: die Standfestigkeit steigt. Bewegen oder E zum Aufstehen.', 2.4, 'info'); break;
+      case 'rezeption':
+        var rez = Saufi.Stadtvolk.fuerId(S.stadtvolk, 'rezeption');
+        if (rez && rez.karteId === S.karte.id) Saufi.Stadtvolk.sprich(rez, 'rezeption');
+        break;
       case 'tanz': tanzen(S, X); break;
       case 'jukebox': playlistOverlay(S, X); break;
       case 'joint':
@@ -612,10 +637,10 @@
     if (Saufi.NPCs.naechsterLiegender(S.npcs, S.ort, sp.x, sp.y, Saufi.NPCs.WECK_REICHWEITE)) return 'Q: Freund wecken';
     if (sp.sitzt) return 'Bewegen: aufstehen';
     var st = Saufi.Karte.nahe(S.karte, sp.x, sp.y - 2, 14);
-    if (!st) return '';
+    if (!st) return Saufi.Stadtvolk.inReichweite(S.stadtvolk, S.karte.id, sp.x, sp.y) ? 'E: Quatschen' : '';
     var t = { tuer: 'E: ' + (st.label || 'Tür'), ausgang: 'E: Hinaus', buffet: 'E: Frühstück', kueche: 'E: Essen bestellen', spender: 'E: Wasser', tresen_restaurant: 'E: Bestellen', tresen_kneipe: 'E: Bestellen',
       bar_disko: 'E: Bestellen', stammtisch: Saufi.Runden.aktive(S.runden) && Saufi.Runden.aktive(S.runden).ort === S.ort ? 'E: PROST!' : 'E: Stammtisch', sofa: 'E: Ausruhen', bank: 'E: Ausruhen', tanz: 'E: Tanzen (im Takt!)',
-      jukebox: 'E: Musik', joint: 'E: Aufheben', flasche: 'E: Aufheben', tribuene: 'E: Bier auf der Tribüne', bierkasten: 'E: Bier' }[st.typ];
+      jukebox: 'E: Musik', joint: 'E: Aufheben', flasche: 'E: Aufheben', tribuene: 'E: Bier auf der Tribüne', bierkasten: 'E: Bier', rezeption: 'E: Rezeption' }[st.typ];
     if (S.gm && S.gm.id && /^(tresen_|bar_)/.test(st.typ)) return 'E: Siebolds Trinkspiel';
     return t || '';
   }
@@ -975,6 +1000,7 @@
     heimBundschuh(S, m);
     spontanePruefen(S, X, dt);
     S.sprechT -= dt; if (S.sprechT <= 0) { Saufi.NPCs.sprechen(S.npcs, S.rng, S.ort, S.fig.pegel); S.sprechT = 5 + S.rng.next() * 5; }
+    Saufi.Stadtvolk.update(S.stadtvolk, { ort: S.ort, spieler: sp, dt: dt });
     Saufi.Ereignisse.updatePannen(S.pannen, dt);
     if (S.rng.next() < dt * 0.015) {
       var pan = Saufi.Ereignisse.wuerflePanne(S.pannen, S.rng, S.fig.pegel);

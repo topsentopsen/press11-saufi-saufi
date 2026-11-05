@@ -4,6 +4,12 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v21
+
+- Mehr Stadt, weniger Wiese: Gehwege, Asphalt, Häuserblöcke und mehr Laternen. Südpark, Südhain, Rebenhang und Motocross-Park bleiben grün.
+- Stadtvolk: der Wirt in Sophies Brauhaus, Kalle vom Bänkle am Markt und die Rezeptionistin im Jaz. Antippen oder E zum Quatschen.
+- Alle Orte bleiben, wo sie waren. Truppe, Sprüche und Musik unverändert.
+
 ## Neu in v20
 
 - Schwinki hat keine Schwäche: Nachschub bleibt, er geht nicht früher heim und wird nach 01:00 nicht langsamer.

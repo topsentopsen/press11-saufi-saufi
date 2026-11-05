@@ -7,13 +7,13 @@
 
   var T = {
     GRAS: 0, WEG: 1, PFLASTER: 2, STRASSE: 3, WASSER: 4, BRUECKE: 5, MAUER: 6, REBEN: 7, BAUM: 8, LATERNE: 9, BRUNNEN: 10, BANK: 11,
-    STAEFFELE: 12, GEB: 13, TUER: 14, BUSCH: 15,
+    STAEFFELE: 12, GEB: 13, TUER: 14, BUSCH: 15, GEHWEG: 16, ASPHALT: 17, HAUS: 18,
     BODEN: 20, WAND: 21, TRESEN: 22, TISCH: 23, SOFA: 24, BUFFET: 25, SPENDER: 26, TANZ: 27, DJ: 28, JUKEBOX: 29, PFLANZE: 30,
     TEPPICH: 31, KUECHE: 32, AUSGANG: 33, KICKER: 34, TERRASSE: 35,
     ERDE: 36, HUEGEL: 37, TRIBUENE: 38, ABSPERR: 39, BAUZAUN: 40, BAUGRUBE: 41
   };
   var BLOCK = {};
-  [T.WASSER, T.MAUER, T.REBEN, T.BAUM, T.LATERNE, T.BRUNNEN, T.BANK, T.GEB, T.TUER, T.BUSCH, T.WAND, T.TRESEN, T.TISCH, T.SOFA, T.BUFFET,
+  [T.WASSER, T.MAUER, T.REBEN, T.BAUM, T.LATERNE, T.BRUNNEN, T.BANK, T.GEB, T.TUER, T.BUSCH, T.HAUS, T.WAND, T.TRESEN, T.TISCH, T.SOFA, T.BUFFET,
     T.SPENDER, T.DJ, T.JUKEBOX, T.PFLANZE, T.KUECHE, T.AUSGANG, T.KICKER, T.TRIBUENE, T.ABSPERR, T.BAUZAUN, T.BAUGRUBE].forEach(function (t) { BLOCK[t] = true; });
 
   var ORTE = ['hotel', 'restaurant', 'kneipe', 'disko'];
@@ -23,11 +23,13 @@
   function neueKarte(id, w, h, fill, innen) {
     var k = {
       id: id, w: w, h: h, innen: !!innen, tiles: new Uint8Array(w * h).fill(fill), tueren: [], stationen: [], gebaeude: [], deco: [],
+      stadtvolk: [], belegt: new Uint8Array(w * h),
       spawn: { x: 0, y: 0 }, pxW: w * K, pxH: h * K,
       tile: function (x, y) { return (x < 0 || y < 0 || x >= w || y >= h) ? T.MAUER : k.tiles[y * w + x]; },
       setze: function (x, y, t) { if (x >= 0 && y >= 0 && x < w && y < h) k.tiles[y * w + x] = t; },
       rect: function (x, y, rw, rh, t) { for (var j = y; j < y + rh; j++) for (var i = x; i < x + rw; i++) k.setze(i, j, t); },
-      blockiert: function (x, y) { return !!BLOCK[k.tile(x, y)]; },
+      belege: function (x, y) { if (x >= 0 && y >= 0 && x < w && y < h) k.belegt[y * w + x] = 1; },
+      blockiert: function (x, y) { return !!BLOCK[k.tile(x, y)] || (x >= 0 && y >= 0 && x < w && y < h && k.belegt[y * w + x] === 1); },
       station: function (id2, typ, x, y, sw, sh, label, extra) {
         var s = { id: id2, typ: typ, x: x, y: y, w: sw || 1, h: sh || 1, label: label || '' };
         if (extra) for (var key in extra) s[key] = extra[key];
@@ -154,6 +156,9 @@
     // Motocross-Park (Ostseite y 31..44, x 27..38) nach streue, damit Seeds oben stabil bleiben
     baueMotocross(k);
     baueS21(k);
+    // Nach allem Zufall: Stadtflaechen ersetzen nur Gras, Baum und Busch. Kein weiterer Zug.
+    if (Saufi.Karte && Saufi.Karte.urbanisiere) Saufi.Karte.urbanisiere(k);
+    else urbanisiere(k);
     // Bierkaesten an jede Bank (Prop, begehbar)
     k.stationen.filter(function (st) { return st.typ === 'bank'; }).forEach(function (st) {
       bierkasten(k, st.x, st.y, st.id);
@@ -162,8 +167,44 @@
     [[37, 33], [28, 42], [37, 42]].forEach(function (p, i) {
       if (!k.blockiert(p[0], p[1])) k.station('kasten_mx' + (i + 1), 'bierkasten', p[0], p[1], 1, 1, 'Bierkasten');
     });
+    k.stadtvolk.push({ id: 'penner', x: 18, y: 9, vorne: { x: 18, y: 10 }, bank: 'bank_markt_b' });
     k.spawn = { x: 25, y: 13 };
     return k;
+  }
+
+  // Deterministischer Nachlauf: Gras, Baum und Busch in festen Zonen werden Gehweg, Asphalt oder Haus.
+  // Suedpark, Suedhain, Rebenhang, Motocross-Innenfeld, Baumallee y47 und die Randzeile y59 bleiben gruen.
+  function urbanisiere(k) {
+    function u(x, y, t) {
+      var cur = k.tile(x, y);
+      if (cur === T.GRAS || cur === T.BAUM || cur === T.BUSCH) k.setze(x, y, t);
+    }
+    function blockU(x, y, w, h) {
+      var j, i;
+      for (j = y; j < y + h; j++) for (i = x; i < x + w; i++) u(i, j, T.HAUS);
+    }
+    function bodenU(x0, y0, x1, y1) {
+      var j, i;
+      for (j = y0; j <= y1; j++) for (i = x0; i <= x1; i++) u(i, j, T.GEHWEG);
+    }
+    var x;
+    blockU(0, 7, 2, 6); blockU(31, 7, 6, 4); blockU(37, 7, 3, 6);
+    blockU(1, 17, 8, 3); blockU(14, 17, 10, 3);
+    blockU(1, 25, 9, 3); blockU(14, 25, 10, 3); blockU(37, 25, 3, 3);
+    blockU(1, 40, 10, 3); blockU(14, 40, 10, 3);
+    blockU(1, 50, 8, 3); blockU(1, 55, 8, 3); blockU(18, 54, 6, 3);
+    blockU(27, 50, 6, 3); blockU(34, 50, 5, 3); blockU(27, 55, 12, 3);
+    for (x = 0; x <= 24; x++) u(x, 30, T.ASPHALT);
+    for (x = 26; x <= 39; x++) u(x, 30, T.ASPHALT);
+    for (x = 0; x <= 24; x++) u(x, 43, T.ASPHALT);
+    bodenU(0, 7, 39, 13); bodenU(0, 16, 39, 20); bodenU(0, 24, 39, 30);
+    bodenU(0, 39, 24, 46); bodenU(26, 30, 26, 46); bodenU(39, 30, 39, 46); bodenU(27, 45, 38, 46);
+    bodenU(0, 49, 8, 58); bodenU(18, 49, 24, 58); bodenU(26, 49, 39, 58);
+    [[9, 20], [13, 20], [25, 17], [10, 24], [13, 24], [24, 24], [12, 41], [24, 40], [0, 44], [26, 40], [0, 49], [26, 49], [33, 53], [24, 53]].forEach(function (p) {
+      if (k.tile(p[0], p[1]) === T.GEHWEG) k.setze(p[0], p[1], T.LATERNE);
+    });
+    k.deco = k.deco.filter(function (d) { return k.tile(Math.floor(d.x / K), Math.floor(d.y / K)) === T.GRAS; });
+    k.urban = true;
   }
 
   // Freie Nachbarkachel Ost/West/Sued: Bierkasten als begehbare Station (kein BLOCK)
@@ -250,6 +291,9 @@
     k.rect(2, 3, 4, 1, T.TRESEN);                                   // Rezeption
     k.rect(9, 2, 4, 1, T.BUFFET); k.station('buffet', 'buffet', 9, 2, 4, 1, 'Frühstücksbuffet');
     k.setze(14, 2, T.SPENDER); k.station('spender', 'spender', 14, 2, 1, 1, 'Wasserspender');
+    k.station('rezeption', 'rezeption', 2, 3, 4, 1, 'Rezeption');
+    k.stadtvolk.push({ id: 'rezeption', x: 3, y: 2, vorne: { x: 3, y: 4 } });
+    k.belege(3, 2);
     k.rect(1, 7, 4, 3, T.TEPPICH); k.rect(1, 8, 3, 1, T.SOFA); k.station('sofa', 'sofa', 1, 8, 3, 1, 'Sofa');
     k.rect(7, 5, 3, 2, T.TISCH); k.station('stammtisch', 'stammtisch', 7, 5, 3, 2, 'Stammtisch');
     k.rect(11, 7, 4, 3, T.TERRASSE);                                // Dachterrasse
@@ -271,6 +315,8 @@
     var k = raum('kneipe', 14, 11);
     ausgang(k, 6);
     k.rect(2, 3, 8, 1, T.TRESEN); k.station('tresen', 'tresen_kneipe', 2, 3, 8, 1, 'Tresen');
+    k.stadtvolk.push({ id: 'wirt', x: 5, y: 2, vorne: { x: 5, y: 4 } });
+    k.belege(5, 2);
     k.setze(12, 2, T.JUKEBOX); k.station('jukebox', 'jukebox', 12, 2, 1, 1, 'Jukebox');
     k.rect(1, 6, 2, 1, T.KICKER);
     k.rect(7, 5, 5, 4, T.TEPPICH); k.rect(8, 6, 3, 2, T.TISCH); k.station('stammtisch', 'stammtisch', 8, 6, 3, 2, 'Stammtisch');
@@ -320,5 +366,5 @@
     return res;
   }
 
-  Saufi.Karte = { K: K, T: T, BLOCK: BLOCK, ORTE: ORTE, NAMEN: NAMEN, KURZ: KURZ, erstelleStadt: erstelleStadt, erstelleWelt: erstelleWelt, nahe: nahe, umgebung: umgebung, abstand: abstand };
+  Saufi.Karte = { K: K, T: T, BLOCK: BLOCK, ORTE: ORTE, NAMEN: NAMEN, KURZ: KURZ, erstelleStadt: erstelleStadt, erstelleWelt: erstelleWelt, urbanisiere: urbanisiere, nahe: nahe, umgebung: umgebung, abstand: abstand };
 })(globalThis);
