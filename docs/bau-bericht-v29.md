@@ -25,3 +25,5 @@ Intern bleiben `fig.verloren` und `Runden.verloren`. Auf dem Schirm:
 - Ende im Hochformat-Touch: Sheet unten mit „Nochmal raus“. Kein Link auf die Feedback-Seite, die bleibt getrennt.
 
 `VERSION` ist `0.29`. Alle `?v=0.29` in der Wurzel-`index.html`.
+
+Drei UI-Runden danach: (1) Teamleiste endet vor dem Daumencluster, Versionskapsel unten rechts. (2) Sprechblasen weichen HUD, Zoom, Stick und Cluster aus; Uhr größer, Kacheln mit mehr Luft, E so hoch wie Trinken. (3) Offenes Menü blendet Stick und Aktionsknöpfe aus, damit das Sheet die Treffer behält.

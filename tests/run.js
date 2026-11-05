@@ -5778,6 +5778,7 @@ test('239 v29 Hochformat: Overlay, Trinken 80, Sheet, Feierabend', function () {
   wahr(/#zoom[^}]*left:\s*8px/.test(html), 'Zoom links, nicht über der Jukebox');
   wahr(!/#zoom\s*\{[^}]*right:\s*8px/.test(html), 'Zoom nicht mehr rechts oben');
   wahr(/#rahmen\.touch\.hoch\.spiel #knopf-f[^}]*56px/.test(html), 'F 56px über E/Trinken');
+  wahr(/#rahmen\.touch\.overlay #touch[^}]*visibility:\s*hidden/.test(html), 'Sheet liegt über den Daumenknöpfen');
 });
 
 test('240 Handy-Wecken: Doppeltipp auf die Figur, einzelner Tipp nicht, Q bleibt', function () {
