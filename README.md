@@ -4,6 +4,13 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v19
+
+- Tanzen wertet den Takt, den die Musik gerade spielt (96–150 BPM, Boost 172), nicht mehr fest 150. Die Tanzfläche pulst im selben Takt.
+- In der Disko steigt Tempo und Intensität mit der Uhr weiter, wie an den anderen Orten. Die volle Disko-Schicht bleibt.
+- Karten wirken im Spiel: Schwinki hat Nachschub und geht früher, Raphi gibt bis 12 Uhr zu viel Gas, Siebold initiiert Trinkspiele an der Bar, Bundschuh behält den Überblick (Pfeil zur nächsten Runde) und schickt ab 02:00 Freunde ohne Leben nach Hause.
+- Kürzere Startkarten (Bundschuh, Motivatoren, Raphi). „nächste“ statt „naechste“.
+
 ## Neu in v18
 
 - Zufällige NPC-Sprechblasen sind jetzt kurze Scooter-Titel und Rufe ("Hyper Hyper!", "How much is the fish?", "Nessaja!" und mehr), keine erfundenen Sprüche mehr.
@@ -184,7 +191,7 @@ Handy: Hoch- und Querformat. Joystick links unten, Aktion/Wasser rechts unten (S
 - Vier Orte: Jaz, Gasthaus Maultäschle, Sophies Brauhaus, Untergrund 07. Dazu Motocross-Park mit Tribüne. Öffnungszeiten: Hotel immer, Gasthaus 11:00 bis 23:00, Kneipe 14:00 bis 03:00, Disko 22:00 bis 04:00, Motocross 12:00 bis 20:00.
 - Sechs feste Mittrunden (10:00 Hotel, 12:30 Gasthaus, 15:30 Kneipe, 19:30 Gasthaus, 22:30 und 01:30 Disko). Eine Stunde vorher gibt es eine Warnung, nach dem Ausruf hast Du ca. 20 Sekunden Echtzeit, am Stammtisch zu stehen. Mittrinken, heimlich gegen Alkoholfrei tauschen (Risiko erwischt zu werden, höchstens 3 pro Runde) oder ablehnen (Strafe).
 - Essen senkt den Pegel und stärkt, Wasser hilft, Freunde die umfallen kannst Du mit Wasser wecken (Q).
-- Disko: im Takt tanzen füllt die Scooter-Leiste, bei voller Leiste zündet R den Boost für die ganze Truppe (Verluste halbiert, schneller).
+- Disko: im Takt der laufenden Musik tanzen füllt die Scooter-Leiste, bei voller Leiste zündet R den Boost für die ganze Truppe (Verluste halbiert, schneller, 172 BPM).
 - Punkte gibt es fürs Durchhalten, nicht für die Menge. Medaillen: Bronze (Standhaft), Silber ab 1000 (Eiserner Saufi), Gold ab 1500 (Kesselkönig/-königin). Der Bestwert wird lokal gespeichert.
 
 ## Musik
@@ -193,7 +200,7 @@ Es gibt drei Quellen, in dieser Reihenfolge (die erste, die geht):
 
 1. **Eigene MP3s** aus dem Ordner `music/` (falls eingetragen), abgespielt per `<audio>`.
 2. **YouTube-Einbettung** (nur Einbetten, nichts wird heruntergeladen) mit vier Videos von Tobi: "Scooter - Hyper Hyper", "Scooter - The Logical Song (Official Video)", "Scooter - One (Always Hardcore) (Official Video HQ)" und "Scooter - How Much Is the Fish?". Die Liste steht in `music/playlist.js` (`Saufi.YOUTUBE`); ein weiteres Video trägt man dort als neue Zeile `{ id: 'VIDEO_ID', titel: 'Scooter - Titel' },` ein (ID = Teil nach `youtu.be/`). Sie startet über den Knopf **Scooter-Playlist** (Menü, Pause-Menü, Jukebox in der Kneipe, Taste P) und danach automatisch in der Diskothek und beim Scooter-Boost (Hyper Hyper). Das Video läuft in einem kleinen, ein-/ausklappbaren Fenster unten links (sichtbar, 220×124). Eingeklappt wird pausiert.
-3. **Eigener Hardstyle** per WebAudio (150 BPM Peak, Fis-Moll, Distortion-Kick, Sidechain, Super-Saw-Lead, Riser/Drop) als Fallback. Keine fremden Melodien, keine Samples. Intensität steigt über die Nacht (stückweise BPM 96→150, Gain, Schichten, Filter-Cutoff); Lead ab 23:00. Mute (N/♬) blendet weich aus, Effekte bleiben.
+3. **Eigener Hardstyle** per WebAudio (150 BPM Peak, Fis-Moll, Distortion-Kick, Sidechain, Super-Saw-Lead, Riser/Drop) als Fallback. Keine fremden Melodien, keine Samples. Intensität steigt über die Nacht (stückweise BPM 96→150, Gain, Schichten, Filter-Cutoff); Lead ab 23:00, auch in der Disko. Boost spielt 172 BPM. Tanzen zählt diesen live Takt. Mute (N/♬) blendet weich aus, Effekte bleiben.
 
 Die Scooter-Titelliste im Spiel ist nur Text (Hyper Hyper, Move Your Ass!, How Much Is the Fish?, Maria (I Like It Loud), Nessaja, The Logical Song, Weekend!, Jigga Jigga!, One (Always Hardcore), Posse (I Need You on the Floor), Fire). Dazu kommen Text-Einblendungen wie "HYPER HYPER!" und "HOW MUCH IS THE FISH?".
 

@@ -486,7 +486,8 @@
           c.strokeStyle = 'rgba(79,176,214,0.7)'; c.beginPath(); c.moveTo(px0 + (o + 8) % 16, py0 + 11); c.quadraticCurveTo(px0 + (o + 8) % 16 + 2, py0 + 9.8, px0 + (o + 8) % 16 + 4, py0 + 11); c.stroke();
         }
     } else if (karte.id === 'disko') {
-      In.tanzFlaeche(c, S, cx, cy, Math.floor(S.t / Saufi.Ton.BEAT), (S.t / Saufi.Ton.BEAT) % 1, S.boostAktiv);
+      var beatLen = S.beat > 0 ? S.beat : Saufi.Ton.BEAT;
+      In.tanzFlaeche(c, S, cx, cy, Math.floor(S.t / beatLen), (S.t / beatLen) % 1, S.boostAktiv);
     } else {
       In.innenFensterNacht(c, karte, Math.min(0.85, licht.glut * 0.9), cx, cy);
       if (karte.id === 'hotel' && In.hotelAnim) In.hotelAnim(c, S, cx, cy);

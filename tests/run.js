@@ -781,7 +781,7 @@ test('39 Teamstimmung 0: eigener Titel statt Umgefallen/Press F', function () {
   gleich(t.S.zustand, 'ende'); gleich(t.S.ende.wertung.titel, 'Abgehängt');
   wahr(/abgehängt/.test(t.S.ende.wertung.kopf)); wahr(/Teamstimmung 0/.test(t.S.ende.grund));
   wahr(t.S.ende.wertung.kopf.indexOf('Press F') < 0);
-  gleich(D.Spiel.VERSION, '0.18');
+  gleich(D.Spiel.VERSION, '0.19');
   wahr(D.Gfx.MIN_SCHRIFT <= 7);
 });
 
@@ -836,9 +836,9 @@ test('42 DPR-Begrenzung: MAX_DPR = 2, setzeAufloesung und begrenzDpr kappen', fu
   wahr(sk === R.canvas.width / R.W, 'Skala konsistent');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
   wahr(/begrenzDpr|MAX_DPR/.test(main), 'main nutzt DPR-Begrenzung');
-  wahr(/VERSION\s*=\s*['"]0\.18['"]/.test(main), 'VERSION 0.18');
+  wahr(/VERSION\s*=\s*['"]0\.19['"]/.test(main), 'VERSION 0.19');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  wahr(/main\.js\?v=0\.18/.test(html), 'Cache-Buster v=0.18');
+  wahr(/main\.js\?v=0\.19/.test(html), 'Cache-Buster v=0.19');
 });
 
 test('43 Hochformat-Layout: Playlist und Menues passen in PORT_H', function () {
@@ -1351,11 +1351,11 @@ test('72 Quer BASE 320x176: VH == H/zoom, Flaeche >= 3', function () {
 
 test('73 Versionen: VERSION 0.13, ?v=0.13, README v10, Bau-Bericht v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.18');
+  gleich(D.Spiel.VERSION, '0.19');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster vorhanden');
-  vs.forEach(function (v) { gleich(v, '?v=0.18', 'Cache-Buster ' + v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.19', 'Cache-Buster ' + v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v13/.test(readme), 'README Neu in v13');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
@@ -1653,11 +1653,11 @@ test('82 Stick: Totzone, cancel=0, zweiter Finger ignoriert, E gleichzeitig', fu
 
 test('83 Versionen: VERSION 0.13, ?v=0.13, README v10, Bau-Bericht v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.18');
+  gleich(D.Spiel.VERSION, '0.19');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.18', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.19', v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v13/.test(readme), 'README Neu in v13');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
@@ -2028,10 +2028,10 @@ test('96 Durchspiel-Bot Seeds 1/7/42 Hoch-Touch und Quer', function () {
 
 test('97 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.18');
+  gleich(D.Spiel.VERSION, '0.19');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
-  vs.forEach(function (v) { gleich(v, '?v=0.18', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.19', v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v13/.test(readme), 'README Neu in v13');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
@@ -2260,11 +2260,11 @@ test('106 Bot-Durchspiel Seeds 1/7/42 Hoch+Quer ohne Soft-Lock/…', function ()
 
 test('107 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.18');
+  gleich(D.Spiel.VERSION, '0.19');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0);
-  vs.forEach(function (v) { gleich(v, '?v=0.18', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.19', v); });
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
@@ -2623,12 +2623,12 @@ test('117 Bot Seeds 1/7/42 Hoch+Quer, Darstellung ändert Logik nicht', function
 
 test('118 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.18');
+  gleich(D.Spiel.VERSION, '0.19');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0);
-  vs.forEach(function (v) { gleich(v, '?v=0.18', v); });
-  wahr(/partikel\.js\?v=0\.18/.test(html), 'partikel eingebunden');
+  vs.forEach(function (v) { gleich(v, '?v=0.19', v); });
+  wahr(/partikel\.js\?v=0\.19/.test(html), 'partikel eingebunden');
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
@@ -3031,9 +3031,9 @@ test('132 Touch-Größen v10 ≥44 / Kreis ≥36', function () {
 
 test('133 Versionen v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.18');
+  gleich(D.Spiel.VERSION, '0.19');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.18', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.19', v); });
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
@@ -3197,20 +3197,20 @@ function versionMitte(log, W) {
   if (!log.meta) return null;
   for (var i = 0; i < log.meta.length; i++) {
     var m = log.meta[i];
-    if (m.text === 'v0.18' && m.align === 'center' && Math.abs(m.x - W / 2) <= 1 && !m.stroke) return m;
+    if (m.text === 'v0.19' && m.align === 'center' && Math.abs(m.x - W / 2) <= 1 && !m.stroke) return m;
   }
   return null;
 }
 
 test('149 Versionen v14: VERSION, Cache-Buster, README, Bau-Bericht', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.18');
+  gleich(D.Spiel.VERSION, '0.19');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
-  wahr(/VERSION\s*=\s*['"]0\.18['"]/.test(main), 'main.js VERSION 0.18');
+  wahr(/VERSION\s*=\s*['"]0\.19['"]/.test(main), 'main.js VERSION 0.19');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.18', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.19', v); });
   wahr(/Neu in v14/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v14');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v14.md')), 'bau-bericht-v14.md');
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v13 bleibt');
@@ -3241,7 +3241,7 @@ test('150 Versionsanzeige mittig: Start/Spiel/Ende in drei Layouts', function ()
       else { t.S.zustand = 'start'; }
       D.Render.zeichne(R, t.S);
       if (z === 'start' && !lay.hoch) wahr(R.hudVersion && R.hudVersion.y > 20, 'v16: Version im Quer-Startbild nicht auf dem Titel');
-      else wahr(!!versionMitte(log, R.W), 'v0.18 mittig @ ' + z + ' hoch=' + lay.hoch + ' touch=' + !!lay.touch);
+      else wahr(!!versionMitte(log, R.W), 'v0.19 mittig @ ' + z + ' hoch=' + lay.hoch + ' touch=' + !!lay.touch);
       var hv = R.hudVersion; wahr(!!hv, 'hudVersion gesetzt');
       var schneidet = function (a, b) { return a && b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; };
       if (lay.hoch) {
@@ -3876,11 +3876,11 @@ test('181 Starship-Modell bei S21: Prop in propsFuer, Y-sortiert', function () {
 
 test('182 Versionstest v14', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.18');
+  gleich(D.Spiel.VERSION, '0.19');
   wahr(/Neu in v14/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v14.md')));
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  wahr(/motocross\.js\?v=0\.18/.test(html) && /s21\.js\?v=0\.18/.test(html), 'Module in index');
+  wahr(/motocross\.js\?v=0\.19/.test(html) && /s21\.js\?v=0\.19/.test(html), 'Module in index');
   wahr(!!D.Motocross && !!D.S21, 'Module geladen');
 });
 
@@ -3908,14 +3908,14 @@ test('183 Render-Smoke: Kamera S21 und Motocross, drei Layouts', function () {
 // ---------- v15: Elon, Maenner, Bierkasten ----------
 test('184 Version v15: VERSION, Cache-Buster, elon.js, README, Bau-Bericht', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.18');
+  gleich(D.Spiel.VERSION, '0.19');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
-  wahr(/VERSION\s*=\s*['"]0\.18['"]/.test(main), 'main.js VERSION 0.18');
+  wahr(/VERSION\s*=\s*['"]0\.19['"]/.test(main), 'main.js VERSION 0.19');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.18', v); });
-  wahr(/elon\.js\?v=0\.18/.test(html), 'elon.js in index');
+  vs.forEach(function (v) { gleich(v, '?v=0.19', v); });
+  wahr(/elon\.js\?v=0\.19/.test(html), 'elon.js in index');
   wahr(/Neu in v15/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v15');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v15.md')), 'bau-bericht-v15.md');
   wahr(!!D.Elon, 'Elon geladen');
@@ -4188,14 +4188,14 @@ test('198 Frech: Zwei-Blasen-Limit, Pool nur bei Sprecher weiter, kurze Raphi-Sa
 });
 
 // ---------- v16: Auswahl, MxEvent, Himmelsbach, Motiv ----------
-test('199 Versionen 0.18: VERSION, Cache-Buster, README v16-Abschnitt bleibt', function () {
+test('199 Versionen 0.19: VERSION, Cache-Buster, README v16-Abschnitt bleibt', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.18');
+  gleich(D.Spiel.VERSION, '0.19');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.18', v); });
-  wahr(/mxevent\.js\?v=0\.18/.test(html) && /motiv\.js\?v=0\.18/.test(html), 'neue Module');
+  vs.forEach(function (v) { gleich(v, '?v=0.19', v); });
+  wahr(/mxevent\.js\?v=0\.19/.test(html) && /motiv\.js\?v=0\.19/.test(html), 'neue Module');
   wahr(/Neu in v16/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v16');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v16.md')), 'bau-bericht-v16.md');
   wahr(!!D.MxEvent && !!D.Motiv, 'Module geladen');
@@ -4491,9 +4491,9 @@ test('211 Umbenennungen v18: keine alten Namen in js/*.js, ids, Alias, Version',
   gleich(D.Charaktere.holen('schwickendorf').name, 'Schwickendorf');
   wahr(!!D.Hinweise.FIGUR.bundschuh && !!D.Hinweise.FIGUR.schwinki && !D.Hinweise.FIGUR.buntschuh && !D.Hinweise.FIGUR.kevin, 'FIGUR-Keys');
   wahr(!!D.Frech.RAPHI && !D.Frech.RAFFI, 'Frech RAPHI');
-  gleich(D.Spiel.VERSION, '0.18');
+  gleich(D.Spiel.VERSION, '0.19');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.18', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.19', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v17/.test(rd) && !/Raffi/.test(rd.split('## Neu in v16')[0]), 'README v17');
   wahr(/Neu in v18/.test(rd), 'README Neu in v18');
@@ -4583,7 +4583,7 @@ test('215 Nachtrag v18: Schwinki Nachschub und frueh heim, Tobi ohne starke Rund
   gleich(tb.auswahl.minus, 'nach 2 Uhr schwer zu motivieren');
   gleich(rp.auswahl.minus, 'gibt am Anfang zu viel Gas');
   wahr(!/geneckt/.test(JSON.stringify(rp.auswahl)), 'kein geneckt');
-  var bs = C.holen('bundschuh'); wahr(/Organisationstalent/.test(bs.auswahl.rolle) && /schaut dass alle nach Hause kommen/.test(bs.auswahl.rolle), 'Bundschuh Rolle'); wahr(/behält den Überblick/.test(bs.auswahl.plus), 'Überblick');
+  var bs = C.holen('bundschuh'); gleich(bs.auswahl.rolle, 'Organisationstalent'); wahr(/Überblick/.test(bs.auswahl.plus) && /heim/.test(bs.auswahl.plus), 'Überblick'); wahr(bs.auswahl.rolle.length <= 24, 'Rolle kurz für Quer-Karten');
   var sb = C.holen('siebold'); gleich(sb.auswahl.plus, 'initiiert Trinkspiele'); wahr(/Game Master/.test(sb.auswahl.rolle), 'Game Master'); wahr(!!sb.motivator, 'Siebold bleibt Motivator');
   var list = D.NPCs.erstelle('tobi'), n = list.filter(function (x) { return x.id === 'schwinki'; })[0];
   wahr(!!n && n.aktiv, 'Schwinki da');
@@ -4634,6 +4634,119 @@ test('218 Musik-Ueberarbeitung: setzeMusikAus/Intensitaet mit cutoff ohne Abstur
   t.setzeMusik(true); t.setzeMusik(false);
   wahr(/WaveShaper|supersaw|padBus|cutoff|Distortion-Kick|Super-Saw/i.test(fs.readFileSync(path.join(ROOT, 'js', 'ton.js'), 'utf8')), 'ton.js enthaelt neue Synth-Teile');
   wahr(/Distortion-Kick|Super-Saw|stueckweise BPM/i.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README erwaehnt Ueberarbeitung');
+});
+
+test('219 Disko-Tempo steigt mit der Uhr', function () {
+  var D = lade(), t = neuesSpielTest(D);
+  erledigt(t.S);
+  function bpmBei(min) {
+    t.Sp.setze(t.S, { minute: min });
+    t.S._ebene = -1;
+    schritt(t.S, t.Sp, t.X, 0.05);
+    return t.X.T.bpm;
+  }
+  wahr(t.Sp.geheZuStation(t.S, 'disko', 'tanz', t.X), 'in der Disko');
+  gleich(t.S.ort, 'disko');
+  var b22 = bpmBei(22 * 60), b24 = bpmBei(24 * 60), b25 = bpmBei(25 * 60);
+  nah(b22, D.Ton.intensitaet(22 * 60).bpm, 0.05, '22 Uhr live');
+  nah(b24, D.Ton.intensitaet(24 * 60).bpm, 0.05, '24 Uhr live');
+  nah(b25, D.Ton.intensitaet(25 * 60).bpm, 0.05, '01 Uhr live');
+  wahr(b24 > b22 + 1, 'BPM steigt 22→24 (' + b22 + ' → ' + b24 + ')');
+  wahr(b25 + 0.01 >= b24, 'BPM steigt weiter');
+  gleich(t.X.T.ebene, 3, 'Disko bleibt auf voller Schicht');
+  wahr(b22 < 145, 'abends noch nicht am 150-Deckel');
+  wahr(t.Sp.geheZuStation(t.S, 'stadt', 'tuer_hotel', t.X), 'raus in die Stadt');
+  t.Sp.setze(t.S, { minute: 18 * 60 });
+  t.S._ebene = -1;
+  schritt(t.S, t.Sp, t.X, 0.05);
+  nah(t.X.T.bpm, D.Ton.intensitaet(18 * 60).bpm, 0.05, 'Stadt 18 Uhr');
+  gleich(t.X.T.ebene, 2, 'ohne Disko-Zwang Schicht der Uhr');
+});
+
+test('220 Tanz-Score folgt dem live BPM, nicht fest 150', function () {
+  var D = lade(), Ton = D.Ton, eng = Ton.erstelle(null);
+  eng.setzeIntensitaet(Ton.intensitaet(8 * 60));
+  nah(eng.bpm, 96, 0.02);
+  nah(eng.beatDauer(), 60 / 96, 1e-6);
+  wahr(eng.aufBeat(0), 'Taktanfang');
+  wahr(!eng.aufBeat((60 / 96) * 0.5), 'offbeat bei 96');
+  wahr(eng.aufBeat((60 / 96) * 0.9), 'kurz vor dem Beat');
+  var down = 60 / 96;
+  wahr(eng.aufBeat(down), 'naechster 96er Downbeat zaehlt');
+  var altBeat = 60 / 150, altPh = ((down % altBeat) + altBeat) % altBeat / altBeat;
+  wahr(!(altPh < 0.2 || altPh > 0.85), 'dieselbe Zeit waere bei 150 offbeat');
+  eng.setzeBoost(true);
+  nah(eng.beatDauer(), 60 / 172, 1e-6, 'Boost 172');
+  wahr(eng.aufBeat(0));
+  wahr(!eng.aufBeat((60 / 172) * 0.5), 'offbeat bei 172');
+  var g = neuesSpielTest(D), X = { E: fakeE(), T: Ton.erstelle(null) };
+  X.T.setzeIntensitaet(Ton.intensitaet(8 * 60));
+  g.S.t = 60 / 96; g.S.spieler.tanzt = 0;
+  var p0 = g.S.punkte.punkte;
+  D.Spiel.tanzen(g.S, X);
+  gleich(g.S.punkte.punkte, p0 + 5, 'im Takt bei 96 gibt Punkte');
+  g.S.t = (60 / 96) * 0.5; g.S.spieler.tanzt = 0;
+  var p1 = g.S.punkte.punkte;
+  D.Spiel.tanzen(g.S, X);
+  gleich(g.S.punkte.punkte, p1, 'offbeat bei 96 gibt keine Tanzpunkte');
+  X.T.setzeBoost(true);
+  g.S.t = 60 / 172; g.S.spieler.tanzt = 0;
+  D.Spiel.tanzen(g.S, X);
+  gleich(g.S.punkte.punkte, p1 + 5, 'Boost-Downbeat zaehlt');
+});
+
+test('221 Karten im Spiel: Nachschub, Gas, Trinkspiel, Überblick, Heim', function () {
+  var D = lade();
+  var sw = D.Spiel.neu({ seed: 1, figur: 'schwinki', start: true });
+  gleich(sw.flaschen, 5, 'Schwinki startet mit Nachschub');
+  gleich(sw.flaschenMax, 5);
+  sw.flaschen = 2; sw.uhr.minute = 9 * 60;
+  D.Spiel.update(sw, 0.05, { E: fakeE() });
+  gleich(sw.flaschen, 3, 'volle Stunde fuellt eine Flasche');
+  var list = D.NPCs.erstelle('tobi'), npc = list.filter(function (x) { return x.id === 'schwinki'; })[0];
+  var karte = { id: 'stadt', w: 40, h: 60, blockiert: function () { return false; } };
+  D.NPCs.ankommen(list, 25 * 60, karte, 0, 0);
+  gleich(npc.melde, 'heim', 'Schwinki meldet frueher heim');
+  var rp = D.NPCs.erstelle('tobi').filter(function (x) { return x.id === 'raphael'; })[0];
+  D.NPCs.stunde([rp], D.RNG.erstelle(1), 9 * 60);
+  var frueh = rp.fig.pegel; rp.fig.pegel = 0;
+  D.NPCs.stunde([rp], D.RNG.erstelle(1), 18 * 60);
+  wahr(frueh > rp.fig.pegel + 0.2, 'NPC Raphi frueh mehr: ' + frueh + ' > ' + rp.fig.pegel);
+  function pils(fig, min) {
+    var S = D.Spiel.neu({ seed: 2, figur: fig, start: true }), XX = { E: fakeE() };
+    erledigt(S); D.Spiel.setze(S, { minute: min });
+    var st = S.karte.stationen.filter(function (s) { return s.typ === 'bierkasten'; })[0];
+    wahr(!!st && D.Spiel.geheZuStation(S, 'stadt', st.id, XX), 'am Kasten');
+    D.Spiel.aktion(S, XX);
+    return S.fig.pegel;
+  }
+  var a = pils('raphael', 9 * 60), b = pils('raphael', 15 * 60), c = pils('tobi', 9 * 60);
+  wahr(a > b + 0.05, 'Raphi frueh ' + a + ' > spaet ' + b);
+  wahr(a > c + 0.05, 'Raphi frueh > Tobi ' + c);
+  var t = neuesSpielTest(D); erledigt(t.S);
+  t.Sp.setze(t.S, { minute: 16 * 60 });
+  t.Sp.geheZuStation(t.S, 'kneipe', 'tresen', t.X);
+  schritt(t.S, t.Sp, t.X, 0.2);
+  wahr(t.S.gm && t.S.gm.id, 'Siebold bietet ein Spiel');
+  var cur = D.Hinweise.aktuell(t.S.hinweise);
+  wahr(cur && /Trinkspiel/.test(cur.text), 'Hinweis: ' + (cur && cur.text));
+  gleich(t.Sp.hilfeText(t.S), 'E: Siebolds Trinkspiel');
+  t.Sp.aktion(t.S, t.X);
+  wahr(t.S.overlay && t.S.overlay.kopf.some(function (z) { return /Siebold initiiert/.test(z); }), 'Menuekopf');
+  wahr(t.S.overlay.eintraege.some(function (e) { return e.id === 'minispiel' && /^Siebold:/.test(e.label); }), 'Spiel markiert');
+  wahr(t.S.overlay.eintraege[0].id === 'getraenk', 'Getraenke bleiben zuerst');
+  var bu = D.Spiel.neu({ seed: 1, figur: 'bundschuh', start: true });
+  var to = D.Spiel.neu({ seed: 1, figur: 'tobi', start: true });
+  D.Spiel.update(bu, 0.05, { E: fakeE() });
+  D.Spiel.update(to, 0.05, { E: fakeE() });
+  wahr(!!bu.pfeil, 'Bundschuh sieht die naechste Runde');
+  wahr(!to.pfeil, 'Tobi erst bei Warnung');
+  var heim = neuesSpielTest(D); erledigt(heim.S);
+  heim.Sp.setze(heim.S, { minute: 26 * 60 + 5 });
+  var opfer = heim.S.npcs.filter(function (x) { return x.id === 'probst'; })[0];
+  opfer.liegt = true; opfer.fig.verloren = true; opfer.fig.umgefallen = true; opfer.karteId = heim.S.ort;
+  schritt(heim.S, heim.Sp, heim.X, 0.1);
+  wahr(!opfer.aktiv && opfer.heim, 'Bundschuh schickt Probst heim');
 });
 
 tests.forEach(function (t) {

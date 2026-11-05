@@ -291,6 +291,9 @@
     };
     t.setzeTief = function (an) { t.tief = !!an; if (filter) filter.frequency.setTargetAtTime(an ? 650 : 20000, now(), 0.15); };
     t.setzeBoost = function (an) { t.boost = !!an; };
+    // BPM, den der Synth gerade spielt: Boost fest 172, sonst die Intensitaets-Kurve (96–150).
+    t.spielBpm = function () { return t.boost ? 172 : (t.bpm > 0 ? t.bpm : BPM); };
+    t.beatDauer = function () { return 60 / t.spielBpm(); };
     // Weicher Fade (~0,3 s) statt hartem Cut
     t.setzeMusikAus = function (aus) {
       t.musikAus = !!aus;
@@ -300,9 +303,10 @@
       }
     };
     t.setzeStumm = function (s) { t.stumm = !!s; if (master) master.gain.setTargetAtTime(s ? 0 : 0.7, now(), 0.03); };
-    // Ist gerade ein Beat? Mit laufender Musik am Audio-Takt, sonst an der Echtzeit (t = Sekunden).
+    // Ist gerade ein Beat? Fenster folgt dem BPM, den die Engine spielt (nicht fest 150).
     t.aufBeat = function (zeit) {
-      var ph = ((zeit % BEAT) + BEAT) % BEAT / BEAT;
+      var beat = t.beatDauer();
+      var ph = ((zeit % beat) + beat) % beat / beat;
       return ph < 0.2 || ph > 0.85;
     };
 
