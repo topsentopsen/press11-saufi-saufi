@@ -4,6 +4,12 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v28
+
+- Autos sind weg. Die waren zu klein. Frau Hilde, die Jugend im Südpark, die Kinder, die Hunde, die Vögel und die Fahrräder bleiben. Ute geht den Halbhöhenweg, ein Rad fährt den Südweg, ein Vogel mehr kreist über dem Bach. Alles etwas flotter.
+- Handy hochkant ist näher: `WELT_FLAECHE_HOCH` 1.0. Das linke HUD skaliert mit 0.96 (vorher etwa 0.74). Aktion, Wasser und Stick im Spiel sind etwa 30 % größer. Die Leiste oben bleibt 44 px, sonst schneidet sie das HUD. Die Safe-Area sitzt nur noch am Body, nicht noch einmal an Stick und Knöpfen.
+- Rechts am Rand: Plus und Minus zoomen die Welt in Stufen von 0.75 bis 1.45, Start ist 1. Die Stufe bleibt auf dem Gerät. Die Auswahl bleibt, wie sie war.
+
 ## Neu in v27
 
 - Siebolds Mäxle, Dampfhammer und Sinnlos saufen bleiben als Gag. Titel und Menü sagen „Gag-Alias, eigentlich dasselbe“. Dieselbe Mechanik, kein stiller Fake-Name.

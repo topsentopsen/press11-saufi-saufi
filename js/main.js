@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.27', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.28', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function wendeCharStats(S, char) {
@@ -1295,7 +1295,8 @@
         padY0 = (parseFloat(cs0.paddingTop) || 0) + (parseFloat(cs0.paddingBottom) || 0);
       }
       var aw0 = Math.max(1, win.innerWidth - padX0 - 8), ah0 = Math.max(1, win.innerHeight - padY0 - 8);
-      var bedien0 = (isTouch && mobilHoch) ? berechneBedien(ah0) : 0;
+      R.userZoom = Saufi.Render.clampZoomFaktor(speicher.zahl('zoomFaktor', 1));
+      var bedien0 = (isTouch && mobilHoch) ? berechneBedien(ah0, false) : 0;
       var logH0 = mobilHoch ? Saufi.Render.berechnePortH(aw0, Math.max(1, ah0 - bedien0)) : Saufi.Render.BASE_H;
       R.touch = isTouch;
       Saufi.Render.setzeBildschirm(R, mobilHoch, { h: logH0, touch: isTouch }); E.setzeMass(R.W, R.H);
@@ -1335,13 +1336,16 @@
         padY = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
       }
       var availW = Math.max(1, win.innerWidth - padX - 8), availH = Math.max(1, win.innerHeight - padY - 8);
-      // Bedienleiste nur Hochformat+Touch: Joystick/E/Wasser unter dem Spielfeld (96–140 CSS-px)
-      var bedienCss = (isTouch && hoch) ? berechneBedien(availH) : 0;
+      // Bedienleiste nur Hochformat+Touch. Auswahl bleibt 96–140. Im Spiel +29 % (124–180), damit die größeren Knöpfe reinpassen.
+      var ingame = !!(S && S.zustand && S.zustand !== 'start');
+      var bedienCss = (isTouch && hoch) ? berechneBedien(availH, ingame) : 0;
       var playH = Math.max(1, availH - bedienCss);
       var logH = hoch ? Saufi.Render.berechnePortH(availW, playH) : Saufi.Render.BASE_H;
       var touchWechsel = !!R.touch !== isTouch;
+      var sollZoom = Saufi.Render.clampZoomFaktor(R.userZoom != null ? R.userZoom : 1);
       R.touch = isTouch;
-      if (hoch !== R.hochkant || R.H !== logH || touchWechsel) {
+      if (rahmen && rahmen.classList) rahmen.classList.toggle('spiel', ingame);
+      if (hoch !== R.hochkant || R.H !== logH || touchWechsel || R.zoomFaktor !== sollZoom) {
         Saufi.Render.setzeBildschirm(R, hoch, { h: logH, stadtPxH: R.stadtPxH, touch: isTouch });
         E.setzeMass(R.W, R.H);
         if (S && S.kamera) { S.kamera.viewW = R.VW || R.W; S.kamera.viewH = R.VH || R.H; }
@@ -1465,6 +1469,17 @@
     knopf('ton-knopf', function (b) { toggleTon(S, X); b.classList.toggle('aus', S.stummAn); });
     var mk = knopf('musik-knopf', function (b) { toggleMusik(S, X); b.classList.toggle('aus', S.musikAus); }); if (mk && mk.classList) mk.classList.toggle('aus', !!S.musikAus);
     knopf('vollbild-knopf', function () { var el = rahmen; if (doc.fullscreenElement) doc.exitFullscreen(); else if (el.requestFullscreen) el.requestFullscreen(); });
+    function zoomAendern(dir) {
+      if (!S || S.zustand === 'start') return;
+      var neu = Saufi.Render.zoomStufe(R.userZoom || 1, dir);
+      if (neu === (R.userZoom || 1)) return;
+      R.userZoom = neu;
+      if (S.speicher) S.speicher.setzeZahl('zoomFaktor', neu);
+      groesse();
+      if (S.kamera) Saufi.Kamera.sofort(S.kamera, S.spieler.x, S.spieler.y - 8);
+    }
+    knopf('zoom-plus', function () { zoomAendern(1); });
+    knopf('zoom-minus', function () { zoomAendern(-1); });
     knopf('playlist-knopf', function () { if (S.zustand === 'spiel' || S.zustand === 'start') { if (S.overlay && S.overlay.art === 'playlist') schliesse(S); else playlistOverlay(S, X); } });
     knopf('info-knopf', function () { if (S.zustand === 'spiel' || S.zustand === 'start') infoOverlay(S); });
     knopf('yt-klapp', function (b) { var zu = M.klappe(); b.textContent = zu ? '▶ Scooter' : '– Scooter'; });
@@ -1522,7 +1537,7 @@
     }
     function stickMove(clientX, clientY) {
       if (stickId === null || !o0) return;
-      var dx = clientX - o0.x, dy = clientY - o0.y, rad = 40, l = Math.hypot(dx, dy);
+      var dx = clientX - o0.x, dy = clientY - o0.y, spielKlasse = rahmen && rahmen.classList && rahmen.classList.contains && rahmen.classList.contains('spiel'), rad = spielKlasse ? 52 : 40, l = Math.hypot(dx, dy);
       stickWeg = Math.max(stickWeg, l);
       if (l > rad) { dx = dx / l * rad; dy = dy / l * rad; l = rad; }
       var aus = stickAuslenkung(dx, dy, rad);
@@ -1629,6 +1644,7 @@
       }
       if (E.touch !== undefined && E.touch) { rahmen.classList.add('touch'); R.touch = true; }
       if (rahmen && rahmen.classList) rahmen.classList.toggle('overlay', !!S.overlay);
+      if (rahmen && rahmen.classList && rahmen.classList.contains && rahmen.classList.contains('spiel') !== (S.zustand !== 'start')) groesse();
       // Overlay offen: Stick-Geste abbrechen (Zone hat pointer-events:none, Restbewegung loeschen)
       if (S.overlay && stickId !== null) stickEnde();
       S.treffer = R.treffer; S.panel = R.panel || null;
@@ -1672,8 +1688,10 @@
     if (ch > availH) { s = Math.min(s, availH / logH); cw = Math.round(logW * s); ch = Math.round(logH * s); }
     return { s: s, cw: cw, ch: ch };
   }
-  // Bedienleisten-Hoehe (CSS-px) fuer Hochformat-Touch: Stick 80 + E/Wasser, 96–140
-  function berechneBedien(availH) {
+  // Bedienleisten-Hoehe (CSS-px) fuer Hochformat-Touch.
+  // Auswahl: Stick 80, 96–140. Im Spiel: Stick 104 und Knöpfe +30 %, deshalb 124–180.
+  function berechneBedien(availH, ingame) {
+    if (ingame) return Math.round(Math.min(180, Math.max(124, (availH || 0) * 0.18)));
     return Math.round(Math.min(140, Math.max(96, (availH || 0) * 0.14)));
   }
   // Stick-Totzone 0.18 (normiert), darueber linear; fuer Tests exportiert
