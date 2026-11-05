@@ -1,0 +1,6 @@
+name = "press11-feedback-eingang"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+[vars]
+PRESS11_REPO = "topsentopsen/press11-saufi-saufi"

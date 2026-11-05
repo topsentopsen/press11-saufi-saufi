@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.25', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.26', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function wendeCharStats(S, char) {
@@ -59,13 +59,13 @@
     var S = {
       version: VERSION, seed: seed, tempo: tempo, rng: Saufi.RNG.erstelle(seed + 1000), welt: welt, ort: 'stadt', karte: welt.stadt, char: char,
       fig: Saufi.Pegel.neu(char), uhr: Saufi.Uhr.erstelle(tempo), spieler: sp, kamera: Saufi.Kamera.erstelle(viewW, viewH, welt.stadt.pxW, welt.stadt.pxH),
-      npcs: Saufi.NPCs.erstelle(char.id), stadtvolk: Saufi.Stadtvolk.erstelle(welt, seed), runden: Saufi.Runden.erstelle(), cheats: Saufi.Cheats.erstelle(), punkte: Saufi.Punkte.erstelle(),
+      npcs: Saufi.NPCs.erstelle(char.id), stadtvolk: Saufi.Stadtvolk.erstelle(welt, seed), leben: Saufi.Stadtvolk.leben(welt, seed), runden: Saufi.Runden.erstelle(), cheats: Saufi.Cheats.erstelle(), punkte: Saufi.Punkte.erstelle(),
       joint: Saufi.Ereignisse.Joint.erstelle(), boost: Saufi.Ereignisse.Boost.erstelle(), boostAktiv: false, flaschen: 3, flascheGenommen: false,
       hinweise: Saufi.Hinweise.erstelle(), licht: null, t: 0, zustand: opt.start ? 'spiel' : 'start', startIndex: 0, overlay: null, uebergang: null,
       effekte: [], hilfe: '', pfeil: null, ende: null, pressF: null, hausverbote: 0, letzteStunde: Math.floor(Saufi.Uhr.START / 60), spontan: { zuletzt: -999, anzahl: 0, aktiv: null }, ortSek: 0, prost: 0, tanzBeat: false,
       sprechT: 4, aufnahmeWartet: [], ruhig: !!opt.ruhig, treffer: [], panel: null, musikInfo: { quelle: 'webaudio', aktiv: 'webaudio', spielt: false, youtubeVerfuegbar: false, hinweis: '' },
       best: opt.best || 0, speicher: opt.speicher || null, doppelt: false, stummAn: false, neustart: false, spielSek: 0, stats: { getrunken: 0, gegessen: 0, getauscht: 0, geweckt: 0 },
-      pannen: Saufi.Ereignisse.erstellePannen(), motocross: { zuletzt: -999 },
+      pannen: Saufi.Ereignisse.erstellePannen(), hecke: Saufi.Ereignisse.Hecke.erstelle(seed), motocross: { zuletzt: -999 },
       s21: { zuletzt: -999, n: 0, gemeldet: null },
       elon: { zuletzt: 0, n: 0, idx: {} },
       frech: { zuletzt: 0, n: 0, r: 0, f: 0 },
@@ -368,6 +368,7 @@
   function toggleMusik(S, X) {
     S.musikAus = !S.musikAus;
     if (X.T.setzeMusikAus) X.T.setzeMusikAus(S.musikAus);
+    if (S.zustand === 'start') auswahlMusik(S, X, !S.musikAus);
     if (X.M && X.M.setzeAus) X.M.setzeAus(S.musikAus);
     if (S.speicher) S.speicher.setzeBool('musikAus', S.musikAus);
     sag(S, S.musikAus ? 'Musik aus (Effekte bleiben).' : 'Musik an.', 1.8, 'info');
@@ -1001,6 +1002,10 @@
     spontanePruefen(S, X, dt);
     S.sprechT -= dt; if (S.sprechT <= 0) { Saufi.NPCs.sprechen(S.npcs, S.rng, S.ort, S.fig.pegel); S.sprechT = 5 + S.rng.next() * 5; }
     Saufi.Stadtvolk.update(S.stadtvolk, { ort: S.ort, spieler: sp, dt: dt });
+    if (S.leben) Saufi.Stadtvolk.bewege(S.leben, dt);
+    if (S.hecke && Saufi.Ereignisse.Hecke.tick(S.hecke, { spielSek: S.spielSek, minute: m, phase: Saufi.Uhr.phase(S.uhr) }) && S.ort === 'stadt') {
+      sag(S, 'Himmelsbach filmt: Probst steckt in der Hecke.', 3.2, 'info');
+    }
     Saufi.Ereignisse.updatePannen(S.pannen, dt);
     if (S.rng.next() < dt * 0.015) {
       var pan = Saufi.Ereignisse.wuerflePanne(S.pannen, S.rng, S.fig.pegel);
@@ -1113,9 +1118,16 @@
       else starteSpiel(S, X);
     }
   }
+  function auswahlMusik(S, X, an) {
+    if (!X || !X.T || !X.T.setzeAuswahl) return;
+    if (an && S.musikAus) { X.T.setzeAuswahl(false); return; }
+    if (an && X.M && X.M.aktiv && X.M.aktiv !== 'webaudio' && X.M.spielt) return;
+    X.T.setzeAuswahl(!!an);
+  }
   function starteSpiel(S, X) {
     if (S.auswahlId && S.auswahlId !== S.char.id) waehleFigur(S, S.auswahlId);
     S.zustand = 'spiel'; S.overlay = null;
+    if (X.T.setzeAuswahl) X.T.setzeAuswahl(false);
     if (X.T.start) X.T.start();
     X.T.setzeMusik(!(X.M && X.M.aktiv !== 'webaudio'));
     musikFuerOrt(S, X);
@@ -1131,7 +1143,7 @@
     Saufi.Hinweise.update(S.hinweise, dt);
     S.effekte = S.effekte.filter(function (e) { e.rest -= dt; return e.rest > 0; });
     if (E && E.neu('stumm') && S.zustand !== 'start') toggleTon(S, X);
-    if (E && E.neu('musik') && S.zustand !== 'start') toggleMusik(S, X);
+    if (E && E.neu('musik')) toggleMusik(S, X);
     if (X.M) { var stat = S.overlay && S.overlay.art === 'playlist'; if (stat) S.musikInfo = X.M.zustand(); }
     if (S.zustand === 'start') { updateStart(S, X, E); }
     else if (S.zustand === 'ende') {
@@ -1264,6 +1276,7 @@
     X = { E: E, M: M, T: T };
     neuStarten();
     if (par.start || par.figur) { starteSpiel(S, X); gewaehlt = S.char.id; erstStart = false; }   // ?start/?figur: ohne Auswahl
+    else auswahlMusik(S, X, !S.musikAus);
 
     // Debug-Haken fuer Headless-Tests
     var dbg = function () { return schnappschuss(S); };
@@ -1378,7 +1391,8 @@
     function geste() {
       T.start();
       lauscheCtx();
-      if (S.zustand !== 'start' && M.aktiv === 'webaudio') T.setzeMusik(true);
+      if (S.zustand === 'start') auswahlMusik(S, X, !S.musikAus);
+      else if (M.aktiv === 'webaudio') T.setzeMusik(true);
       tonHinweisAktualisieren();
     }
     function anGeste(ziel, typ) {

@@ -4,6 +4,14 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v26
+
+- Die Stadt bewegt sich: Frau Hilde, Jugendliche im Südpark, spielende Kinder, Hunde, Vögel, Autos und Fahrräder. Sie trinken nicht mit und ziehen kein Spiel-Zufall.
+- Himmelsbachs Startkarte sagt „alter Hase“. Er bleibt Motivator und kommt weiter ab 14:00. Keine neue Figur Michael.
+- Nachts (Uhrphase Nacht und Tiefe Nacht) kann Probst ohne Hose in einer Hecke stecken, während Himmelsbach filmt. Tagsüber passiert das nicht. Gleicher Seed, gleicher Ablauf, ohne das übrige Zufallsrad zu drehen.
+- Charakterauswahl: eigener Hardstyle-Loop im WebAudio-Synth (168 BPM, Kick, Sidechain, Super-Saw). Kein Scooter-MP3. Beim Start übernimmt die normale Spielmusik. Ton und Musik an/aus gelten auch dort.
+- Feedback-Seite: Feedback, neue Idee oder Sprachnachricht (nur Transkript, browserabhängig). Absenden braucht kein GitHub-Konto, sobald der Eingang eingerichtet ist. Details im Bau-Bericht v26.
+
 ## Neu in v25
 
 - Eigene Feedback-Seite, nicht im Spiel: [press11-saufi-saufi/feedback/](https://topsentopsen.github.io/press11-saufi-saufi/feedback/). Name optional, Text Pflicht. Absenden öffnet einen vorausgefüllten GitHub-Issue-Entwurf. Ein Klick auf GitHub erstellt das Issue. Kein Schlüssel im Repo.
