@@ -4434,7 +4434,8 @@ test('210 Auswahl-Layout 9 Karten: kein Overlap, Knöpfe und Titel sichtbar', fu
   var layouts = [
     { hoch: true, touch: true, cssW: 390, cssH: 844 },
     { hoch: true, touch: true, cssW: 375, cssH: 667 },
-    { hoch: false, touch: false, cssW: 844, cssH: 390 }
+    { hoch: false, touch: false, cssW: 844, cssH: 390 },
+    { hoch: false, touch: true, cssW: 844, cssH: 390 }
   ];
   layouts.forEach(function (lay) {
     var log = [], cv = mockCanvas(log), R = D.Render.erstelle(cv, cv.ownerDocument);
@@ -4466,6 +4467,8 @@ test('210 Auswahl-Layout 9 Karten: kein Overlap, Knöpfe und Titel sichtbar', fu
     ['Neu dabei', 'Zeise', 'Raphi', 'Bundschuh', 'Schwinki', 'Siebold'].forEach(function (w) {
       wahr(log.some(function (s) { return typeof s === 'string' && s.indexOf(w) >= 0; }), w);
     });
+    var minusN = log.filter(function (s) { return typeof s === 'string' && /^- /.test(s); }).length;
+    wahr(minusN >= 9, 'neun Minus-Zeilen @' + (lay.hoch ? 'hoch' : 'quer') + (lay.touch ? ' touch' : '') + ': ' + minusN);
   });
 });
 

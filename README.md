@@ -12,7 +12,7 @@ Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 n
 
 ## Neu in v16
 
-- Spielerauswahl mit neun Startkarten (Portrait, Rolle, Plus, Minus); Tastatur und Tippen.
+- Spielerauswahl mit acht Startkarten (Portrait, Rolle, Plus, Minus); Tastatur und Tippen.
 - Himmelsbach ersetzt Rudi; Motivatoren stupsen zur nächsten Runde.
 - Motocross-Finale um 18:30 an der Tribüne (Hinweise, Belohnung) und Bierkästen im Park.
 

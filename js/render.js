@@ -1221,6 +1221,7 @@
     if (hoch) textInBox(c, 'Wen spielst Du?', 20, y0 + titelH, W - 40, unterH, 8, { col: '#fff3c8', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
     var knopfBlock = (!hoch ? rowH + 4 : 2 * (rowH + rowGap)) + (hoch ? 14 : 8);
     var kartenY = y0 + titelH + unterH + (hoch ? 4 : 1);
+    if (!hoch) kartenY = Math.max(kartenY, Math.min(40, Math.ceil(R.obenUnten || 0) + 1));   // v17: quer unter die #oben-Knoepfe
     var fussPlatz = knopfBlock + (hoch ? 12 : 2);
     var kartenRaum = Math.max(36, H - kartenY - fussPlatz);
     var gap = hoch ? 6 : 3, rand = hoch ? 8 : 4;
@@ -1238,7 +1239,6 @@
     }
     var gx0 = Math.round((W - gridW) / 2), gy0 = kartenY;
     var selId = S.auswahlId || (S.char && S.char.id) || 'tobi';
-    var zl = (!hoch && raster.sp === 3) ? 2 : 1;
     R.treffer = [];
     chars.forEach(function (ch, i) {
       var col = i % raster.sp, row = (i / raster.sp) | 0;
@@ -1257,25 +1257,37 @@
       var ly = cy + 2, lineH = bodySz + (hoch ? 1 : 0.5);
       textInBox(c, nam, tx, ly, tw, nameSz + 1, nameSz, { col: P.uiTinte, ausr: 'left', maxZeilen: 1, min: 5 });
       ly += nameSz + 1;
+      if (!hoch) {
+        // v17: quer jede Zeile (Rolle, Plus, Minus) sichtbar; ly nur um gezeichnete Hoehe
+        var unten = cy + kh - 1, felder = [];
+        if (au.rolle) felder.push({ s: au.rolle, col: P.uiTinteWeich });
+        if (au.plus) felder.push({ s: '+ ' + au.plus, col: '#2a7a4a' });
+        if (au.minus) felder.push({ s: '- ' + au.minus, col: '#a04040' });
+        var lhQ = bodySz * 1.15;
+        felder.forEach(function (f, fi) {
+          var rest = felder.length - fi - 1;
+          var frei = unten - ly - rest * lhQ;
+          var boxH = Math.max(lhQ, Math.min(lhQ * 2, frei));
+          if (ly + lhQ > unten + 0.5) return;
+          var m = textInBox(c, f.s, tx, ly, tw, boxH, bodySz, { ausr: 'left', maxZeilen: 2, min: 4, mess: true });
+          var hQ = (m && m.lines && m.lines.length) ? Math.min(boxH, m.lines.length * m.lh) : lhQ;
+          textInBox(c, f.s, tx, ly, tw, hQ, m && m.size ? m.size : bodySz, { col: f.col, ausr: 'left', maxZeilen: 2, min: 4 });
+          ly += hQ;
+        });
+      } else {
       if (au.rolle) {
-        var rolleMax = hoch ? 2 : zl;
+        var rolleMax = 2;
         var rolleH = Math.min(lineH * rolleMax, cy + kh - ly - lineH * 2);
-        textInBox(c, au.rolle, tx, ly, tw, Math.max(lineH, rolleH), bodySz, { col: P.uiTinteWeich, ausr: 'left', maxZeilen: rolleMax, min: hoch ? 5 : 4 });
+        textInBox(c, au.rolle, tx, ly, tw, Math.max(lineH, rolleH), bodySz, { col: P.uiTinteWeich, ausr: 'left', maxZeilen: rolleMax, min: 5 });
         ly += Math.min(lineH * rolleMax, Math.max(lineH, rolleH));
       }
-      if (!hoch && zl === 1 && au.plus && au.minus && ly + lineH <= cy + kh - 1 && ly + lineH * 2 > cy + kh - 1) {
-        // quer, zu wenig Hoehe: Plus links, Minus rechts in einer Zeile
-        var hw = Math.floor(tw / 2) - 1;
-        textInBox(c, '+ ' + au.plus, tx, ly, hw, lineH + 1, bodySz, { col: '#2a7a4a', ausr: 'left', maxZeilen: 1, min: 4 });
-        textInBox(c, '- ' + au.minus, tx + hw + 2, ly, hw, lineH + 1, bodySz, { col: '#a04040', ausr: 'left', maxZeilen: 1, min: 4 });
-        au = { minus: null };
+      if (au.plus && ly + lineH <= cy + kh - 1) {
+        textInBox(c, '+ ' + au.plus, tx, ly, tw, lineH + 1, bodySz, { col: '#2a7a4a', ausr: 'left', maxZeilen: 1, min: 5 });
+        ly += lineH;
       }
-      if (au.plus && ly + lineH * zl <= cy + kh - 1) {
-        textInBox(c, '+ ' + au.plus, tx, ly, tw, lineH * zl + 1, bodySz, { col: '#2a7a4a', ausr: 'left', maxZeilen: zl, min: 5 });
-        ly += lineH * zl;
+      if (au.minus && ly + lineH <= cy + kh - 1) {
+        textInBox(c, '- ' + au.minus, tx, ly, tw, lineH + 1, bodySz, { col: '#a04040', ausr: 'left', maxZeilen: 1, min: 5 });
       }
-      if (au.minus && ly + lineH * zl <= cy + kh - 1) {
-        textInBox(c, '- ' + au.minus, tx, ly, tw, lineH * zl + 1, bodySz, { col: '#a04040', ausr: 'left', maxZeilen: zl, min: 5 });
       }
       R.treffer.push({ x: cx, y: cy, w: kw, h: Math.max(kh, R.touch ? Math.min(touchZeile(R), kh + 2) : kh), i: 'f:' + ch.id });
     });
