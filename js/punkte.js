@@ -8,7 +8,7 @@
   function erstelle() { return { punkte: 0, log: [] }; }
   function add(p, n, grund) {
     if (n > 0 && p.faktor && p.faktor !== 1) n = Math.round(n * p.faktor) || n;
-    if (n > 0 && p.rundenFaktor && p.rundenFaktor !== 1 && /^Mittrunde|^Spontanrunde/.test(grund || '')) n = Math.round(n * p.rundenFaktor) || n;   // Tobi: starke Team-Runden
+    if (n > 0 && p.rundenFaktor && p.rundenFaktor !== 1 && /^Mittrunde|^Spontanrunde/.test(grund || '')) n = Math.round(n * p.rundenFaktor) || n;   // Figur-Rundenfaktor (v18: Tobi ohne Bonus)
     p.punkte = Math.max(0, p.punkte + n);
     p.log.push({ n: n, grund: grund || '' }); if (p.log.length > 40) p.log.shift();
     return p.punkte;

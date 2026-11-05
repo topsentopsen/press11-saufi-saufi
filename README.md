@@ -41,7 +41,7 @@ Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 n
 
 - Versionsanzeige mittig oben (oder unten, wenn das HUD die Mitte belegt).
 - Raphael pink mit Käppi und Glatze, Namensschild über dem Kopf. Ritzi jetzt lila.
-- Sophies Brauhaus (ex Kneipe), Hotel Jazz in the City.
+- Sophies Brauhaus (ex Kneipe), Hotel Jaz.
 - Motocross-Park mit Tribüne, Piste, Öffnungszeiten 12 bis 20 Uhr und Zuschauer-Bier.
 - Zielmarker im Hochformat größer.
 
@@ -138,7 +138,7 @@ Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 n
 - Schärfere Grafik (hohe Canvas-Auflösung × DPR), lesbare Schriften (mind. ~11 px logisch).
 - Jukebox/Playlist und alle Menüs: Esc, X, Klick daneben; Songwahl schließt das Overlay (Bewegung wieder frei).
 - Teamstimmung 0: eigener Endtitel („Die Truppe hat dich abgehängt“), nicht „Press F/Umgefallen“.
-- Mehr Humor (MS-Marathon-Stil), Sprüche-Pools je Figur/Ort/Pegel, max. 2 Sprechblasen.
+- Mehr Humor, Sprüche-Pools je Figur/Ort/Pegel, max. 2 Sprechblasen.
 - Saufpannen & Mitspieler-Gags (Freund stützen, Hose weg, …), pegelgestuft.
 - Drei Trinkspiel-Minispiele an Tresen/Bar (Bierdeckel-Flip, Reaktions-Prost, Maßkrugstemmen), abbrechbar.
 - Titel ohne „privat“; Hinweis 18+ bleibt.
@@ -181,7 +181,7 @@ Handy: Hoch- und Querformat. Joystick links unten, Aktion/Wasser rechts unten (S
 
 - Sieg: Um **04:00** stehst Du noch (Standfestigkeit über 0 und Teamstimmung über 0). Eine Runde dauert ca. 12 Minuten (36 Sekunden pro Spielstunde).
 - Niederlage: Du fällst um und hast kein zweites Leben, die Teamstimmung fällt auf 0 (alle gehen heim) oder Du bekommst dreimal Hausverbot an der Disko-Tür (Pegel über 2,5).
-- Vier Orte: Jazz in the City, Gasthaus Maultäschle, Sophies Brauhaus, Untergrund 07. Dazu Motocross-Park mit Tribüne. Öffnungszeiten: Hotel immer, Gasthaus 11:00 bis 23:00, Kneipe 14:00 bis 03:00, Disko 22:00 bis 04:00, Motocross 12:00 bis 20:00.
+- Vier Orte: Jaz, Gasthaus Maultäschle, Sophies Brauhaus, Untergrund 07. Dazu Motocross-Park mit Tribüne. Öffnungszeiten: Hotel immer, Gasthaus 11:00 bis 23:00, Kneipe 14:00 bis 03:00, Disko 22:00 bis 04:00, Motocross 12:00 bis 20:00.
 - Sechs feste Mittrunden (10:00 Hotel, 12:30 Gasthaus, 15:30 Kneipe, 19:30 Gasthaus, 22:30 und 01:30 Disko). Eine Stunde vorher gibt es eine Warnung, nach dem Ausruf hast Du ca. 20 Sekunden Echtzeit, am Stammtisch zu stehen. Mittrinken, heimlich gegen Alkoholfrei tauschen (Risiko erwischt zu werden, höchstens 3 pro Runde) oder ablehnen (Strafe).
 - Essen senkt den Pegel und stärkt, Wasser hilft, Freunde die umfallen kannst Du mit Wasser wecken (Q).
 - Disko: im Takt tanzen füllt die Scooter-Leiste, bei voller Leiste zündet R den Boost für die ganze Truppe (Verluste halbiert, schneller).

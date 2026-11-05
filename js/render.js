@@ -724,7 +724,7 @@
   }
 
   var SCHILD_NACHT_TEXTE = {
-    hotel: { haupt: 'JAZZ IN THE CITY', hauptCol: '#ffe9a8', nebenCol: '#ffe9a8' },
+    hotel: { haupt: 'JAZ', hauptCol: '#ffe9a8', nebenCol: '#ffe9a8' },
     restaurant: { haupt: 'GASTHAUS MAULTÄSCHLE', hauptCol: '#ffe9a8', nebenCol: '#ffe9a8' },
     kneipe: { haupt: 'SOPHIES BRAUHAUS', hauptCol: '#ffe9a8', nebenCol: '#ffe9a8' },
     disko: { haupt: 'UNTERGRUND 07', hauptCol: '#7ff6ff', nebenCol: '#7ff6ff' }
@@ -1333,7 +1333,7 @@
     var top = (R.hochkant && R.touch) ? Math.ceil(50 / Math.max(0.5, sCss)) : 8;
     var bx = 20, bw = W - 40, innen = bw - 20, w = e.wertung;
     var kopf = w.kopf || (sieg ? 'Du stehst noch, Saufi.' : 'Press F to pay respects.');
-    var grund = sieg ? 'Sonntag, 04:00. Sonnenaufgang überm Kessel. MS-Marathon geschafft.' : (e.grund || '');
+    var grund = sieg ? 'Sonntag, 04:00. Sonnenaufgang überm Kessel. Durchgehalten!' : (e.grund || '');
     var titelZ = (w.medaille ? w.medaille + ': ' : '') + w.titel;
     var punkteZ = 'Punkte: ' + S.punkte.punkte + (e.neuerBestwert ? '  (neuer Bestwert!)' : (S.best ? '  (Bestwert ' + S.best + ')' : ''));
     var rundenZ = 'Runden mitgetrunken: ' + S.runden.geschafft + ' von ' + S.runden.runden.length + ' · Team ' + S.runden.team + '/5';

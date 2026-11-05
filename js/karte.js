@@ -17,8 +17,8 @@
     T.SPENDER, T.DJ, T.JUKEBOX, T.PFLANZE, T.KUECHE, T.AUSGANG, T.KICKER, T.TRIBUENE, T.ABSPERR, T.BAUZAUN, T.BAUGRUBE].forEach(function (t) { BLOCK[t] = true; });
 
   var ORTE = ['hotel', 'restaurant', 'kneipe', 'disko'];
-  var NAMEN = { hotel: 'Jazz in the City', restaurant: 'Gasthaus Maultäschle', kneipe: 'Sophies Brauhaus', disko: 'Untergrund 07', motocross: 'Motocross-Park' };
-  var KURZ = { hotel: 'Jazz', restaurant: 'Maultäschle', kneipe: 'Sophie', disko: 'Untergrund', motocross: 'Motocross' };
+  var NAMEN = { hotel: 'Jaz', restaurant: 'Gasthaus Maultäschle', kneipe: 'Sophies Brauhaus', disko: 'Untergrund 07', motocross: 'Motocross-Park' };
+  var KURZ = { hotel: 'Jaz', restaurant: 'Maultäschle', kneipe: 'Sophie', disko: 'Untergrund', motocross: 'Motocross' };
 
   function neueKarte(id, w, h, fill, innen) {
     var k = {
@@ -71,7 +71,7 @@
     [[10, 8], [19, 8], [10, 13], [19, 13]].forEach(function (p) { k.setze(p[0], p[1], T.LATERNE); });
     // Hauptstrasse
     k.rect(0, 14, 40, 2, T.STRASSE);
-    // Hotel Jazz in the City (oben rechts) mit Hotelallee
+    // Hotel Jaz (oben rechts) mit Hotelallee
     bauwerk(k, 'hotel', 22, 7, 8, 5, 25);
     k.rect(24, 12, 3, 2, T.PFLASTER);
     // Gasthaus Maeultaeschle (links)

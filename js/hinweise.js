@@ -21,7 +21,7 @@
   ];
   var DANKE = 'Danke fürs Spielen, trink Wasser.';
 
-  var SHOUTS = ['HYPER HYPER!', 'HOW MUCH IS THE FISH?', 'ONE MORE!', 'WIE VIEL IST DER KESSEL?', 'MS-MARATHON LIGHT!'];
+  var SHOUTS = ['HYPER HYPER!', 'HOW MUCH IS THE FISH?', 'ONE MORE!', 'WIE VIEL IST DER KESSEL?', 'JIGGA JIGGA!'];
   var PROST = ['PROST!', 'ZUM WOHL!', 'AUF DIE TRUPPE!', 'SCHWABENTROPFEN!', 'UFF DIE KESSELWELLE!'];
   var STAND_WEG = ['Noch zu, Saufi.', 'Hier isch noch zu.', 'Mach auf, Wirt!', 'Kehrwoche? Nein, Kneipenruhe.'];
 

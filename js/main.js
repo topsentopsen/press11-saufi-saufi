@@ -214,7 +214,7 @@
     (Saufi.Essen.MENUE[st.typ] || []).forEach(function (id) { e.push({ label: Saufi.Essen.GERICHTE[id].label, rechts: 'Essen', id: 'essen', daten: id }); });
     Saufi.Minispiele.eintraegeFuerOrt(S.ort).forEach(function (m) { e.push({ label: m.label, rechts: 'Spiel', id: 'minispiel', daten: m.id }); });
     e.push(zurueckEintrag());
-    oeffneMenue(S, st.label, ['Pegel ' + Saufi.Pegel.anzeige(S.fig.pegel) + ' ‰ · MS-Marathon optional'], e);
+    oeffneMenue(S, st.label, ['Pegel ' + Saufi.Pegel.anzeige(S.fig.pegel) + ' ‰'], e);
   }
   function essenMenue(S, st) {
     var E2 = Saufi.Essen, e = [];
@@ -502,7 +502,7 @@
     var e = Saufi.Minispiele.eintraegeFuerOrt(S.ort).map(function (m) { return { label: m.label, id: 'minispiel', daten: m.id }; });
     if (!e.length) { sag(S, 'Hier gerade kein Minispiel. Kneipe/Disko/Gasthaus versuchen.', 2.5, 'info'); return; }
     e.push(zurueckEintrag());
-    oeffneMenue(S, 'Trinkspiele', ['Kurz, abbrechbar, MS-Marathon-Light.'], e);
+    oeffneMenue(S, 'Trinkspiele', ['Kurz und abbrechbar.'], e);
   }
   function tanzen(S, X) {
     var sp = S.spieler;
@@ -796,6 +796,7 @@
         if (mn) {
           var nr = Saufi.Runden.naechste(S.runden);
           mn.blase = { text: Saufi.Motiv.text(mn.id, nr, m), rest: 3.5 };
+          if (S.char && S.char.id === 'tobi' && m >= 26 * 60) mn.blase.text = 'Tobi, nach 2 Uhr? Keine Chance.';   // v18: Tobi nach 2 Uhr schwer zu motivieren
           S.motiv.n = (S.motiv.n | 0) + 1; S.motiv.zuletzt = S.spielSek;
         }
       }

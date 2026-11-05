@@ -677,7 +677,7 @@ test('30 Rendern: alle Orte, Tageszeiten, Menues und Bildschirme ohne Fehler', f
   t.S.overlay = null; t.S.zustand = 'umgefallen'; t.S.pressF = { n: 2, noetig: 5, rest: 2, zweitesLeben: true, t: 0 }; D.Render.zeichne(R, t.S);
   D.Render.setzeBildschirm(R, true); gleich(R.H, 400); D.Render.zeichne(R, t.S); D.Render.setzeBildschirm(R, false); gleich(R.H, 176);
   wahr(gezeichnet === 56 && log.length > 100, 'es wurde Text gezeichnet');
-  wahr(['JAZZ IN THE CITY', 'GASTHAUS MAULTÄSCHLE', 'SOPHIES BRAUHAUS', 'UNTERGRUND 07'].every(function (s) { return log.indexOf(s) >= 0; }), 'Schilder der vier Orte');
+  wahr(['JAZ', 'GASTHAUS MAULTÄSCHLE', 'SOPHIES BRAUHAUS', 'UNTERGRUND 07'].every(function (s) { return log.indexOf(s) >= 0; }), 'Schilder der vier Orte');
 });
 
 // ---------- Lauf 3: Fixes nach Cursor-Review ----------
@@ -1047,7 +1047,7 @@ test('51 textInBox passt immer (Laengen/Breiten)', function () {
     { t: 'Supercalifragilisticexpialidocious ohne Leerzeichen', w: 50, h: 30, g: 16 },
     { t: 'A B C D E F G H I J K L M N O P Q R S T U V W X Y Z', w: 40, h: 50, g: 11 },
     { t: '', w: 30, h: 14, g: 10 },
-    { t: 'Press11 - Saufi Saufi · Stuttgart Kessel Marathon', w: 90, h: 16, g: 18 }
+    { t: 'Press11 - Saufi Saufi · Stuttgart Kessel Nacht', w: 90, h: 16, g: 18 }
   ].forEach(function (f, i) {
     var info = G.textInBox(c, f.t, 0, 0, f.w, f.h, f.g, { mess: true, ausr: 'center' });
     wahr(info.size >= G.MIN_SCHRIFT || !f.t, 'Fall ' + i + ' size>=min');
@@ -2075,7 +2075,7 @@ test('99 Overlays: Banner frei von Uhr/HUD/#oben; Hoch in Reserve; Quer-Blasen',
     R.touch = true; R.cssW = cssW; R.cssH = cssH;
     var t = neuesSpielTest(D); t.S.zustand = 'spiel';
     var nr = t.S.runden.runden[0]; nr.status = 'aktiv';
-    t.S.hilfe = 'E: Jazz in the City';
+    t.S.hilfe = 'E: Jaz';
     D.Hinweise.zeige(t.S.hinweise, 'Tobi: Lange Dialogzeile zum Stapeln und Breitentest.', 3, 'info');
     D.Render.zeichne(R, t.S);
     var uhr = R.hudUhr, rund = R.hudRunde, links = R.hudLinks;
@@ -2281,7 +2281,7 @@ test('108 Overlays Hoch: Reserve, Uhr frei, Banner/Blasen, →HIER', function ()
     R.touch = true; R.cssW = cssW; R.cssH = cssH;
     var t = neuesSpielTest(D); t.S.zustand = 'spiel';
     t.S.runden.runden[0].status = 'aktiv';
-    t.S.hilfe = 'E: Jazz in the City';
+    t.S.hilfe = 'E: Jaz';
     D.Hinweise.zeige(t.S.hinweise, 'Tobi: Dialogzeile eins und zwei.', 3, 'info');
     t.S.pfeil = { x: 100, y: 80 };
     D.Render.zeichne(R, t.S);
@@ -2332,7 +2332,7 @@ test('109 Overlays Quer: Uhr+Banner ≤38, Blasen unten, Hotel frei', function (
     var t = neuesSpielTest(D); t.S.zustand = 'spiel';
     t.S.kamera.viewW = R.VW; t.S.kamera.viewH = R.VH;
     t.S.runden.runden[0].status = 'aktiv';
-    t.S.hilfe = 'E: Jazz in the City';
+    t.S.hilfe = 'E: Jaz';
     D.Hinweise.zeige(t.S.hinweise, 'Dialogzeile zum Breitentest Querformat.', 3, 'info');
     D.Render.zeichne(R, t.S);
     var uhr = R.hudUhr, rund = R.hudRunde, links = R.hudLinks;
@@ -3303,16 +3303,16 @@ test('153 Namensschild: Raphael im Canvas-Log (Spieler und NPC)', function () {
 test('154 Umbenennungen: NAMEN, Schilder, keine Kesselblick/Dachs-Treffer', function () {
   var D = lade(), welt = D.Karte.erstelleWelt(D.RNG.erstelle(1));
   gleich(D.Karte.NAMEN.kneipe, 'Sophies Brauhaus');
-  gleich(D.Karte.NAMEN.hotel, 'Jazz in the City');
+  gleich(D.Karte.NAMEN.hotel, 'Jaz');
   gleich(D.Karte.NAMEN.restaurant, 'Gasthaus Maultäschle');
   var hotel = welt.stadt.gebaeude.filter(function (b) { return b.id === 'hotel'; })[0];
   var kneipe = welt.stadt.gebaeude.filter(function (b) { return b.id === 'kneipe'; })[0];
   var rest = welt.stadt.gebaeude.filter(function (b) { return b.id === 'restaurant'; })[0];
-  gleich(D.Szene.bauplan(hotel).schildHaupt.text, 'JAZZ IN THE CITY');
+  gleich(D.Szene.bauplan(hotel).schildHaupt.text, 'JAZ');
   gleich(D.Szene.bauplan(kneipe).schildHaupt.text, 'SOPHIES BRAUHAUS');
   gleich(D.Szene.bauplan(rest).schildHaupt.text, 'GASTHAUS MAULTÄSCHLE');
   var renderSrc = fs.readFileSync(path.join(ROOT, 'js', 'render.js'), 'utf8');
-  wahr(/SOPHIES BRAUHAUS/.test(renderSrc) && /JAZZ IN THE CITY/.test(renderSrc), 'SCHILD_NACHT_TEXTE');
+  wahr(/SOPHIES BRAUHAUS/.test(renderSrc) && /JAZ/.test(renderSrc), 'SCHILD_NACHT_TEXTE');
   var jsHits = 0;
   fs.readdirSync(path.join(ROOT, 'js')).forEach(function (f) {
     if (!/\.js$/.test(f)) return;
@@ -3335,10 +3335,10 @@ test('154 Umbenennungen: NAMEN, Schilder, keine Kesselblick/Dachs-Treffer', func
   gleich(hotel.name, D.Karte.NAMEN.hotel);
 });
 
-test('155 hilfeText Hotel-Tür: Jazz in the City', function () {
+test('155 hilfeText Hotel-Tür: Jaz', function () {
   var D = lade(), t = neuesSpielTest(D);
   t.Sp.geheZuStation(t.S, 'stadt', 'tuer_hotel', t.X);
-  gleich(t.Sp.hilfeText(t.S), 'E: Jazz in the City');
+  gleich(t.Sp.hilfeText(t.S), 'E: Jaz');
 });
 
 test('156 Motocross Karte: tribuene, ERDE, Hügel, Pfad Seeds 1..20', function () {
@@ -4363,7 +4363,7 @@ test('207 Motivatoren: Text, Limit, Zaehler, Spieler-Motivator, kein rng', funct
   var rs = D.Runden.erstelle();
   var nr = D.Runden.naechste(rs);
   var txt = M.text('himmelsbach', nr, 8 * 60);
-  wahr(/\d\d:\d\d|Gasthaus|Jazz|Auf geht/.test(txt) || /Runde/.test(txt), 'nennt Runde: ' + txt);
+  wahr(/\d\d:\d\d|Gasthaus|Jaz|Auf geht/.test(txt) || /Runde/.test(txt), 'nennt Runde: ' + txt);
   wahr(M.text('stoeckle', null, 0).indexOf('vier') >= 0);
   var t = neuesSpielTest(D); erledigt(t.S);
   t.S.npcs.forEach(function (n, i) { n.karteId = t.S.ort; n.aktiv = true; n.liegt = false; n.blase = i < 2 ? { text: 'x', rest: 99 } : null; });
@@ -4570,6 +4570,26 @@ test('214 Scooter-Blasen: Pool >= 24, <= 40 Zeichen, spruch nur aus Pool, rng ge
   gleich(H.SHOUTS[0], 'HYPER HYPER!'); gleich(H.PROST[0], 'PROST!');
   gleich(H.STAND_WEG[0], 'Noch zu, Saufi.');
   wahr(/Sophies Brauhaus/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'Sophies Brauhaus');
+});
+
+test('215 Nachtrag v18: Schwinki Nachschub und frueh heim, Tobi ohne starke Runden, Raphi Gas', function () {
+  var D = lade(), C = D.Charaktere;
+  var sw = C.holen('schwinki'), tb = C.holen('tobi'), rp = C.holen('raphael');
+  gleich(sw.auswahl.plus, 'hat immer Nachschub dabei');
+  gleich(sw.auswahl.minus, 'geht immer früher nach Hause');
+  gleich(sw.gehtAb, 25 * 60);
+  wahr(!/starke Team-Runden/.test(tb.auswahl.plus), 'Tobi ohne starke Runden');
+  gleich(tb.rundenFaktor, 1);
+  gleich(tb.auswahl.minus, 'nach 2 Uhr schwer zu motivieren');
+  gleich(rp.auswahl.minus, 'gibt am Anfang zu viel Gas');
+  wahr(!/geneckt/.test(JSON.stringify(rp.auswahl)), 'kein geneckt');
+  var bs = C.holen('bundschuh'); wahr(/Organisationstalent/.test(bs.auswahl.rolle) && /schaut dass alle nach Hause kommen/.test(bs.auswahl.rolle), 'Bundschuh Rolle'); wahr(/behält den Überblick/.test(bs.auswahl.plus), 'Überblick');
+  var sb = C.holen('siebold'); gleich(sb.auswahl.plus, 'initiiert Trinkspiele'); wahr(/Game Master/.test(sb.auswahl.rolle), 'Game Master'); wahr(!!sb.motivator, 'Siebold bleibt Motivator');
+  var list = D.NPCs.erstelle('tobi'), n = list.filter(function (x) { return x.id === 'schwinki'; })[0];
+  wahr(!!n && n.aktiv, 'Schwinki da');
+  var karte = { id: 'stadt', w: 40, h: 60, blockiert: function () { return false; } };
+  D.NPCs.ankommen(list, 24 * 60, karte, 0, 0); wahr(n.aktiv, 'um 0 Uhr noch da');
+  D.NPCs.ankommen(list, 25 * 60, karte, 0, 0); wahr(!n.aktiv, 'ab 1 Uhr daheim');
 });
 
 tests.forEach(function (t) {

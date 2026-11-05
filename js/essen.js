@@ -16,7 +16,7 @@
     tresen_kneipe: ['brezel']
   };
   // Umlaute in den Beschriftungen fuer die Anzeige
-  var ANZEIGE = { fruehstueck: 'Frühstück (gegen MS-Marathon)', maultaschen: 'Maultaschen in Brühe', linsen: 'Linsen mit Spätzle (Notstand gelöst)', brezel: 'Brezel (taubensicher)' };
+  var ANZEIGE = { fruehstueck: 'Frühstück', maultaschen: 'Maultaschen in Brühe', linsen: 'Linsen mit Spätzle (Notstand gelöst)', brezel: 'Brezel (taubensicher)' };
   Object.keys(GERICHTE).forEach(function (k) { GERICHTE[k].label = ANZEIGE[k]; });
 
   Saufi.Essen = { GERICHTE: GERICHTE, MENUE: MENUE, VOLL_ANZAHL: 3, VOLL_FENSTER_MIN: 120, VOLL_DAUER_MIN: 60, VOLL_FAKTOR: 0.8 };

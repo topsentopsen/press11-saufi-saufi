@@ -431,7 +431,7 @@
       // Zwischen Fensterreihen auf dem Gesims (volle Breite, 1 Zeile ≥ 5,5 px) — Quelle fuer Zeichnung
       // ≥ 7 CSS-px im Hoch nicht erreichbar ohne Fenster-Overlap → Text „Kehrwoche“
       plan.schildNeben = { x: x0 + (w - 56) / 2, y: y0 + 42.3, w: 56, h: 6.4, text: 'Kehrwoche' };
-      plan.schildHaupt = { x: x0 + w / 2, y: y0 + 14, w: Math.min(w - 8, 112), h: 14, text: 'JAZZ IN THE CITY' };
+      plan.schildHaupt = { x: x0 + w / 2, y: y0 + 14, w: Math.min(w - 8, 112), h: 14, text: 'JAZ' };
     } else if (b.id === 'restaurant') {
       for (i = 0; i < 3; i++) plan.fenster.push({ x: x0 + 8 + i * 34 + (i > 0 ? 10 : 0), y: y0 + 30, w: 14, h: 14 });
       plan.fenster.push({ x: x0 + 8, y: y0 + 54, w: 14, h: 14 }); plan.fenster.push({ x: x0 + w - 24, y: y0 + 54, w: 14, h: 14 });

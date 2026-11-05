@@ -330,7 +330,7 @@
       uhrWand(c, 8 * K + 8, 9, 5);
       rr(c, 9 * K + 4, 2, 3 * K + 10, 12, '#f6efe0', 1.6, '#8a5a3a', 0.7); textInBox(c, 'FRÜHSTÜCK', 9 * K + 6, 3, 3 * K + 6, 10, 9, { col: '#6a3f2a', ausr: 'center', min: 6 });
       rr(c, 14 * K, 1.5, 14, 10, '#4fb0d6', 1.2); textInBox(c, 'H2O', 14 * K, 2, 14, 9, 9, { col: '#fff', ausr: 'center', min: 6 });
-      rr(c, 6 * K + 2, 18.5, 26, 9, '#1a1530', 1.4, '#ffe9a8', 0.7); textInBox(c, '♩ JAZZ', 6 * K + 3, 19, 24, 8, 7, { col: '#ffe9a8', ausr: 'center', min: 5 });   // freie Wand unter dem Bilderrahmen, zuletzt gezeichnet
+      rr(c, 6 * K + 2, 18.5, 26, 9, '#1a1530', 1.4, '#ffe9a8', 0.7); textInBox(c, '♩ JAZ', 6 * K + 3, 19, 24, 8, 7, { col: '#ffe9a8', ausr: 'center', min: 5 });   // freie Wand unter dem Bilderrahmen, zuletzt gezeichnet
     } else if (id === 'restaurant') {
       flaschenRegal(c, 2 * K + 2, 12, 5 * K - 4, 9);
       rr(c, 8 * K + 2, 2, 2 * K - 4, 24, '#2f3a34', 1.6, '#8a5a3a', 1); textInBox(c, 'KARTE', 8 * K + 3, 3, 2 * K - 6, 10, 9, { col: '#fff8ee', ausr: 'center', min: 6 });

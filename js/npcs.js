@@ -222,6 +222,8 @@
   function ankommen(list, minute, karte, tx, ty) {
     var neu = [];
     list.forEach(function (n) {
+      // v18: Schwinki geht frueher nach Hause (ab gehtAb weg, kein rng)
+      if (n.aktiv && n.char.gehtAb && minute >= n.char.gehtAb) { n.aktiv = false; n.blase = null; n.weg = true; return; }
       if (!n.aktiv && n.char.kommtAb && minute >= n.char.kommtAb) {
         n.aktiv = true; neu.push(n);
         var p = nahKacheln(karte, tx, ty, 2)[1] || { x: tx, y: ty };

@@ -65,7 +65,7 @@
     { id: 'kebab_krone', stufe: 3, art: 'panne', text: 'Kebab als Krone. Königlich. E: absetzen.', loesung: 'aktion', effekt: { punkte: 40, stand: -2 } },
     { id: 'lallen_chor', stufe: 3, art: 'panne', text: 'Spontaner Lall-Chor. E: Dirigent sein.', loesung: 'aktion', effekt: { punkte: 50, team: 1 } },
     { id: 'feinstaub_ausrede', stufe: 3, art: 'panne', text: '„Feinstaubalarm, deswegen lalle ich.“ E: nicken.', loesung: 'aktion', effekt: { punkte: 15 } },
-    { id: 'ms_marathon', stufe: 2, art: 'panne', text: 'Jemand vergleicht den Abend mit MS-Marathon. E: lachen.', loesung: 'aktion', effekt: { punkte: 33, team: 1 } }
+    { id: 'vergleich', stufe: 2, art: 'panne', text: 'Jemand vergleicht den Abend mit letztem Jahr. E: lachen.', loesung: 'aktion', effekt: { punkte: 33, team: 1 } }
   ];
 
   function stufeVonPegel(pegel) {
