@@ -258,7 +258,8 @@
     var bob = -Math.abs(Math.sin(phaseLauf * Math.PI / 2)) * 1.2 + hop + atme;
     var schulter = laeuft ? Math.sin(phaseLauf * Math.PI / 2) * 0.6 : 0;
     var hose = ch.hose, shirt = ch.shirt, by = y + hop + (o.sitzt ? 3 : 0);
-    var beinFarbe = hose, schuh = extra === 'schuhe' ? ['#ff4fa0', '#4fe6ff'] : ['#3a2a3e', '#3a2a3e'];
+    var beinFarbe = o.ohneHose ? P.haut : hose;
+    var schuh = o.ohneHose ? [P.haut, P.haut] : (extra === 'schuhe' ? ['#ff4fa0', '#4fe6ff'] : ['#3a2a3e', '#3a2a3e']);
     var l1 = seite ? swing : 0, l2 = seite ? -swing : 0;
     var up1 = seite ? 0 : Math.max(0, Math.sin(phaseLauf * Math.PI / 2)) * 2.0;
     var up2 = seite ? 0 : Math.max(0, -Math.sin(phaseLauf * Math.PI / 2)) * 2.0;
@@ -382,6 +383,9 @@
         kreis(c, pxp + 2.6, pyp + 0.7, 1.1, '#fff8ee', KONT, 0.45);
       }
     }
+    if (extra === 'dutt') {
+      kreis(c, hx, hy - 5.8, 2.15, ch.haar || '#e4e4ea', KONT, 0.4);
+    }
     if (torkelOn) c.restore();
   }
 
@@ -427,6 +431,76 @@
     c.save(); c.translate(x, y + w); c.rotate(-0.25);
     rr(c, -4.6, -1.3, 9.2, 2.8, '#fff8ee', 1.4, '#8a7c9c', 0.5); rr(c, -4.8, -1.2, 2, 2.6, '#ff8f2e', 1); c.restore();
     c.globalAlpha = 0.5; kreis(c, x + 4, y - 4 + w, 1.2, '#c9c3d6'); kreis(c, x + 5.2, y - 7 + w, 1.6, '#c9c3d6'); c.globalAlpha = 1;
+  }
+
+  function heckeBusch(c, x, y) {
+    ellipse(c, x, y, 16, 3.2, 'rgba(50,30,80,0.22)');
+    ellipse(c, x - 7, y - 8, 9, 6, '#3f6b4a');
+    ellipse(c, x + 7, y - 7, 9, 6.2, '#5f9e64');
+    ellipse(c, x, y - 12, 8, 5.5, '#6fae6a');
+  }
+  function zeichneLeben(c, a, cx, cy, t) {
+    var x = a.px - cx, y = a.py - cy;
+    if (a.art === 'vogel') { vogelBild(c, x, y, a); return; }
+    if (a.art === 'auto') { autoBild(c, x, y, a); return; }
+    if (a.art === 'rad') { radBild(c, x, y, a); return; }
+    if (a.art === 'hund') { hundBild(c, x, y, a); return; }
+    var o = { dir: a.dir || 'unten', t: t, sitzt: a.haltung === 'sitzt', laeuft: !!a.laeuft, phase: a.phase || 0 };
+    var sc = a.scale || 1;
+    if (sc !== 1) {
+      c.save(); c.translate(x, y); c.scale(sc, sc); c.translate(-x, -y);
+      figur(c, a.look, x, y, o); c.restore();
+    } else figur(c, a.look, x, y, o);
+  }
+  function vogelBild(c, x, y, a) {
+    var sg = a.dir === 'links' ? -1 : 1, f = Math.sin((a.phase || 0) * 1.4), col = a.farbe || '#2a2342';
+    c.save(); c.translate(x, y); if (sg < 0) c.scale(-1, 1);
+    poly(c, [[-0.6, 0], [-5.4, -2.1 - f * 2], [-1.2, 0.5]], col);
+    poly(c, [[-0.6, 0], [-5.4, 2.1 + f * 2], [-1.2, -0.3]], col);
+    ellipse(c, 0.4, 0, 3.1, 1.45, col);
+    poly(c, [[2.8, -0.2], [4.5, 0.25], [2.8, 0.7]], '#e8a020');
+    c.restore();
+  }
+  function autoBild(c, x, y, a) {
+    var sg = a.dir === 'links' ? -1 : 1, col = a.farbe || '#e0504a';
+    c.save(); c.translate(x, y); if (sg < 0) c.scale(-1, 1);
+    ellipse(c, 0, 0.4, 8.5, 1.8, 'rgba(50,30,80,0.25)');
+    rr(c, -8, -5.4, 16, 4.4, col, 1.6, '#4a3560', 0.55);
+    rr(c, -2.8, -8.2, 6.8, 3.4, '#9fd4f0', 1.1, '#4a3560', 0.4);
+    kreis(c, -4.4, -1.1, 1.7, '#2a2342', '#4a3560', 0.45);
+    kreis(c, 4.6, -1.1, 1.7, '#2a2342', '#4a3560', 0.45);
+    kreis(c, 6.8, -3.5, 0.65, '#ffe9a8');
+    c.restore();
+  }
+  function radBild(c, x, y, a) {
+    var sg = a.dir === 'links' ? -1 : 1, fahrer = a.modus !== 'park', ang = (a.phase || 0) * 0.8;
+    c.save(); c.translate(x, y); if (sg < 0) c.scale(-1, 1);
+    ellipse(c, 0, 0.2, 7, 1.6, 'rgba(50,30,80,0.22)');
+    kreis(c, -5.2, -1.4, 2.5, '#2a2342', '#4a3560', 0.55);
+    kreis(c, 5.2, -1.4, 2.5, '#2a2342', '#4a3560', 0.55);
+    linie(c, -5.2, -1.4, -5.2 + Math.cos(ang) * 2, -1.4 + Math.sin(ang) * 2, '#c9c3d6', 0.5);
+    linie(c, 5.2, -1.4, 5.2 + Math.cos(ang) * 2, -1.4 + Math.sin(ang) * 2, '#c9c3d6', 0.5);
+    linie(c, -5.2, -1.4, 0.2, -6.2, a.farbe || '#e0504a', 1);
+    linie(c, 0.2, -6.2, 5.2, -1.4, a.farbe || '#e0504a', 1);
+    linie(c, 3.2, -6.2, 6.2, -7.4, '#4a3560', 0.9);
+    if (fahrer) {
+      kreis(c, 1.4, -10.6, 2, '#f2c9a0', '#4a3560', 0.4);
+      rr(c, 0, -8.8, 3, 3.6, '#3a6ad8', 1);
+    } else linie(c, 4.8, -1.2, 6.4, 0.6, '#4a3560', 0.8);
+    c.restore();
+  }
+  function hundBild(c, x, y, a) {
+    var sg = a.dir === 'links' ? -1 : 1, sw = a.laeuft ? Math.sin((a.phase || 0) * Math.PI / 2) * 1.2 : 0, fell = a.fell || '#8a5a32';
+    c.save(); c.translate(x, y); if (sg < 0) c.scale(-1, 1);
+    ellipse(c, 0, 0.3, 5.6, 1.5, 'rgba(50,30,80,0.22)');
+    rr(c, -4.6, -5.6, 8.2, 4.2, fell, 1.8, '#4a3560', 0.35);
+    kreis(c, 3.8, -5.6, 2.2, fell, '#4a3560', 0.35);
+    ellipse(c, 5.4, -5.2, 1.1, 0.7, '#2a2a32');
+    rr(c, 2.4, -8.2, 1.2, 2, fell, 0.5);
+    linie(c, -4.4, -4.8, -6.6, -6.8 + sw, fell, 1.1);
+    rr(c, -3, -2.2 + sw, 1.3, 2.4, fell, 0.4);
+    rr(c, 0.4, -2.2 - sw, 1.3, 2.4, fell, 0.4);
+    c.restore();
   }
 
   // ---------- Welt zeichnen (in Kamerakoordinaten VW×VH; wird mit WELT_ZOOM auf W×H skaliert) ----------
@@ -476,6 +550,16 @@
       var sortY = v.haltung === 'sitzt' ? ((v.y + 1) * K + 0.2) : v.py;
       dinge.push({ y: sortY, art: 'stadtvolk', v: v });
     });
+    (S.leben || []).forEach(function (a) {
+      if (!a || a.karteId !== karte.id) return;
+      dinge.push({ y: a.py, art: 'leben', a: a });
+    });
+    if (karte.id === 'stadt' && S.hecke && Saufi.Ereignisse.Hecke && Saufi.Ereignisse.Hecke.aktiv(S.hecke, S.spielSek)) {
+      var pose = Saufi.Ereignisse.Hecke.pose(S.hecke, S.spielSek);
+      dinge.push({ y: pose.heckeY - 6, art: 'heckeBusch', pose: pose });
+      dinge.push({ y: pose.probst.y, art: 'heckeProbst', pose: pose });
+      dinge.push({ y: pose.film.y + 0.3, art: 'heckeFilm', pose: pose });
+    }
     if (S.zustand !== 'start') dinge.push({ y: S.spieler.y + 0.1, art: 'spieler' });
     if (karte.id === 'stadt' && Saufi.Motocross && Saufi.Motocross.stand) {
       Saufi.Motocross.stand(t).forEach(function (b) {
@@ -531,6 +615,22 @@
         var v = d.v;
         figur(c, v.look, v.px - cx, v.py - cy, { dir: 'unten', t: t, sitzt: v.haltung === 'sitzt' });
         if (v.blase) R.blasen.push({ x: v.px - cx, y: v.py - cy - 25, text: v.name + ': ' + v.blase.text, vermeide: null });
+      }
+      else if (d.art === 'leben') zeichneLeben(c, d.a, cx, cy, t);
+      else if (d.art === 'heckeBusch') heckeBusch(c, d.pose.heckeX - cx, d.pose.heckeY - cy);
+      else if (d.art === 'heckeProbst') {
+        var pp = d.pose.probst, qx = pp.x - cx, qy = pp.y - cy, qs = 1 - 0.4 * pp.quetsch;
+        var probst = Saufi.Charaktere.holen('raphael');
+        c.save(); c.translate(qx, qy); c.scale(Math.max(0.45, qs), 1); c.translate(-qx, -qy);
+        figur(c, probst, qx, qy, { dir: pp.dir, t: t, laeuft: true, phase: pp.u * 8, ohneHose: true });
+        c.restore();
+      }
+      else if (d.art === 'heckeFilm') {
+        var fp = d.pose.film, fx = fp.x - cx, fy = fp.y - cy;
+        figur(c, Saufi.Charaktere.holen('himmelsbach'), fx, fy, { dir: fp.dir, t: t, laeuft: false });
+        rr(c, fx + 5, fy - 23, 3.4, 5.2, '#1a1a22', 0.6, '#4a3560', 0.45);
+        r(c, fx + 5.4, fy - 22.2, 2.6, 3.2, '#9fd4f0');
+        R.blasen.push({ x: fx, y: fy - 25, text: 'Himmelsbach: ' + d.pose.text, vermeide: null });
       }
       else if (d.art === 'npc') {
         var n = d.n;

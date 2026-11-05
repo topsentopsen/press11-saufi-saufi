@@ -1,4 +1,6 @@
-/* v21 Stadtvolk: feste Stadt-Figuren (Wirt, Penner, Rezeptionistin). Laufen nicht mit, nutzen kein S.rng. */
+/* v21 Stadtvolk: feste Stadt-Figuren (Wirt, Penner, Rezeptionistin).
+   v26 leben: Umgebung (Frau Hilde, Jugendliche, Kinder, Hunde, Voegel, Autos, Fahrraeder).
+   Laeuft nicht mit der Truppe, blockiert keine Kachel, zieht kein S.rng. */
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
@@ -150,8 +152,159 @@
     if (nah) sprich(nah, null);
   }
 
+  // Umgebung. Positionen haengen nur an der Zeit, nicht an S.rng und nicht an belegten Kacheln.
+  function kachelnZuWeg(tiles) {
+    return tiles.map(function (t) { return { x: t[0] * K + 8, y: t[1] * K + 14 }; });
+  }
+  function strecke(tiles, opt) {
+    opt = opt || {};
+    var weg = kachelnZuWeg(tiles);
+    var i = opt.start || 0;
+    if (i < 0) i = 0;
+    if (i >= weg.length) i = weg.length - 1;
+    return {
+      id: opt.id, art: opt.art || 'person', name: opt.name || '', karteId: 'stadt', spricht: false,
+      px: weg[i].x, py: weg[i].y, dir: opt.dir || 'unten', laeuft: false, phase: opt.phase || 0,
+      haltung: opt.haltung || 'steht', look: opt.look || null, scale: opt.scale || 1,
+      modus: opt.modus || 'ping', weg: weg,
+      kacheln: tiles.map(function (t) { return [t[0], t[1]]; }),
+      i: i, richtung: opt.richtung || 1, speed: opt.speed || 16, warte: 0,
+      pauseAmEnde: opt.pauseAmEnde || 0, farbe: opt.farbe || null, fell: opt.fell || null
+    };
+  }
+  function vogel(opt) {
+    var w = opt.winkel || 0;
+    return {
+      id: opt.id, art: 'vogel', name: '', karteId: 'stadt', spricht: false, modus: 'ellipse',
+      cx: opt.cx, cy: opt.cy, rx: opt.rx, ry: opt.ry, winkel: w, dreh: opt.dreh,
+      px: opt.cx + Math.cos(w) * opt.rx, py: opt.cy + Math.sin(w) * opt.ry,
+      dir: 'rechts', laeuft: true, phase: 0, farbe: opt.farbe || '#2a2342', kacheln: [], scale: 1
+    };
+  }
+  function wagen(opt) {
+    return {
+      id: opt.id, art: 'auto', name: '', karteId: 'stadt', spricht: false, modus: 'wrap',
+      px: opt.px, py: opt.y, basisY: opt.y, minX: opt.minX, maxX: opt.maxX,
+      richtung: opt.richtung || 1, speed: opt.speed, farbe: opt.farbe,
+      dir: (opt.richtung || 1) > 0 ? 'rechts' : 'links', laeuft: true, phase: 0,
+      kacheln: opt.kacheln || [], scale: 1, spur: opt.spur || null
+    };
+  }
+  function leben(welt, seed) {
+    void welt;
+    var n = (seed || 1) % 5;
+    var hildeLook = { id: 'hilde', shirt: '#6a3a62', hose: '#3a2a38', haar: '#e4e4ea', extra: 'dutt' };
+    var list = [
+      strecke([[29, 13], [34, 13], [38, 13], [36, 16], [32, 16], [29, 16]], {
+        id: 'hilde', name: 'Frau Hilde', look: hildeLook, speed: 12, pauseAmEnde: 2.4, dir: 'rechts'
+      }),
+      strecke([[7, 34]], {
+        id: 'jugend_jule', name: 'Jule', modus: 'steh', dir: 'rechts',
+        look: { id: 'jugend_jule', shirt: '#3a6ad8', hose: '#2a2a32', haar: '#3a2418' }
+      }),
+      strecke([[10, 33]], {
+        id: 'jugend_samir', name: 'Samir', modus: 'steh', dir: 'links',
+        look: { id: 'jugend_samir', shirt: '#e0504a', hose: '#3a3a4a', haar: '#e8c070' }
+      }),
+      strecke([[11, 34]], {
+        id: 'jugend_nico', name: 'Nico', modus: 'steh', dir: 'unten', haltung: 'sitzt',
+        look: { id: 'jugend_nico', shirt: '#2a2a32', hose: '#3f6b4a', haar: '#4a3020', extra: 'cap' }
+      }),
+      strecke([[0, 31], [1, 31], [1, 32], [1, 33], [0, 33], [0, 32]], {
+        id: 'kind_mina', name: 'Mina', modus: 'loop', speed: 22, scale: 0.68, dir: 'rechts',
+        look: { id: 'kind_mina', shirt: '#ff8f2e', hose: '#4a6ad8', haar: '#c87830' }
+      }),
+      strecke([[0, 31], [1, 31], [1, 32], [1, 33], [0, 33], [0, 32]], {
+        id: 'kind_levin', name: 'Levin', modus: 'loop', speed: 26, scale: 0.66, start: 3, dir: 'links',
+        look: { id: 'kind_levin', shirt: '#4fe6ff', hose: '#3a3a4a', haar: '#5a3a28' }
+      }),
+      strecke([[1, 34]], {
+        id: 'hund_park', art: 'hund', name: 'Hund', modus: 'steh', fell: '#8a5a32', dir: 'rechts'
+      }),
+      strecke([[1, 20], [4, 20], [8, 20]], {
+        id: 'hund_weg', art: 'hund', name: 'Hund', speed: 18, fell: '#2a2a32', dir: 'rechts'
+      }),
+      vogel({ id: 'vogel_markt', cx: 248, cy: 176, rx: 58, ry: 26, winkel: 0.4 + n * 0.2, dreh: 0.55, farbe: '#2a2342' }),
+      vogel({ id: 'vogel_park', cx: 120, cy: 560, rx: 46, ry: 20, winkel: 1.2, dreh: 0.8, farbe: '#4a3560' }),
+      vogel({ id: 'vogel_hoch', cx: 320, cy: 288, rx: 130, ry: 34, winkel: 2.1, dreh: 0.35, farbe: '#1b1530' }),
+      vogel({ id: 'vogel_ost', cx: 480, cy: 128, rx: 34, ry: 16, winkel: 0.2, dreh: 0.95, farbe: '#3a2a4e' }),
+      wagen({
+        id: 'auto_strasse', px: 96, y: 14 * K + 12, minX: -20, maxX: 660, speed: 42, farbe: '#e0504a',
+        richtung: 1, spur: 14, kacheln: [[2, 14], [20, 14], [37, 14]]
+      }),
+      strecke([[1, 30], [8, 30], [16, 30], [23, 30]], {
+        id: 'auto_west', art: 'auto', speed: 36, farbe: '#4a7ad8', dir: 'rechts'
+      }),
+      strecke([[2, 43], [8, 43], [16, 43], [22, 43]], {
+        id: 'auto_sued', art: 'auto', speed: 30, farbe: '#f0c828', start: 3, richtung: -1, dir: 'links'
+      }),
+      strecke([[3, 16]], { id: 'rad_markt', art: 'rad', modus: 'park', farbe: '#c9c3d6', dir: 'rechts' }),
+      strecke([[34, 13]], { id: 'rad_hotel', art: 'rad', modus: 'park', farbe: '#e0504a', dir: 'links' }),
+      strecke([[2, 45], [6, 45], [10, 45], [14, 45]], {
+        id: 'rad_fahrt', art: 'rad', speed: 28, farbe: '#3a6ad8', dir: 'rechts'
+      })
+    ];
+    return list;
+  }
+  function bewege(list, dt) {
+    if (!dt || dt < 0) return;
+    (list || []).forEach(function (a) {
+      if (!a || a.modus === 'steh' || a.modus === 'park') { a.laeuft = false; return; }
+      if (a.modus === 'ellipse') {
+        a.winkel += a.dreh * dt;
+        var nx = a.cx + Math.cos(a.winkel) * a.rx;
+        var ny = a.cy + Math.sin(a.winkel) * a.ry;
+        a.dir = nx >= a.px ? 'rechts' : 'links';
+        a.px = nx; a.py = ny;
+        a.phase += dt * 10;
+        a.laeuft = true;
+        return;
+      }
+      if (a.modus === 'wrap') {
+        var span = a.maxX - a.minX;
+        a.px += a.speed * a.richtung * dt;
+        if (span > 0) {
+          while (a.px > a.maxX) a.px -= span;
+          while (a.px < a.minX) a.px += span;
+        }
+        a.py = a.basisY;
+        a.dir = a.richtung > 0 ? 'rechts' : 'links';
+        a.laeuft = true;
+        a.phase += dt * 8;
+        return;
+      }
+      if (a.warte > 0) { a.warte -= dt; a.laeuft = false; return; }
+      if (!a.weg || !a.weg.length) return;
+      var ziel = a.weg[a.i];
+      if (!ziel) return;
+      var dx = ziel.x - a.px, dy = ziel.y - a.py, dist = Math.hypot(dx, dy);
+      if (dist < 1.2) {
+        a.px = ziel.x; a.py = ziel.y;
+        if (a.modus === 'loop') a.i = (a.i + 1) % a.weg.length;
+        else {
+          var ni = a.i + a.richtung;
+          if (ni < 0 || ni >= a.weg.length) {
+            a.richtung *= -1;
+            ni = a.i + a.richtung;
+            a.warte = a.pauseAmEnde || 0;
+          }
+          if (ni >= 0 && ni < a.weg.length) a.i = ni;
+        }
+        a.laeuft = false;
+        return;
+      }
+      var step = Math.min((a.speed || 16) * dt, dist);
+      a.px += dx / dist * step;
+      a.py += dy / dist * step;
+      a.laeuft = true;
+      a.phase = (a.phase || 0) + dt * 8;
+      a.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'rechts' : 'links') : (dy > 0 ? 'unten' : 'oben');
+    });
+  }
+
   Saufi.Stadtvolk = {
     LISTE: LISTE, NAH_PX: NAH_PX, REDE_PX: REDE_PX, PAUSE: PAUSE,
-    erstelle: erstelle, naechster: naechster, inReichweite: inReichweite, sprich: sprich, fuerId: fuerId, aufBank: aufBank, update: update
+    erstelle: erstelle, naechster: naechster, inReichweite: inReichweite, sprich: sprich, fuerId: fuerId, aufBank: aufBank, update: update,
+    leben: leben, bewege: bewege
   };
 })(globalThis);

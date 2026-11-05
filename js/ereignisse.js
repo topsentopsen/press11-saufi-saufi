@@ -118,9 +118,52 @@
     return out;
   }
 
+  // v26: Probst ohne Hose durch die Hecke, Himmelsbach filmt. Eigener Zaehler, kein S.rng.
+  // Nur Nacht und Tiefe Nacht (Uhr.phase). Tagsueber startet das Ereignis nicht.
+  var HECKE_DAUER = 8, HECKE_X = 2 * 16 + 8, HECKE_Y = 33 * 16 + 14;
+  var Hecke = {
+    DAUER: HECKE_DAUER,
+    TEXT: 'Für die Gruppe, Probst.',
+    erstelle: function (seed) {
+      return { seed: seed >>> 0, n: 0, start: -1, aktivBis: -1, naechste: 0 };
+    },
+    nacht: function (phase) { return phase === 'Nacht' || phase === 'Tiefe Nacht'; },
+    tick: function (h, ctx) {
+      if (!h || !ctx) return false;
+      var sek = ctx.spielSek || 0;
+      if (sek < h.aktivBis) return false;
+      if (sek < h.naechste) return false;
+      if (!Hecke.nacht(ctx.phase)) { h.naechste = sek + 10; return false; }
+      var bucket = Math.floor((ctx.minute || 0) / 20);
+      var roll = ((h.seed * 17 + (h.n + 1) * 29 + bucket * 11) >>> 0) % 100;
+      h.naechste = sek + 16;
+      if (roll >= 48) return false;
+      h.n += 1;
+      h.start = sek;
+      h.aktivBis = sek + HECKE_DAUER;
+      h.naechste = h.aktivBis + 24;
+      return true;
+    },
+    aktiv: function (h, spielSek) {
+      return !!(h && spielSek >= h.start && spielSek < h.aktivBis);
+    },
+    pose: function (h, spielSek) {
+      var u = Hecke.aktiv(h, spielSek) ? (spielSek - h.start) / HECKE_DAUER : 0;
+      if (u < 0) u = 0;
+      if (u > 1) u = 1;
+      return {
+        heckeX: HECKE_X, heckeY: HECKE_Y,
+        probst: { x: HECKE_X - 14 + u * 28, y: HECKE_Y, quetsch: Math.sin(Math.PI * u), dir: 'rechts', u: u },
+        film: { x: HECKE_X - 30, y: HECKE_Y + 1, dir: 'rechts' },
+        text: Hecke.TEXT
+      };
+    }
+  };
+
   Saufi.Ereignisse = {
     Joint: Joint, Boost: Boost, SCHWAMMIG_SEK: SCHWAMMIG_SEK,
     PANNEN: PANNEN, stufeVonPegel: stufeVonPegel, panneFuerPegel: panneFuerPegel, panneNurStufe: panneNurStufe,
-    erstellePannen: erstellePannen, updatePannen: updatePannen, wuerflePanne: wuerflePanne, loesePanne: loesePanne
+    erstellePannen: erstellePannen, updatePannen: updatePannen, wuerflePanne: wuerflePanne, loesePanne: loesePanne,
+    Hecke: Hecke
   };
 })(globalThis);

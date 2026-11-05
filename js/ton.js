@@ -8,6 +8,7 @@
   var Saufi = g.Saufi = g.Saufi || {};
 
   var BPM = 150, BEAT = 60 / BPM, ROOT = 30;                 // F#1 = MIDI 30
+  var AUSWAHL_BPM = 168;                                     // eigener Auswahl-Loop, kein kommerzieller Track
   var MOLL = [0, 2, 3, 5, 7, 8, 10];                         // natuerliches Moll
   var PROG = [0, 0, 5, 3];                                   // Halbtoene ueber der Grundnote pro Takt: Fis, Fis, H, A
   // eigene Lead-Figuren (Stufen der Moll-Skala, -1 = Pause), 16 Schritte; 0-3 Call, 4-7 Response/Stotter
@@ -60,6 +61,25 @@
       if (ebene === 0 && s % 4 === 0) step.bass = ROOT + prog;
       if (ebene >= 3 && lead[s] >= 0) step.lead = skalaNote(lead[s]) + prog;
       out.push(step);
+    }
+    return out;
+  }
+
+  // Auswahl-Loop: eigene 16er-Figur (Kick, Offbeat-Hat, Clap, Super-Saw). Keine fremde Melodie, keine MP3.
+  var AUSWAHL_LEAD = [0, -1, 4, -1, 7, -1, 4, -1, 0, -1, 3, -1, 7, 4, 0, -1];
+  function auswahlNoten(takt) {
+    var out = [], prog = PROG[((takt % 4) + 4) % 4];
+    var riserTakt = (((takt % 8) + 8) % 8) === 7;
+    for (var s = 0; s < 16; s++) {
+      var kick = s % 4 === 0;
+      out.push({
+        kick: kick,
+        hat: s % 2 === 1,
+        clap: s === 4 || s === 12 || (riserTakt && s % 2 === 0),
+        bass: (!kick && s % 4 === 2) ? ROOT + prog : null,
+        lead: AUSWAHL_LEAD[s] >= 0 ? skalaNote(AUSWAHL_LEAD[s]) + prog : null,
+        riser: riserTakt && s === 0
+      });
     }
     return out;
   }
@@ -232,7 +252,9 @@
     }
 
     function planeSchritt(zeit) {
-      var n = noten(t.takt, t.boost ? 3 : t.ebene)[t.step], len = 60 / (t.boost ? 172 : (t.bpm || BPM)) / 4;
+      var muster = t.auswahl ? auswahlNoten(t.takt) : noten(t.takt, t.boost ? 3 : t.ebene);
+      var bpmJetzt = t.auswahl ? AUSWAHL_BPM : (t.boost ? 172 : (t.bpm || BPM));
+      var n = muster[t.step], len = 60 / bpmJetzt / 4;
       var kickVol = n.riser ? 0.35 : 1.0;
       if (n.kick) {
         // Hardstyle-Kick: Sinus mit Absenkung durch WaveShaper, plus kurzer Klick
@@ -291,8 +313,22 @@
     };
     t.setzeTief = function (an) { t.tief = !!an; if (filter) filter.frequency.setTargetAtTime(an ? 650 : 20000, now(), 0.15); };
     t.setzeBoost = function (an) { t.boost = !!an; };
+    // Charakterauswahl: ein Loop, dieselbe Engine. setzeAuswahl(false) vor der In-Game-Kurve, sonst doppelter Takt.
+    t.setzeAuswahl = function (an) {
+      an = !!an && !t.musikAus;
+      var war = !!t.auswahl;
+      t.auswahl = an;
+      if (an) {
+        if (!war) { t.step = 0; t.takt = 0; }
+        t.boost = false;
+        t.setzeMusik(true);
+      } else if (war) t.step = 0;
+    };
     // BPM, den der Synth gerade spielt: Boost fest 172, sonst die Intensitaets-Kurve (96–150).
-    t.spielBpm = function () { return t.boost ? 172 : (t.bpm > 0 ? t.bpm : BPM); };
+    t.spielBpm = function () {
+      if (t.auswahl) return AUSWAHL_BPM;
+      return t.boost ? 172 : (t.bpm > 0 ? t.bpm : BPM);
+    };
     t.beatDauer = function () { return 60 / t.spielBpm(); };
     // Weicher Fade (~0,3 s) statt hartem Cut
     t.setzeMusikAus = function (aus) {
@@ -324,7 +360,7 @@
   }
 
   Saufi.Ton = {
-    BPM: BPM, BEAT: BEAT, noten: noten, skalaNote: skalaNote, mtof: mtof, erstelle: erstelle, intensitaet: intensitaet,
+    BPM: BPM, AUSWAHL_BPM: AUSWAHL_BPM, BEAT: BEAT, noten: noten, auswahlNoten: auswahlNoten, skalaNote: skalaNote, mtof: mtof, erstelle: erstelle, intensitaet: intensitaet,
     HINWEIS_TIPPEN: HINWEIS_TIPPEN, HINWEIS_STUMMSCHALTER: HINWEIS_STUMMSCHALTER,
     stummerPuffer: stummerPuffer, spieleStumm: spieleStumm, zustandGesperrt: zustandGesperrt
   };
