@@ -202,7 +202,7 @@
 
   // ---------- Boden-Kacheln ----------
   function nbT(karte, x, y, t) { return [karte.tile(x - 1, y) === t, karte.tile(x + 1, y) === t, karte.tile(x, y - 1) === t, karte.tile(x, y + 1) === t]; }
-  var GRUND = {}; GRUND[0] = 1; GRUND[1] = 1; GRUND[2] = 1; GRUND[3] = 1; GRUND[36] = 1; GRUND[37] = 1;
+  var GRUND = {}; GRUND[0] = 1; GRUND[1] = 1; GRUND[2] = 1; GRUND[3] = 1; GRUND[16] = 1; GRUND[17] = 1; GRUND[36] = 1; GRUND[37] = 1;
   function grundTyp(karte, x, y) {
     var T = Saufi.Karte.T, ns = [[0, 1], [0, -1], [-1, 0], [1, 0]];
     for (var i = 0; i < ns.length; i++) { var t = karte.tile(x + ns[i][0], y + ns[i][1]); if (GRUND[t]) return t; }
@@ -336,9 +336,84 @@
     }
     linie(c, sx + 1, sy + 4, sx + K - 1, sy + K - 2, 'rgba(240,208,32,0.35)', 0.6);
   }
+  function stadtNachbar(karte, x, y) {
+    var T = Saufi.Karte.T, ns = [[-1, 0], [1, 0], [0, -1], [0, 1]], i, t;
+    for (i = 0; i < ns.length; i++) {
+      t = karte.tile(x + ns[i][0], y + ns[i][1]);
+      if (t === T.GEHWEG || t === T.ASPHALT || t === T.HAUS) return true;
+    }
+    return false;
+  }
+  function gehweg(c, karte, x, y, sx, sy, hs) {
+    var T = Saufi.Karte.T;
+    r(c, sx, sy, K, K, '#c9c4cf');
+    rr(c, sx + 0.6, sy + 0.6, 7, 7, (hs % 2) ? '#d4d0da' : '#c4bfcb', 0.6);
+    rr(c, sx + 8.6, sy + 0.6, 7, 7, (hs % 3) ? '#d0ccd6' : '#c2bdc8', 0.6);
+    rr(c, sx + 0.6, sy + 8.6, 7, 7, (hs % 5) ? '#cec9d4' : '#bfbac6', 0.6);
+    rr(c, sx + 8.6, sy + 8.6, 7, 7, (hs % 4) ? '#d2ced8' : '#c6c1cc', 0.6);
+    r(c, sx + 7.6, sy, 0.8, K, '#a9a3b3');
+    r(c, sx, sy + 7.6, K, 0.8, '#a9a3b3');
+    if (karte.tile(x - 1, y) === T.ASPHALT || karte.tile(x - 1, y) === T.STRASSE) r(c, sx, sy, 1.5, K, '#e2dde8');
+    if (karte.tile(x + 1, y) === T.ASPHALT || karte.tile(x + 1, y) === T.STRASSE) r(c, sx + K - 1.5, sy, 1.5, K, '#e2dde8');
+    if (karte.tile(x, y - 1) === T.ASPHALT || karte.tile(x, y - 1) === T.STRASSE) r(c, sx, sy, K, 1.5, '#e2dde8');
+    if (karte.tile(x, y + 1) === T.ASPHALT || karte.tile(x, y + 1) === T.STRASSE) r(c, sx, sy + K - 1.5, K, 1.5, '#e2dde8');
+    if (hs % 5 === 0) ellipse(c, sx + 3 + (hs % 7), sy + 4 + ((hs >> 3) % 6), 1.3, 0.7, 'rgba(180,90,120,0.55)');
+    if (hs % 8 === 3) linie(c, sx + 9, sy + 11, sx + 12, sy + 12.2, '#d8d0c0', 0.7);
+  }
+  function asphalt(c, sx, sy, hs) {
+    var i, hh;
+    r(c, sx, sy, K, K, (hs % 3 === 1) ? '#615c70' : '#6a6578');
+    for (i = 0; i < 7; i++) {
+      hh = hash(hs, i + 21);
+      r(c, sx + (hh % 14), sy + ((hh >> 4) % 14), 1.1, 0.7, 'rgba(255,255,255,0.07)');
+    }
+    if (hs % 11 === 0) {
+      kreis(c, sx + 8, sy + 8, 3.1, '#4e4a58', '#2c2834', 0.7);
+      kreis(c, sx + 8, sy + 8, 1.2, '#3a3644');
+    }
+    if (hs % 7 === 0) kreis(c, sx + 3 + (hs % 8), sy + 12, 1.15, '#e8c46a', '#8a7040', 0.4);
+  }
+  function hausKachel(c, karte, x, y, sx, sy, hs) {
+    var T = Saufi.Karte.T;
+    if (karte.tile(x, y + 1) === T.HAUS) {
+      var dh = hash(x >> 2, y >> 2), schiefer = (dh % 2) === 0, i;
+      r(c, sx, sy, K, K, schiefer ? '#5a5468' : '#a85a48');
+      linie(c, sx + 1, sy + 3, sx + K - 1, sy + 3, schiefer ? '#c9c4d2' : '#f0d2c4', 1.1);
+      for (i = 0; i < 4; i++) linie(c, sx, sy + 5 + i * 2.6, sx + K, sy + 5 + i * 2.6, 'rgba(30,20,30,0.22)', 0.6);
+      return;
+    }
+    var putze = ['#e8dccb', '#d9c7b0', '#c9d0dc'];
+    r(c, sx, sy, K, K, putze[hs % 3]);
+    r(c, sx, sy + K - 2.6, K, 2.6, '#6a5a4a');
+    rr(c, sx + 1.2, sy + 3, 4, 5, '#9ec4dc', 0.4, '#5a5048', 0.45);
+    rr(c, sx + 10.2, sy + 3, 4, 5, '#9ec4dc', 0.4, '#5a5048', 0.45);
+    r(c, sx + 3, sy + 3, 0.4, 5, 'rgba(40,30,40,0.35)');
+    r(c, sx + 12, sy + 3, 0.4, 5, 'rgba(40,30,40,0.35)');
+    if (hs % 5 === 0) {
+      rr(c, sx + 6, sy + K - 8.2, 4, 5.6, '#4a3428', 0.5, '#2a1c16', 0.5);
+      kreis(c, sx + 9.2, sy + K - 5.4, 0.35, '#e8c46a');
+    }
+  }
+  function stadtDeko(c, karte) {
+    var T = Saufi.Karte.T, x, y, t, hs, sx, sy, tags = ['P11', 'S21?', 'KESSEL'];
+    for (y = 0; y < karte.h; y++) for (x = 0; x < karte.w; x++) {
+      t = karte.tile(x, y);
+      if (t !== T.GEHWEG && t !== T.ASPHALT && t !== T.HAUS) continue;
+      hs = hash(x, y); sx = x * K; sy = y * K;
+      if (t !== T.HAUS && hs % 17 === 0) ellipse(c, sx + 8, sy + 10, 4.2, 1.5, 'rgba(90,110,130,0.38)');
+      if (t !== T.HAUS && hs % 13 === 2) kreis(c, sx + 4 + (hs % 7), sy + 12, 1, '#e8c46a');
+      if (t !== T.HAUS && hs % 19 === 4) linie(c, sx + 6, sy + 7, sx + 9, sy + 8, '#d8d0c0', 0.6);
+      if (t === T.HAUS && karte.tile(x, y + 1) !== T.HAUS && hs % 9 === 0) {
+        textInBox(c, tags[hs % 3], sx + 0.5, sy + 8.5, 15, 6, 4.5, { col: '#6a3a58', ausr: 'center', min: 4, maxZeilen: 1 });
+      }
+    }
+  }
   function bodenKachel(c, karte, typ, x, y, sx, sy, hs) {
     var T = Saufi.Karte.T;
-    if (typ === T.WEG) weg(c, sx, sy, hs);
+    if (typ === T.GEHWEG) gehweg(c, karte, x, y, sx, sy, hs);
+    else if (typ === T.ASPHALT) asphalt(c, sx, sy, hs);
+    else if (typ === T.WEG && karte.urban && stadtNachbar(karte, x, y)) gehweg(c, karte, x, y, sx, sy, hs);
+    else if (typ === T.WEG) weg(c, sx, sy, hs);
     else if (typ === T.PFLASTER) pflaster(c, sx, sy, hs);
     else if (typ === T.STRASSE) strasse(c, karte, x, y, sx, sy, hs);
     else gras(c, sx, sy, hs);
@@ -346,7 +421,8 @@
 
   function zeichneAussenKachel(c, karte, x, y, sx, sy) {
     var T = Saufi.Karte.T, t = karte.tile(x, y), hs = hash(x, y);
-    if (t === T.GRAS || t === T.WEG || t === T.PFLASTER || t === T.STRASSE) bodenKachel(c, karte, t, x, y, sx, sy, hs);
+    if (t === T.GRAS || t === T.WEG || t === T.PFLASTER || t === T.STRASSE || t === T.GEHWEG || t === T.ASPHALT) bodenKachel(c, karte, t, x, y, sx, sy, hs);
+    else if (t === T.HAUS) hausKachel(c, karte, x, y, sx, sy, hs);
     else if (t === T.WASSER) wasser(c, sx, sy, hs);
     else if (t === T.BRUECKE) { wasser(c, sx, sy, hs); bruecke(c, karte, x, y, sx, sy); }
     else if (t === T.MAUER) mauer(c, sx, sy, hs);
@@ -729,7 +805,7 @@
   Saufi.Szene = {
     K: K, HIMMEL: HIMMEL, himmelFarben: himmelFarben, nachtGrad: nachtGrad, sterneAlpha: sterneAlpha, himmelZeichnen: himmelZeichnen, himmelIcon: himmelIcon, kesselSzene: kesselSzene,
     sonnenPos: sonnenPos, mondPos: mondPos, mondSichel: mondSichel,
-    schattenFuer: schattenFuer, bauplan: bauplan, gebaeudeBild: gebaeudeBild, zeichneAussenKachel: zeichneAussenKachel, hangKulisse: hangKulisse, blumen: blumen,
+    schattenFuer: schattenFuer, bauplan: bauplan, gebaeudeBild: gebaeudeBild, zeichneAussenKachel: zeichneAussenKachel, hangKulisse: hangKulisse, blumen: blumen, stadtDeko: stadtDeko,
     baumBild: baumBild, buschBild: buschBild, laterneBild: laterneBild, bankBild: bankBild, kastenBild: kastenBild, brunnenBild: brunnenBild, brunnenWasser: brunnenWasser, strassenbahn: strassenbahn,
     sprite: sprite, zeichneSprite: zeichneSprite, turm: turm, haeuschen: haeuschen
   };

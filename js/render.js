@@ -163,38 +163,7 @@
     }
     if (karte.innen) In.wandDeko(hc, karte); else {
       Sz.hangKulisse(hc, karte); Sz.blumen(hc, karte);
-      // Sued-Deko y≥40·K: Beet, Heuballen, Zaun, Teich, Blumen — hash, kein S.rng
-      var yMin = 40 * K;
-      for (var sd = 0; sd < 5; sd++) {
-        var hx = hash(sd, 77), bx = 24 + (hx % (karte.pxW - 80)), by = yMin + 20 + ((hx >> 8) % Math.max(1, karte.pxH - yMin - 60));
-        var kx = Math.floor(bx / K), ky = Math.floor(by / K);
-        var tt = karte.tile(kx, ky), TT = Saufi.Karte.T;
-        if (karte.blockiert(kx, ky) || tt === TT.ERDE || tt === TT.HUEGEL || tt === TT.TRIBUENE || tt === TT.ABSPERR) continue;
-        // Beet/Feldstreifen
-        r(hc, bx, by, 28, 12, sd % 2 ? '#8a6a3a' : '#6e5430');
-        r(hc, bx + 2, by + 2, 24, 1, '#5a4020'); r(hc, bx + 2, by + 5, 24, 1, '#5a4020'); r(hc, bx + 2, by + 8, 24, 1, '#5a4020');
-      }
-      for (var hb = 0; hb < 4; hb++) {
-        var hh2 = hash(hb, 91), hx2 = 40 + (hh2 % (karte.pxW - 60)), hy2 = yMin + 40 + ((hh2 >> 6) % Math.max(1, karte.pxH - yMin - 80));
-        if (karte.blockiert(Math.floor(hx2 / K), Math.floor(hy2 / K))) continue;
-        ellipse(hc, hx2, hy2, 7, 4.5, '#c9a050'); ellipse(hc, hx2, hy2 - 2, 5.5, 3.2, '#d8b060');
-      }
-      for (var zf = 0; zf < 2; zf++) {
-        var zh = hash(zf, 55), zx = 30 + (zh % (karte.pxW - 100)), zy = yMin + 60 + ((zh >> 4) % Math.max(1, karte.pxH - yMin - 100));
-        if (karte.blockiert(Math.floor(zx / K), Math.floor(zy / K))) continue;
-        linie(hc, zx, zy, zx + 40, zy, '#6a4a30', 1.2);
-        for (var zp = 0; zp < 5; zp++) linie(hc, zx + zp * 10, zy - 5, zx + zp * 10, zy + 2, '#7a5a38', 1);
-      }
-      var th = hash(3, 33), tx = 80 + (th % (karte.pxW - 160)), ty = yMin + 100 + ((th >> 5) % Math.max(1, karte.pxH - yMin - 140));
-      if (!karte.blockiert(Math.floor(tx / K), Math.floor(ty / K))) {
-        ellipse(hc, tx, ty, 18, 10, '#4fb0d6'); ellipse(hc, tx, ty, 14, 7, '#7ec8e3');
-        for (var sch = 0; sch < 4; sch++) { linie(hc, tx - 12 + sch * 8, ty + 4, tx - 10 + sch * 8, ty - 4, '#2f6a3f', 1); }
-      }
-      for (var bl = 0; bl < 6; bl++) {
-        var bh3 = hash(bl, 44), fx = 16 + (bh3 % (karte.pxW - 32)), fy = yMin + 10 + ((bh3 >> 7) % Math.max(1, karte.pxH - yMin - 40));
-        if (karte.blockiert(Math.floor(fx / K), Math.floor(fy / K))) continue;
-        kreis(hc, fx, fy, 1.4, bl % 2 ? '#ff7aa0' : '#ffd36e'); kreis(hc, fx, fy, 0.6, '#fff8ee');
-      }
+      if (Sz.stadtDeko) Sz.stadtDeko(hc, karte);
     }
     h = { canvas: cv, sk: sk }; R.hg[karte.id] = h; return h;
   }
@@ -280,6 +249,7 @@
     }
     // Weiche Sinus-Interpolation aus phase (4-Frame-Lauf); Idle wenn nicht laeuft
     var laeuft = o.laeuft != null ? !!o.laeuft : (fr > 0 || (o.phase != null && Math.abs(Math.sin((o.phase) * Math.PI / 2)) > 0.05));
+    if (o.sitzt) laeuft = false;
     var phaseLauf = laeuft ? phase : 0;
     var swing = Math.sin(phaseLauf * Math.PI / 2) * 2.4;
     var hop = o.tanzt ? -Math.abs(Math.sin(t * 12)) * 2.2 : 0;
@@ -287,16 +257,23 @@
     var atme = (!laeuft && !o.tanzt) ? Math.sin(t * (Math.PI * 2 / 2.6) + phOff) * 0.35 : 0;
     var bob = -Math.abs(Math.sin(phaseLauf * Math.PI / 2)) * 1.2 + hop + atme;
     var schulter = laeuft ? Math.sin(phaseLauf * Math.PI / 2) * 0.6 : 0;
-    var hose = ch.hose, shirt = ch.shirt, by = y + hop;
+    var hose = ch.hose, shirt = ch.shirt, by = y + hop + (o.sitzt ? 3 : 0);
     var beinFarbe = hose, schuh = extra === 'schuhe' ? ['#ff4fa0', '#4fe6ff'] : ['#3a2a3e', '#3a2a3e'];
     var l1 = seite ? swing : 0, l2 = seite ? -swing : 0;
     var up1 = seite ? 0 : Math.max(0, Math.sin(phaseLauf * Math.PI / 2)) * 2.0;
     var up2 = seite ? 0 : Math.max(0, -Math.sin(phaseLauf * Math.PI / 2)) * 2.0;
-    if (seite) { rr(c, x - 1.9 + l2 * 1.05, by - 8.2, 3.8, 8.4, dunkler(beinFarbe, 0.18), 1.5, KONT, 0.55); rr(c, x - 2.4 + l2 * 1.05, by - 1.6, 5.4, 2.2, schuh[1], 1.1, KONT, 0.55); }
-    rr(c, x - 3.8 + (seite ? l1 * 1.05 : 0), by - 8.4 + up1, 3.5, 8.6 - up1, beinFarbe, 1.5, KONT, 0.65);
-    if (!seite) rr(c, x + 0.3, by - 8.4 + up2, 3.5, 8.6 - up2, beinFarbe, 1.5, KONT, 0.65);
-    if (!seite) { rr(c, x - 4.3, by - 1.8 + up1, 4.4, 2.3, schuh[0], 1.1, KONT, 0.55); rr(c, x - 0.1, by - 1.8 + up2, 4.4, 2.3, schuh[1], 1.1, KONT, 0.55); }
-    else { rr(c, x - 2.4 + l1 * 1.05 + (sg > 0 ? 0.5 : -0.5), by - 1.8, 5.4, 2.3, schuh[0], 1.1, KONT, 0.55); }
+    if (o.sitzt) {
+      if (!seite) {
+        rr(c, x - 3.8, by - 3.4, 3.5, 3.4, beinFarbe, 1.5, KONT, 0.65);
+        rr(c, x + 0.3, by - 3.4, 3.5, 3.4, beinFarbe, 1.5, KONT, 0.65);
+      } else rr(c, x - 1.9, by - 3.2, 3.5, 3.4, dunkler(beinFarbe, 0.18), 1.5, KONT, 0.55);
+    } else {
+      if (seite) { rr(c, x - 1.9 + l2 * 1.05, by - 8.2, 3.8, 8.4, dunkler(beinFarbe, 0.18), 1.5, KONT, 0.55); rr(c, x - 2.4 + l2 * 1.05, by - 1.6, 5.4, 2.2, schuh[1], 1.1, KONT, 0.55); }
+      rr(c, x - 3.8 + (seite ? l1 * 1.05 : 0), by - 8.4 + up1, 3.5, 8.6 - up1, beinFarbe, 1.5, KONT, 0.65);
+      if (!seite) rr(c, x + 0.3, by - 8.4 + up2, 3.5, 8.6 - up2, beinFarbe, 1.5, KONT, 0.65);
+      if (!seite) { rr(c, x - 4.3, by - 1.8 + up1, 4.4, 2.3, schuh[0], 1.1, KONT, 0.55); rr(c, x - 0.1, by - 1.8 + up2, 4.4, 2.3, schuh[1], 1.1, KONT, 0.55); }
+      else { rr(c, x - 2.4 + l1 * 1.05 + (sg > 0 ? 0.5 : -0.5), by - 1.8, 5.4, 2.3, schuh[0], 1.1, KONT, 0.55); }
+    }
     var tanztArm = o.tanzt ? Math.sin(t * 12) * 3 : 0;
     var ay = by - 14.8 + bob, armSw = o.tanzt ? -3.6 : swing * 0.65;
     var armIdle = (!laeuft && !o.tanzt) ? Math.sin(t * (Math.PI * 2 / 2.6) + phOff) * 0.3 : 0;
@@ -363,10 +340,11 @@
       }
     }
     if (extra === 'muetze') {
-      c.beginPath(); c.arc(hx, hy - 0.6, 5.1, Math.PI, 0); c.closePath(); c.fillStyle = '#e0504a'; c.fill(); c.lineWidth = 0.6; c.strokeStyle = '#8a2a28'; c.stroke();
-      rr(c, hx - 5.4, hy - 1.2, 10.8, 1.6, '#c03a38', 0.8);
-      if (dir === 'unten') rr(c, hx - 3, hy - 0.4, 6, 1.4, '#8a2a28', 0.7); else if (dir !== 'oben') rr(c, hx + sg * 3, hy - 0.6, 4.2 * sg, 1.5, '#8a2a28', 0.7);
-      kreis(c, hx, hy - 5.5, 1, '#fff8ee');
+      var mCol = o.sitzt ? '#b03a3a' : '#e0504a', mRand = o.sitzt ? '#7a2424' : '#8a2a28', mBand = o.sitzt ? '#8e2e2e' : '#c03a38';
+      c.beginPath(); c.arc(hx, hy - 0.6, 5.1, Math.PI, 0); c.closePath(); c.fillStyle = mCol; c.fill(); c.lineWidth = 0.6; c.strokeStyle = mRand; c.stroke();
+      rr(c, hx - 5.4, hy - 1.2, 10.8, 1.6, mBand, 0.8);
+      if (dir === 'unten') rr(c, hx - 3, hy - 0.4, 6, 1.4, mRand, 0.7); else if (dir !== 'oben') rr(c, hx + sg * 3, hy - 0.6, 4.2 * sg, 1.5, mRand, 0.7);
+      kreis(c, hx, hy - (o.sitzt ? 6.2 : 5.5), o.sitzt ? 1.7 : 1, o.sitzt ? '#b03a3a' : '#fff8ee');
     }
     if (extra === 'schnurrbart' && dir !== 'oben') {
       if (seite) rr(c, hx + sg * 1.4 - 1.4, hy + 1.9, 3.8, 1.2, '#5a3a28', 0.6); else { rr(c, hx - 3, hy + 1.8, 3, 1.3, '#5a3a28', 0.6); rr(c, hx, hy + 1.8, 3, 1.3, '#5a3a28', 0.6); }
@@ -499,6 +477,11 @@
     if (!karte.innen) dinge.push({ y: 15 * K + 4, x: 0, art: 'tram' });
     if (karte.id === 'hotel' && S.joint && !S.joint.gefunden) dinge.push({ y: 8 * K + 12, art: 'joint', x: 14 * K, ky: 8 * K });
     S.npcs.forEach(function (n) { if (n.aktiv && n.karteId === karte.id) dinge.push({ y: n.y, art: 'npc', n: n }); });
+    (S.stadtvolk || []).forEach(function (v) {
+      if (v.karteId !== karte.id) return;
+      var sortY = v.haltung === 'sitzt' ? ((v.y + 1) * K + 0.2) : v.py;
+      dinge.push({ y: sortY, art: 'stadtvolk', v: v });
+    });
     if (S.zustand !== 'start') dinge.push({ y: S.spieler.y + 0.1, art: 'spieler' });
     if (karte.id === 'stadt' && Saufi.Motocross && Saufi.Motocross.stand) {
       Saufi.Motocross.stand(t).forEach(function (b) {
@@ -550,6 +533,11 @@
       else if (d.art === 'motorrad') zeichneMotorrad(c, d.b || d, cx, cy);
       else if (d.art === 'joint') zeichneJoint(c, d.x - cx + 8, d.ky - cy + 8, t);
       else if (d.art === 'tuersteher') figur(c, { id: 'tuersteher', shirt: '#14102a', hose: '#14102a', haar: '#14102a', extra: 'hut' }, d.x - cx, d.ky - cy, { dir: 'unten', t: t });
+      else if (d.art === 'stadtvolk') {
+        var v = d.v;
+        figur(c, v.look, v.px - cx, v.py - cy, { dir: 'unten', t: t, sitzt: v.haltung === 'sitzt' });
+        if (v.blase) R.blasen.push({ x: v.px - cx, y: v.py - cy - 25, text: v.name + ': ' + v.blase.text, vermeide: null });
+      }
       else if (d.art === 'npc') {
         var n = d.n;
         figur(c, n.char, n.x - cx, n.y - cy, {
@@ -845,6 +833,19 @@
           }
           G.glanz(c, lx, kopf + 2, 5, 'rgba(255,240,190,0.5)', 'rgba(255,220,140,0)');
         });
+      }
+      if (glut > 0.05) {
+        var TT = Saufi.Karte.T, gg = glut * glut;
+        var fx0 = Math.max(0, Math.floor(cx / K) - 1), fy0 = Math.max(0, Math.floor(cy / K) - 1);
+        var fx1 = Math.min(karte.w - 1, Math.floor((cx + VW) / K) + 1), fy1 = Math.min(karte.h - 1, Math.floor((cy + VH) / K) + 1);
+        for (var fy = fy0; fy <= fy1; fy++) for (var fx = fx0; fx <= fx1; fx++) {
+          if (karte.tile(fx, fy) !== TT.HAUS || karte.tile(fx, fy + 1) === TT.HAUS) continue;
+          if (hash(fx, fy) % 10 >= 6) continue;
+          [[1.2, 3], [10.2, 3]].forEach(function (w) {
+            c.globalAlpha = Math.min(0.6, 0.7 * gg);
+            vlauf(c, fx * K + w[0] - cx, fy * K + w[1] - cy, 4, 5, '#ffd77a', '#ffb85a');
+          });
+        }
       }
       if (glut > 0.4) {
         c.globalAlpha = 0.08 * glut;
