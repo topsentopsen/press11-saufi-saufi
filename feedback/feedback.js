@@ -1,11 +1,14 @@
 /* Feedback-Seite: schickt Text, Idee oder Sprach-Transkript an den Eingang.
    Der Eingang (Worker) legt per repository_dispatch ein Issue an.
    Kein Token, kein Audio, kein direkter GitHub-API-Aufruf in dieser Datei.
-   Schlaegt das Absenden fehl, bleibt ein Entwurfslink (issues/new) als Hinweis. */
+   Schlaegt das Absenden fehl, bleibt ein Entwurfslink (issues/new) als Hinweis.
+   Ist die URL in ziel.json leer, gilt die Datei auf main, sonst FALLBACK_EINGANG. */
 (function (g) {
   'use strict';
 
   var REPO = 'https://github.com/topsentopsen/press11-saufi-saufi/issues/new';
+  var RAW_ZIEL = 'https://raw.githubusercontent.com/topsentopsen/press11-saufi-saufi/main/feedback/ziel.json';
+  var FALLBACK_EINGANG = 'https://press11-feedback-eingang.zengel-tobias.workers.dev';
   var VORSCHAU = 60;
   var ISSUE_URL_MAX = 8000;
   var LOGIN_URL_MAX = 7500;
@@ -140,16 +143,24 @@
     if (el) el.checked = true;
   }
 
+  function leseZiel(res) {
+    if (!res || !res.ok || typeof res.json !== 'function') return Promise.resolve('');
+    return res.json().then(function (data) {
+      return data && typeof data.url === 'string' ? data.url.trim() : '';
+    }, function () { return ''; });
+  }
+
   function ladeZiel(netz) {
     if (netz && typeof netz.eingang === 'string') return Promise.resolve(netz.eingang);
     var hole = (netz && netz.hole) || (typeof fetch === 'function' ? function (url, opt) { return fetch(url, opt); } : null);
-    if (!hole) return Promise.resolve('');
-    return Promise.resolve(hole('ziel.json', { headers: { 'Accept': 'application/json' } })).then(function (res) {
-      if (!res || !res.ok || typeof res.json !== 'function') return '';
-      return res.json().then(function (data) {
-        return data && typeof data.url === 'string' ? data.url.trim() : '';
-      }, function () { return ''; });
-    }, function () { return ''; });
+    if (!hole) return Promise.resolve(FALLBACK_EINGANG);
+    function frag(url) {
+      return Promise.resolve(hole(url, { headers: { 'Accept': 'application/json' } })).then(leseZiel, function () { return ''; });
+    }
+    return frag('ziel.json').then(function (url) {
+      if (url) return url;
+      return frag(RAW_ZIEL).then(function (raw) { return raw || FALLBACK_EINGANG; });
+    });
   }
 
   function sende(name, text, art, netz) {
