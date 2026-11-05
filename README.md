@@ -4,6 +4,12 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v16
+
+- Spielerauswahl mit acht Startkarten (Portrait, Rolle, Plus, Minus); Tastatur und Tippen.
+- Himmelsbach ersetzt Rudi; Motivatoren stupsen zur nächsten Runde.
+- Motocross-Finale um 18:30 an der Tribüne (Hinweise, Belohnung) und Bierkästen im Park.
+
 ## Neu in v15
 
 - Tobi trägt Tesla-Rot mit stilisiertem T und murmelt ab und zu Elon-Sprüche (Stadt, Tribüne, S21, Kneipe).

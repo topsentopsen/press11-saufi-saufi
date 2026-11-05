@@ -8,7 +8,8 @@
 
   function neu(char) {
     return { id: char.id, trink: char.trink, pegel: 0, stand: STAND_MAX, leben: char.leben, umgefallen: false, verloren: false,
-      abbauBonus: 0, abbauBis: 0, mahlzeiten: [], vollBis: 0 };
+      abbauBonus: 0, abbauBis: 0, mahlzeiten: [], vollBis: 0,
+      heil: char.heil != null ? char.heil : 1, abbauMul: char.abbauMul != null ? char.abbauMul : 1, tempo: char.tempo != null ? char.tempo : 1 };
   }
   function klemme(v, a, b) { return v < a ? a : (v > b ? b : v); }
   function rund1(v) { return Math.round(v * 10) / 10; }
@@ -24,7 +25,7 @@
     return f.pegel - alt;
   }
   function abbau(f, stunden, minute) {
-    var rate = ABBAU_PRO_STUNDE + (minute < f.abbauBis ? f.abbauBonus : 0);
+    var rate = (ABBAU_PRO_STUNDE + (minute < f.abbauBis ? f.abbauBonus : 0)) * (f.abbauMul != null ? f.abbauMul : 1);
     f.pegel = klemme(f.pegel - rate * stunden, 0, MAX);
   }
   function schwelle(p) { return p < 1 ? 'klar' : (p < 2 ? 'locker' : (p < 3 ? 'wackelig' : 'kritisch')); }

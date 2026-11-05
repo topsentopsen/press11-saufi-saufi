@@ -158,6 +158,10 @@
     k.stationen.filter(function (st) { return st.typ === 'bank'; }).forEach(function (st) {
       bierkasten(k, st.x, st.y, st.id);
     });
+    // Bierkaesten am Motocross-Park (Wiese ausserhalb der Piste, nach Bank-Kaesten)
+    [[37, 33], [28, 42], [37, 42]].forEach(function (p, i) {
+      if (!k.blockiert(p[0], p[1])) k.station('kasten_mx' + (i + 1), 'bierkasten', p[0], p[1], 1, 1, 'Bierkasten');
+    });
     k.spawn = { x: 25, y: 13 };
     return k;
   }

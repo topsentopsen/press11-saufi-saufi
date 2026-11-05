@@ -18,10 +18,10 @@
     'Wer hat schon wieder mein Pils getrunken?',
     'Kevin, du Lauch, lauf schneller!',
     'Stöckle, du Schwabenpfeife!',
-    'Rudi, halt die Klappe und trink.',
+    'Himmelsbach, halt die Klappe und trink.',
     'Schwickendorf, gib eine Runde aus!',
     'Buntschuh, deine Schuhe sind hässlich.',
-    'Siebold, du Schnarchnase!',
+    'Seabolt, du Schnarchnase!',
     'Tobias, du alter Sack!',
     'Ritzi, du Knallkopf!'
   ];

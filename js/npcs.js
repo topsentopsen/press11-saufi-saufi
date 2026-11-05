@@ -2,7 +2,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, SPEED = 50, AUFSTEH_SEK = 15, RUDI_ID = 'rudi', WECK_REICHWEITE = 48, FEST_SEK = 4, FEST_MIN_V = 0.3;
+  var K = 16, SPEED = 50, AUFSTEH_SEK = 15, WECK_REICHWEITE = 48, FEST_SEK = 4, FEST_MIN_V = 0.3;
 
   function erstelle(spielerId) {
     return Saufi.Charaktere.npcs(spielerId).map(function (c, i) {
@@ -218,7 +218,7 @@
     n.pfad = null;
     return true;
   }
-  // Rudi taucht ab 14:00 auf
+  // Himmelsbach taucht ab 14:00 auf
   function ankommen(list, minute, karte, tx, ty) {
     var neu = [];
     list.forEach(function (n) {

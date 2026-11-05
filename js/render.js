@@ -288,7 +288,7 @@
     var bob = -Math.abs(Math.sin(phaseLauf * Math.PI / 2)) * 1.2 + hop + atme;
     var schulter = laeuft ? Math.sin(phaseLauf * Math.PI / 2) * 0.6 : 0;
     var hose = ch.hose, shirt = ch.shirt, by = y + hop;
-    var beinFarbe = extra === 'latz' ? ch.shirt : hose, schuh = extra === 'schuhe' ? ['#ff4fa0', '#4fe6ff'] : ['#3a2a3e', '#3a2a3e'];
+    var beinFarbe = hose, schuh = extra === 'schuhe' ? ['#ff4fa0', '#4fe6ff'] : ['#3a2a3e', '#3a2a3e'];
     var l1 = seite ? swing : 0, l2 = seite ? -swing : 0;
     var up1 = seite ? 0 : Math.max(0, Math.sin(phaseLauf * Math.PI / 2)) * 2.0;
     var up2 = seite ? 0 : Math.max(0, -Math.sin(phaseLauf * Math.PI / 2)) * 2.0;
@@ -311,7 +311,6 @@
     if (extra === 'weste' && !seite) { rr(c, tx + 1.2, by - 15.4 + bob, 2.8, 8, '#7a7a88', 1.2); rr(c, tx + tw - 4, by - 15.4 + bob, 2.8, 8, '#7a7a88', 1.2); }
     else if (extra === 'weste') rr(c, tx + 0.8, by - 15.4 + bob, tw - 1.6, 8, '#7a7a88', 1.2);
     if (extra === 'tracht') { rr(c, tx + 1, by - 15.6 + bob, tw - 2, 8.2, '#1f4a2a', 1.6); for (var k = 0; k < 3; k++) kreis(c, x, by - 14 + bob + k * 2.4, 0.5, '#d8c070'); }
-    if (extra === 'latz') { rr(c, tx + 1, by - 12.4 + bob, tw - 2, 5.4, '#f08a2a', 1.4); r(c, tx + 1.2, by - 16 + bob, 1.2, 4, '#f08a2a'); r(c, tx + tw - 2.4, by - 16 + bob, 1.2, 4, '#f08a2a'); kreis(c, x, by - 10.6 + bob, 0.7, '#ffd75e'); }
     if (extra === 'hut') { poly(c, [[x - 1.2, by - 16 + bob], [x + 1.2, by - 16 + bob], [x + 0.8, by - 9 + bob], [x - 0.8, by - 9 + bob]], '#1a1a22'); }
     // Prost-Glas: Bogen 0 → −5 → 0
     var glasLift = 0;
@@ -400,6 +399,15 @@
       linie(c, hx + 2.6, hy - 5, hx + 5, hy - 9, '#d8c070', 0.9); linie(c, hx + 2.6, hy - 5, hx + 4, hy - 9.4, '#e8d890', 0.5);
     }
     if (extra === 'schuhe' && o.tanzt) kreis(c, hx, hy - 8, 0.8, '#ffd75e');
+    // Himmelsbach: Stirnband + Trillerpfeife (maennlich)
+    if (extra === 'pfeife') {
+      rr(c, hx - 5.2, hy - 2.2, 10.4, 1.6, '#e0504a', 0.7);
+      if (dir !== 'oben') {
+        var pxp = seite ? (hx + sg * 2.2) : (hx + 3.2), pyp = hy + 1.4;
+        rr(c, pxp - 0.6, pyp, 3.2, 1.4, '#c9c3d6', 0.6, KONT, 0.5);
+        kreis(c, pxp + 2.6, pyp + 0.7, 1.1, '#fff8ee', KONT, 0.45);
+      }
+    }
     if (torkelOn) c.restore();
   }
 
@@ -918,7 +926,16 @@
       textInBox(c, sternTxt, px + pw - sternWQ - 2, py + (kompakt ? 12 : 13), sternWQ, 9, 7, { col: P.uiTinte, ausr: 'right' });
       R.hudUhr = { x: px, y: py, w: pw, h: ph, btnBand: btnBand };
     }
-    function bannerLabel(aktiv, nrOrt, nrZeit, boxW) {
+    function bannerLabel(aktiv, nrOrt, nrZeit, boxW, mx) {
+      if (mx) {
+        var mRest = Math.max(0, Math.ceil(Saufi.MxEvent.rest(uhr.minute)));
+        var labMx = 'Motocross 18:30 · noch ' + mRest + ' min · Tribüne';
+        var messMx = textInBox(c, labMx, 0, 0, boxW, 8, 7, { ausr: 'center', mess: true, maxZeilen: 1, min: 6 });
+        if (messMx.lines && messMx.lines.some(function (z) { return z.indexOf('…') >= 0; }) || messMx.w > boxW) {
+          labMx = 'Motocross 18:30 · ' + mRest + ' min';
+        }
+        return labMx;
+      }
       var kurz = (Saufi.Karte.KURZ && Saufi.Karte.KURZ[nrOrt]) || Saufi.Karte.NAMEN[nrOrt] || nrOrt;
       var pref = aktiv ? 'RUNDE! ' : ('Runde ' + Saufi.Uhr.zeitText(nrZeit) + ': ');
       var lab = pref + kurz;
@@ -930,36 +947,44 @@
       return lab;
     }
     var nr = Saufi.Runden.naechste(S.runden), ry = 0, rundenH = 0, rx = 0, rw = 0;
+    var nrSichtbar = nr && (nr.status === 'warnung' || nr.status === 'aktiv');
+    // Motocross-Banner nur wenn keine Runden-Vorwarnung sichtbar (endet 18:30, Runde 19:30 startet dann)
+    if (!nrSichtbar && Saufi.MxEvent && Saufi.MxEvent.sichtbar(uhr.minute)) {
+      nr = { status: 'warnung', mx: true, zeit: Saufi.MxEvent.ZEIT, ort: 'motocross' };
+      nrSichtbar = true;
+    }
     // --- Banner ---
-    if (nr && (nr.status === 'warnung' || nr.status === 'aktiv')) {
-      var aktiv = nr.status === 'aktiv', rest = aktiv ? nr.zeit + Saufi.Runden.FRIST_MIN - uhr.minute : nr.zeit - uhr.minute;
+    if (nrSichtbar) {
+      var aktiv = nr.status === 'aktiv', mxBan = !!nr.mx;
+      var rest = aktiv ? nr.zeit + Saufi.Runden.FRIST_MIN - uhr.minute : (mxBan ? Saufi.MxEvent.rest(uhr.minute) : nr.zeit - uhr.minute);
+      var vorlauf = mxBan ? 30 : Saufi.Runden.VORLAUF_MIN;
       var blink = aktiv && Math.floor(S.t * 3) % 2 === 0;
       var balkenH = 3, label;
       if (R.hochkant && resTop != null) {
         // Hoch: Banner unter Uhr in Reserve
         rundenH = 14; rw = Math.min(Math.round(W * 0.85), W - 16);
         rx = Math.round((W - rw) / 2); ry = py + ph + 2;
-        label = bannerLabel(aktiv, nr.ort, nr.zeit, rw - 8);
+        label = bannerLabel(aktiv, nr.ort, nr.zeit, rw - 8, mxBan);
         panel(c, rx, ry, rw, rundenH, aktiv ? (blink ? '#ff9fb0' : '#ffd1da') : '#fff0c8', 5);
         textInBox(c, label, rx + 4, ry + 1, rw - 8, 8, 7, { col: P.uiTinte, ausr: 'center', maxZeilen: 1, min: 6 });
-        var frac = Math.max(0, Math.min(1, rest / (aktiv ? Saufi.Runden.FRIST_MIN : Saufi.Runden.VORLAUF_MIN)));
+        var frac = Math.max(0, Math.min(1, rest / (aktiv ? Saufi.Runden.FRIST_MIN : vorlauf)));
         rr(c, rx + 8, ry + rundenH - balkenH - 1, rw - 16, balkenH, 'rgba(74,53,96,0.25)', 2); if (frac > 0.01) rr(c, rx + 8, ry + rundenH - balkenH - 1, (rw - 16) * frac, balkenH, aktiv ? '#e0504a' : '#f0b030', 2);
         R.hudRunde = { x: rx, y: ry, w: rw, h: rundenH };
       } else if (!R.hochkant) {
         // Quer: Anhang direkt unter Uhr, gleiche Breite, Höhe ≤ 11, Gesamt ≤ 38
         rundenH = Math.min(11, Math.max(1, 38 - ph));
         rw = pw; rx = px; ry = py + ph;
-        label = bannerLabel(aktiv, nr.ort, nr.zeit, rw - 4);
+        label = bannerLabel(aktiv, nr.ort, nr.zeit, rw - 4, mxBan);
         panel(c, rx, ry, rw, rundenH, aktiv ? (blink ? '#ff9fb0' : '#ffd1da') : '#fff0c8', 4);
         textInBox(c, label, rx + 2, ry + 0.5, rw - 4, 7, 6.5, { col: P.uiTinte, ausr: 'center', maxZeilen: 1, min: 6 });
-        var fracQ = Math.max(0, Math.min(1, rest / (aktiv ? Saufi.Runden.FRIST_MIN : Saufi.Runden.VORLAUF_MIN)));
+        var fracQ = Math.max(0, Math.min(1, rest / (aktiv ? Saufi.Runden.FRIST_MIN : vorlauf)));
         rr(c, rx + 4, ry + rundenH - 3, rw - 8, 2, 'rgba(74,53,96,0.25)', 1.5); if (fracQ > 0.01) rr(c, rx + 4, ry + rundenH - 3, (rw - 8) * fracQ, 2, aktiv ? '#e0504a' : '#f0b030', 1.5);
         R.hudRunde = { x: rx, y: ry, w: rw, h: rundenH };
       } else {
         // Hoch ohne Touch-Reserve (Dunkelstreifen): Banner trotzdem unten in Reserve-Zone
         rundenH = 14; rw = Math.min(Math.round(W * 0.85), W - 16);
         rx = Math.round((W - rw) / 2); ry = Math.max(weltH + 2, H - 70);
-        label = bannerLabel(aktiv, nr.ort, nr.zeit, rw - 8);
+        label = bannerLabel(aktiv, nr.ort, nr.zeit, rw - 8, mxBan);
         panel(c, rx, ry, rw, rundenH, aktiv ? (blink ? '#ff9fb0' : '#ffd1da') : '#fff0c8', 5);
         textInBox(c, label, rx + 4, ry + 1, rw - 8, 8, 7, { col: P.uiTinte, ausr: 'center', maxZeilen: 1, min: 6 });
         R.hudRunde = { x: rx, y: ry, w: rw, h: rundenH };
@@ -1180,32 +1205,109 @@
     textInBox(c, txt, W / 2 - 20, y, 40, 8, 6, { col: '#fff8ee', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
   }
 
+  var KARTEN_RASTER = { hoch: { sp: 2, z: 4 }, quer: { sp: 2, z: 4 } };
+
   function startBild(R, S) {
-    var c = R.ctx, t = S.t;
-    Sz.kesselSzene(c, W, H, 8 + (t * 0.35) % 20, t);                    // Tageslauf im Hintergrund
+    var c = R.ctx, t = S.t, hoch = !!R.hochkant;
+    Sz.kesselSzene(c, W, H, 8 + (t * 0.35) % 20, t);
     var grd = c.createRadialGradient(W / 2, 28, 4, W / 2, 28, 130); grd.addColorStop(0, 'rgba(255,79,160,0.3)'); grd.addColorStop(1, 'rgba(255,79,160,0)'); c.fillStyle = grd; c.fillRect(0, 0, W, H);
-    var rowH = R.touch ? touchZeile(R) : 18, rowGap = R.touch ? 4 : 2, drawH = R.touch ? rowH : 16;
-    var zeilen = Saufi.Hinweise.HINWEIS_START, lz = 9, bh = zeilen.length * lz + 10;
-    var knopfBlock = 2 * (rowH + rowGap) + 24;
-    var gesamt = 42 + bh + 8 + knopfBlock;
-    var y0 = Math.max(4, Math.round((H - gesamt) / 2));
-    textInBox(c, 'Press11 - Saufi Saufi', 16, y0, W - 32, 16, 13, { col: '#fff8ee', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
-    textInBox(c, 'Stuttgart, Samstag 08:00 bis Sonntag 04:00', 20, y0 + 16, W - 40, 12, 8, { col: '#fff3c8', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
-    var by = y0 + 32;
-    panel(c, 16, by, W - 32, bh, 'rgba(255,248,238,0.96)', 8);
-    zeilen.forEach(function (z, i) { textInBox(c, z, 24, by + 4 + i * lz, W - 48, lz, 7, { col: i === 0 ? P.bierRot : P.uiTinte, ausr: 'center', maxZeilen: 1 }); });
-    var ey = by + bh + 8;
+    var rowH = R.touch ? touchZeile(R) : (hoch ? 18 : 14), rowGap = R.touch ? 4 : 2, drawH = R.touch ? Math.min(rowH, 18) : (hoch ? 16 : 12);
+    var chars = (Saufi.Charaktere.auswahlChars && Saufi.Charaktere.auswahlChars()) || [];
+    var raster = hoch ? KARTEN_RASTER.hoch : KARTEN_RASTER.quer;
+    var titelH = hoch ? 14 : 10, unterH = hoch ? 10 : 0;
+    var y0 = hoch ? 4 : 2;
+    textInBox(c, 'Press11 - Saufi Saufi', 8, y0, W - 16, titelH, hoch ? 12 : 9, { col: '#fff8ee', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
+    if (hoch) textInBox(c, 'Wen spielst Du?', 20, y0 + titelH, W - 40, unterH, 8, { col: '#fff3c8', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
+    var knopfBlock = (!hoch ? rowH + 4 : 2 * (rowH + rowGap)) + (hoch ? 14 : 8);
+    var kartenY = y0 + titelH + unterH + (hoch ? 4 : 1);
+    var fussPlatz = knopfBlock + (hoch ? 12 : 2);
+    var kartenRaum = Math.max(36, H - kartenY - fussPlatz);
+    var gap = hoch ? 6 : 3, rand = hoch ? 8 : 4;
+    var kw = Math.floor((W - rand * 2 - gap * (raster.sp - 1)) / raster.sp);
+    var kh = Math.floor((kartenRaum - gap * (raster.z - 1)) / raster.z);
+    if (hoch) kh = Math.min(kh, H >= 640 ? 78 : (H >= 560 ? 68 : 58));
+    else kh = Math.min(kh, 28);
+    kh = Math.max(kh, hoch && R.touch ? Math.min(44, Math.floor(kartenRaum / raster.z) - 1) : (hoch ? 48 : 22));
+    var gridW = raster.sp * kw + (raster.sp - 1) * gap;
+    var gridH = raster.z * kh + (raster.z - 1) * gap;
+    // Wenn Grid die Knöpfe verdrängt: Kartenhöhe nochmal kappen
+    if (kartenY + gridH + fussPlatz > H) {
+      kh = Math.max(hoch ? 44 : 18, Math.floor((H - kartenY - fussPlatz - gap * (raster.z - 1)) / raster.z));
+      gridH = raster.z * kh + (raster.z - 1) * gap;
+    }
+    var gx0 = Math.round((W - gridW) / 2), gy0 = kartenY;
+    var selId = S.auswahlId || (S.char && S.char.id) || 'tobi';
     R.treffer = [];
-    var eintraege = [{ label: 'Ich bin 18+. Los geht\'s! (E / Tippen)' }, { label: 'Scooter-Playlist (P)' }];
-    eintraege.forEach(function (e, i) {
-      var sel = i === S.startIndex, ry = ey + i * (rowH + rowGap), blink = sel && Math.floor(t * 2) % 2 === 0;
-      rr(c, 40, ry, W - 80, drawH, sel ? (blink ? '#fff3b0' : '#ffe9a8') : P.uiFlaeche2, 7, sel ? P.kontur : 'rgba(74,53,96,0.3)', 0.9);
-      textInBox(c, e.label, 48, ry + 1, W - 96, drawH - 2, 8, { col: P.uiTinte, ausr: 'center', maxZeilen: 1 });
-      R.treffer.push({ x: 40, y: ry, w: W - 80, h: rowH, i: i });
+    chars.forEach(function (ch, i) {
+      var col = i % raster.sp, row = (i / raster.sp) | 0;
+      var cx = gx0 + col * (kw + gap), cy = gy0 + row * (kh + gap);
+      var sel = ch.id === selId, blink = sel && Math.floor(t * 2) % 2 === 0;
+      rr(c, cx, cy, kw, kh, sel ? (blink ? '#fff3b0' : '#ffe9a8') : 'rgba(255,248,238,0.94)', hoch ? 6 : 3, sel ? P.kontur : 'rgba(74,53,96,0.35)', 0.9);
+      var figPad = hoch ? 34 : 22, figX = cx + (hoch ? 16 : 11), figY = cy + kh - (hoch ? 6 : 4);
+      var figScale = hoch ? (kh >= 70 ? 1.1 : 0.85) : 0.55;
+      c.save(); c.translate(figX, figY); c.scale(figScale, figScale); figur(c, ch, 0, 0, { dir: 'unten', t: t }); c.restore();
+      var tx = cx + figPad, tw = Math.max(20, kw - figPad - 4);
+      var nam = ch.kurz || ch.alias || ch.name;
+      var au = ch.auswahl || {};
+      var nameSz = hoch ? (kh >= 70 ? 8 : 7) : 6;
+      var bodySz = hoch ? (kh >= 70 ? 6.5 : 5.5) : 5;
+      var ly = cy + 2, lineH = bodySz + (hoch ? 1 : 0.5);
+      textInBox(c, nam, tx, ly, tw, nameSz + 1, nameSz, { col: P.uiTinte, ausr: 'left', maxZeilen: 1, min: 5 });
+      ly += nameSz + 1;
+      if (au.rolle) {
+        var rolleMax = hoch ? 2 : 1;   // quer: Rolle einzeilig, damit Plus und Minus Platz haben
+        var rolleH = Math.min(lineH * rolleMax, cy + kh - ly - lineH * 2);
+        textInBox(c, au.rolle, tx, ly, tw, Math.max(lineH, rolleH), bodySz, { col: P.uiTinteWeich, ausr: 'left', maxZeilen: rolleMax, min: 5 });
+        ly += Math.min(lineH * rolleMax, Math.max(lineH, rolleH));
+      }
+      if (!hoch && au.plus && au.minus && ly + lineH <= cy + kh - 1 && ly + lineH * 2 > cy + kh - 1) {
+        // quer, zu wenig Hoehe: Plus links, Minus rechts in einer Zeile
+        var hw = Math.floor(tw / 2) - 1;
+        textInBox(c, '+ ' + au.plus, tx, ly, hw, lineH + 1, bodySz, { col: '#2a7a4a', ausr: 'left', maxZeilen: 1, min: 4 });
+        textInBox(c, '- ' + au.minus, tx + hw + 2, ly, hw, lineH + 1, bodySz, { col: '#a04040', ausr: 'left', maxZeilen: 1, min: 4 });
+        au = { minus: null };
+      }
+      if (au.plus && ly + lineH <= cy + kh - 1) {
+        textInBox(c, '+ ' + au.plus, tx, ly, tw, lineH + 1, bodySz, { col: '#2a7a4a', ausr: 'left', maxZeilen: 1, min: 5 });
+        ly += lineH;
+      }
+      if (au.minus && ly + lineH <= cy + kh - 1) {
+        textInBox(c, '- ' + au.minus, tx, ly, tw, lineH + 1, bodySz, { col: '#a04040', ausr: 'left', maxZeilen: 1, min: 5 });
+      }
+      R.treffer.push({ x: cx, y: cy, w: kw, h: Math.max(kh, R.touch ? Math.min(touchZeile(R), kh + 2) : kh), i: 'f:' + ch.id });
     });
-    var footY = ey + 2 * (rowH + rowGap);
-    textInBox(c, S.best ? 'Bestwert: ' + S.best + ' Punkte' : 'Ab 18 · Fiktives Spaß-Spiel', 20, footY, W - 40, 11, 7, { col: '#fff3c8', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
-    textInBox(c, 'Tippen zum Start', 20, footY + 12, W - 40, 11, 7, { col: '#ffe9a8', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
+    var hinweisY = gy0 + gridH + 2;
+    if (hoch && H >= 560) {
+      var zeilen = Saufi.Hinweise.HINWEIS_START, lz = H >= 640 ? 8 : 7, maxZ = H >= 640 ? 3 : 2;
+      var bh = Math.min(zeilen.length, maxZ) * lz + 6;
+      if (hinweisY + bh + knopfBlock < H - 2) {
+        panel(c, 16, hinweisY, W - 32, bh, 'rgba(255,248,238,0.92)', 6);
+        for (var zi = 0; zi < maxZ && zi < zeilen.length; zi++) {
+          textInBox(c, zi === 0 ? zeilen[0] : (zi === maxZ - 1 ? 'Ab 18 · Fiktives Spaß-Spiel' : zeilen[zi]), 24, hinweisY + 3 + zi * lz, W - 48, lz, 6.5, { col: zi === 0 ? P.bierRot : P.uiTinte, ausr: 'center', maxZeilen: 1, min: 5 });
+        }
+        hinweisY += bh + 4;
+      }
+    }
+    var ey = Math.min(H - knopfBlock, Math.max(hinweisY, gy0 + gridH + (hoch ? 4 : 2)));
+    var eintraege = [{ label: hoch ? 'Ich bin 18+. Los geht\'s! (E / Tippen)' : 'Start (E)' }, { label: 'Scooter-Playlist (P)' }];
+    if (!hoch) {
+      var bw = Math.floor((W - 20) / 2);
+      eintraege.forEach(function (e, i) {
+        var sel = i === S.startIndex, rx = 6 + i * (bw + 8), blink = sel && Math.floor(t * 2) % 2 === 0;
+        rr(c, rx, ey, bw, drawH, sel ? (blink ? '#fff3b0' : '#ffe9a8') : P.uiFlaeche2, 4, sel ? P.kontur : 'rgba(74,53,96,0.3)', 0.9);
+        textInBox(c, e.label, rx + 2, ey + 0.5, bw - 4, drawH - 1, 6.5, { col: P.uiTinte, ausr: 'center', maxZeilen: 1, min: 5 });
+        R.treffer.push({ x: rx, y: ey, w: bw, h: Math.max(rowH, drawH), i: i });
+      });
+    } else {
+      eintraege.forEach(function (e, i) {
+        var sel = i === S.startIndex, ry = ey + i * (rowH + rowGap), blink = sel && Math.floor(t * 2) % 2 === 0;
+        rr(c, 40, ry, W - 80, drawH, sel ? (blink ? '#fff3b0' : '#ffe9a8') : P.uiFlaeche2, 7, sel ? P.kontur : 'rgba(74,53,96,0.3)', 0.9);
+        textInBox(c, e.label, 48, ry + 1, W - 96, drawH - 2, 8, { col: P.uiTinte, ausr: 'center', maxZeilen: 1, min: 5 });
+        R.treffer.push({ x: 40, y: ry, w: W - 80, h: rowH, i: i });
+      });
+    }
+    var footY = !hoch ? ey + drawH + 1 : ey + 2 * (rowH + rowGap);
+    textInBox(c, S.best ? 'Bestwert: ' + S.best + ' Punkte' : 'Ab 18 · Fiktives Spaß-Spiel', 20, Math.min(footY, H - 11), W - 40, 10, 6.5, { col: '#fff3c8', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
     versionsAnzeige(R);
   }
 

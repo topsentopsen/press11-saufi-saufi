@@ -3,9 +3,24 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.15', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.16', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
+  function wendeCharStats(S, char) {
+    if (!S.punkte) return;
+    S.punkte.faktor = char.punkteFaktor != null ? char.punkteFaktor : 1;
+    S.punkte.rundenFaktor = char.rundenFaktor != null ? char.rundenFaktor : 1;
+    S.runden.team = char.teamStart != null ? char.teamStart : Saufi.Runden.TEAM_START;
+  }
+  function waehleFigur(S, id) {
+    var char = Saufi.Charaktere.holen(id) || Saufi.Charaktere.holen('tobi');
+    S.char = char; S.auswahlId = char.id;
+    S.fig = Saufi.Pegel.neu(char);
+    S.npcs = Saufi.NPCs.erstelle(char.id);
+    Saufi.NPCs.uebergang(S.npcs, S.welt.stadt, S.spieler.x / K | 0, (S.spieler.y / K | 0));
+    wendeCharStats(S, char);
+    return S;
+  }
   function neuesSpiel(opt) {
     opt = opt || {};
     var seed = opt.seed !== undefined && isFinite(opt.seed) ? opt.seed >>> 0 : 1, tempo = opt.tempo > 0 ? opt.tempo : 1;
@@ -26,8 +41,12 @@
       s21: { zuletzt: -999, n: 0, gemeldet: null },
       elon: { zuletzt: 0, n: 0, idx: {} },
       frech: { zuletzt: 0, n: 0, r: 0, f: 0 },
+      motiv: { zuletzt: 0, n: 0 },
+      mxEvent: Saufi.MxEvent ? Saufi.MxEvent.erstelle() : { h: [false, false], status: 'offen' },
+      auswahlId: char.id,
       kaesten: {}
     };
+    wendeCharStats(S, char);
     S.licht = Saufi.Uhr.licht(S.uhr);
     Saufi.NPCs.uebergang(S.npcs, welt.stadt, sp.x / K | 0, (sp.y / K | 0));
     Saufi.Kamera.sofort(S.kamera, sp.x, sp.y - 8);
@@ -654,12 +673,30 @@
     return o.art === 'menue' && o.titel === 'Pause';
   }
   // Uhr, Stunden und Runden laufen auch hinter anderen Overlays (Playlist, Info, Bar-/Essensmenue, Stammtisch) weiter
+  function mxTick(S, X) {
+    if (!Saufi.MxEvent || !S.mxEvent) return;
+    X = stub(X);
+    var ev = Saufi.MxEvent.tick(S.mxEvent, minute(S), S.ort, S.spieler.x, S.spieler.y);
+    ev.forEach(function (e) {
+      if (e.typ === 'hinweis') sag(S, Saufi.MxEvent.HINWEISE[e.i].text, 4, 'info');
+      else if (e.typ === 'dabei') {
+        Saufi.Punkte.add(S.punkte, Saufi.MxEvent.BELOHNUNG.punkte, 'Motocross');
+        Saufi.Runden.teamAendern(S.runden, Saufi.MxEvent.BELOHNUNG.team);
+        sag(S, 'Du warst beim Finale! +120, Team +1', 4, 'gut');
+        if (X.T && X.T.pling) X.T.pling();
+      } else if (e.typ === 'verpasst') {
+        Saufi.Punkte.add(S.punkte, Saufi.MxEvent.STRAFE.punkte, 'Motocross verpasst');
+        sag(S, 'Finale verpasst. Die Truppe vermisst dich. -30', 4, 'schlecht');
+      }
+    });
+  }
   function uhrLaeuft(S, dt, X) {
     var stunden = Saufi.Uhr.update(S.uhr, dt), m = minute(S);
     S.licht = Saufi.Uhr.licht(S.uhr); S.spielSek += dt;
     if (stunden > 0) { Saufi.Pegel.abbau(S.fig, stunden, m); Saufi.NPCs.abbau(S.npcs, stunden, m); }
     stundenEreignisse(S, X);
     ereignisRunden(S, Saufi.Runden.tick(S.runden, m), X);
+    mxTick(S, X);
     if (S.zustand === 'ende') return;
     if (Saufi.Runden.verloren(S.runden)) beende(S, false, 'Teamstimmung 0: alle gehen heim.', X);
     else if (Saufi.Uhr.vorbei(S.uhr)) beende(S, true, 'Sonntag, 04:00 Uhr: Du stehst noch.', X);
@@ -701,9 +738,9 @@
     else if (!bewegt && S.tippWeg && !S.overlay && !S.uebergang && sp.isst <= 0) { var ta = tippAchse(S, X, dt); if (ta) achse = ta; }
     else if (S.tippWeg && (S.overlay || S.uebergang)) stoppeTippWeg(S);   // Overlay/Uebergang verwirft den Tippweg
     if (sp.isst > 0) { sp.isst -= dt; sp.vx = 0; sp.vy = 0; if (sp.isst <= 0) endeEssen(S, X); }
-    else if (sp.sitzt) { if (bewegt) sp.sitzt = false; else Saufi.Pegel.heile(fig, dt * 1.0); }
+    else if (sp.sitzt) { if (bewegt) sp.sitzt = false; else Saufi.Pegel.heile(fig, dt * 1.0 * (fig.heil != null ? fig.heil : 1)); }
     else {
-      var faktor = Saufi.Ereignisse.Boost.bewegung(S.boost) * Saufi.Pegel.bewegung(fig, m) * Saufi.Ereignisse.Joint.bewegung(S.joint);
+      var faktor = Saufi.Ereignisse.Boost.bewegung(S.boost) * Saufi.Pegel.bewegung(fig, m) * Saufi.Ereignisse.Joint.bewegung(S.joint) * (S.char.tempo != null ? S.char.tempo : 1);
       Saufi.Spieler.bewegung(sp, achse, fig.pegel, dt, S.t, faktor, S.karte);
       if (Saufi.Spieler.festPruefen) Saufi.Spieler.festPruefen(S, sp, achse, dt);
     }
@@ -749,6 +786,19 @@
         if (fn) { Saufi.Frech.naechster(S.frech); S.frech.zuletzt = S.spielSek; fn.blase = { text: fe.text, rest: 3.5 }; }   // nur weiterschieben, wenn wirklich gesprochen
       }
     }
+    // v16: Motivatoren (eigener Zaehler, kein rng)
+    if (Saufi.Motiv && !S.overlay && !S.uebergang) {
+      if (!S.motiv) S.motiv = { zuletzt: 0, n: 0 };
+      if (S.spielSek - S.motiv.zuletzt >= Saufi.Motiv.intervall(S.motiv.n)) {
+        var mn = Saufi.Motiv.sprecher(S.npcs, S.ort, (S.motiv.n | 0) + 1);
+        if (mn) {
+          var nr = Saufi.Runden.naechste(S.runden);
+          mn.blase = { text: Saufi.Motiv.text(mn.id, nr, m), rest: 3.5 };
+          S.motiv.n = (S.motiv.n | 0) + 1; S.motiv.zuletzt = S.spielSek;
+        }
+      }
+    }
+    mxTick(S, X);
     // Starship-Meldungen (auch drinnen)
     if (Saufi.S21 && Saufi.S21.starshipStand) {
       if (!S.s21) S.s21 = { zuletzt: -999, n: 0, gemeldet: null };
@@ -875,19 +925,35 @@
     if (typeof best === 'number' && best >= 0 && o.eintraege[best] && o.eintraege[best].aktiv !== false) { o.index = best; waehle(S, o.eintraege[best], X); }
   }
 
+  function auswahlShift(S, delta) {
+    var list = Saufi.Charaktere.AUSWAHL || [];
+    if (!list.length) return;
+    var i = 0, cur = S.auswahlId || (S.char && S.char.id) || 'tobi';
+    for (var j = 0; j < list.length; j++) if (list[j].id === cur) { i = j; break; }
+    i = (i + delta + list.length * 8) % list.length;
+    S.auswahlId = list[i].id;
+  }
   function updateStart(S, X, E) {
     if (!E) return;
     if (S.overlay) { updateOverlay(S, X, E); return; }
+    if (E.neu('links')) auswahlShift(S, -1);
+    if (E.neu('rechts')) auswahlShift(S, 1);
     if (E.neu('hoch') || E.neu('runter')) S.startIndex = 1 - S.startIndex;
-    var klick = null, hatKlick = false;
+    var klick = null, hatKlick = false, kartenKlick = false;
     E.klicks().forEach(function (k) {
       hatKlick = true;
       S.treffer.forEach(function (t) {
-        if (k.x >= t.x && k.x <= t.x + t.w && k.y >= t.y && k.y <= t.y + t.h) klick = t.i;
+        if (k.x >= t.x && k.x <= t.x + t.w && k.y >= t.y && k.y <= t.y + t.h) {
+          klick = t.i;
+          if (typeof t.i === 'string' && t.i.indexOf('f:') === 0) {
+            S.auswahlId = t.i.slice(2); kartenKlick = true;
+          }
+        }
       });
     });
     if (E.neu('playlist')) { playlistOverlay(S, X); return; }
-    // Playlist-Eintrag (i===1) oeffnet die Liste; jeder andere Tipp (auch daneben) startet
+    // Kartenklick waehlt nur; Playlist (i===1); jeder andere Tipp startet
+    if (kartenKlick) return;
     if (klick === 1) { playlistOverlay(S, X); return; }
     if (hatKlick) { starteSpiel(S, X); return; }
     if (E.neu('aktion')) {
@@ -896,6 +962,7 @@
     }
   }
   function starteSpiel(S, X) {
+    if (S.auswahlId && S.auswahlId !== S.char.id) waehleFigur(S, S.auswahlId);
     S.zustand = 'spiel'; S.overlay = null;
     if (X.T.start) X.T.start();
     X.T.setzeMusik(!(X.M && X.M.aktiv !== 'webaudio'));
@@ -953,7 +1020,8 @@
       boost: { leiste: Math.round(S.boost.leiste * 100) / 100, aktiv: S.boostAktiv }, joint: { hat: S.joint.hat, doppelt: S.joint.doppelt },
       overlay: S.overlay ? S.overlay.art + (S.overlay.titel ? ':' + S.overlay.titel : '') : null, hinweis: (Saufi.Hinweise.aktuell(S.hinweise) || {}).text || '',
       figur: S.char.id, seed: S.seed, tempo: S.tempo, pos: { x: Math.round(S.spieler.x), y: Math.round(S.spieler.y) }, ende: S.ende ? { sieg: S.ende.sieg, grund: S.ende.grund, wertung: S.ende.wertung.titel } : null,
-      anwaerter: S.runden.anwaerter, npcLiegen: S.npcs.filter(function (x) { return x.liegt; }).map(function (x) { return x.id; })
+      anwaerter: S.runden.anwaerter, npcLiegen: S.npcs.filter(function (x) { return x.liegt; }).map(function (x) { return x.id; }),
+      mx: S.mxEvent ? S.mxEvent.status : null
     };
   }
   // Spieler direkt neben eine Station stellen (nur fuer Tests und den Debug-Haken)
@@ -981,6 +1049,7 @@
     if (o.flaschen !== undefined) S.flaschen = o.flaschen;
     if (o.boost !== undefined) S.boost.leiste = o.boost;
     if (o.joint) { S.joint.hat = true; S.joint.gefunden = true; }
+    if (o.figur) waehleFigur(S, o.figur);
     if (o.start && S.zustand === 'start') starteSpiel(S, stub({}));
     S.licht = Saufi.Uhr.licht(S.uhr);
     return schnappschuss(S);
@@ -988,7 +1057,7 @@
 
   Saufi.Spiel = {
     VERSION: VERSION, neu: neuesSpiel, update: update, beende: beende, aktion: aktion, waehle: waehle, runde: runde, wasserTrinken: wasserTrinken, itemNutzen: itemNutzen, kontext: kontext, hilfeText: hilfeText, toggleMusik: toggleMusik, spontanePruefen: spontanePruefen, tippeWelt: tippeWelt, weltPunkt: weltPunkt, tippZiel: tippZiel, spontanWahl: spontanWahl, betreten: betreten,
-    betreten: betreten, verlassen: verlassen, schnappschuss: schnappschuss, geheZuStation: geheZuStation, setze: setze, starteSpiel: starteSpiel, stationDe: stationDe,
+    betreten: betreten, verlassen: verlassen, schnappschuss: schnappschuss, geheZuStation: geheZuStation, setze: setze, starteSpiel: starteSpiel, stationDe: stationDe, waehleFigur: waehleFigur,
     pauseMenue: pauseMenue, playlistOverlay: playlistOverlay, infoOverlay: infoOverlay, stammtisch: stammtisch, tanzen: tanzen, stub: stub,
     schliesse: schliesse, minispielMenue: minispielMenue
   };
@@ -1015,7 +1084,7 @@
     var R = Saufi.Render.erstelle(canvas, doc);
     var T = Saufi.Ton.erstelle(win);
     var E = Saufi.Eingabe.erstelle(win, canvas, 320, 176);
-    var S = null, M = null, X = null;
+    var S = null, M = null, X = null, gewaehlt = par.figur || 'tobi', erstStart = true;
     function melde(text) { if (S) sag(S, text, 5, 'info'); }
     M = Saufi.Musik.erstelle({ win: win, doc: doc, ton: T, speicher: speicher, melde: melde });
     function neuStarten() {
@@ -1032,7 +1101,8 @@
       var logH0 = mobilHoch ? Saufi.Render.berechnePortH(aw0, Math.max(1, ah0 - bedien0)) : Saufi.Render.BASE_H;
       R.touch = isTouch;
       Saufi.Render.setzeBildschirm(R, mobilHoch, { h: logH0, touch: isTouch }); E.setzeMass(R.W, R.H);
-      S = neuesSpiel({ seed: par.seed, tempo: par.tempo, figur: par.figur, viewW: R.VW || R.W, viewH: R.VH || R.H, best: speicher.zahl('best', 0), speicher: speicher, ruhig: speicher.bool('ruhig', false) });
+      var figId = erstStart && par.figur ? par.figur : (erstStart && par.start ? 'tobi' : gewaehlt);
+      S = neuesSpiel({ seed: par.seed, tempo: par.tempo, figur: figId, viewW: R.VW || R.W, viewH: R.VH || R.H, best: speicher.zahl('best', 0), speicher: speicher, ruhig: speicher.bool('ruhig', false) });
       R.stadtPxH = S.welt.stadt.pxH; R.hg = {}; R.props = {};
       if (mobilHoch) Saufi.Render.setzeBildschirm(R, true, { h: logH0, stadtPxH: R.stadtPxH, touch: isTouch });
       if (S.kamera) { S.kamera.viewW = R.VW || R.W; S.kamera.viewH = R.VH || R.H; Saufi.Kamera.sofort(S.kamera, S.spieler.x, S.spieler.y - 8); }
@@ -1041,7 +1111,7 @@
     }
     X = { E: E, M: M, T: T };
     neuStarten();
-    if (par.start) starteSpiel(S, X);           // ?start: ohne Startbildschirm (fuer Tests)
+    if (par.start || par.figur) { starteSpiel(S, X); gewaehlt = S.char.id; erstStart = false; }   // ?start/?figur: ohne Auswahl
 
     // Debug-Haken fuer Headless-Tests
     var dbg = function () { return schnappschuss(S); };
@@ -1354,7 +1424,7 @@
       if (S.overlay && stickId !== null) stickEnde();
       S.treffer = R.treffer; S.panel = R.panel || null;
       update(S, dt, X);
-      if (S.neustart) { neuStarten(); starteSpiel(S, X); }
+      if (S.neustart) { gewaehlt = S.auswahlId || S.char.id; erstStart = false; neuStarten(); starteSpiel(S, X); }
       musikInfoSync();
       Saufi.Render.zeichne(R, S);
       S.treffer = R.treffer; S.panel = R.panel || null;

@@ -42,7 +42,7 @@
     kevin: ['Hunger!', 'Wo Brezel?', 'Maultasche ruft.', 'Ich ess nebenbei.', 'Bar-Snack-Alarm.', 'Kevin braucht Kohlehydrate.', 'Spätzle retten Leben.', 'Döner-Theorie später.'],
     stoeckle: ['Des koschd extra!', 'Schwaben-Rechnung.', 'Net so verschwenderisch.', 'Ein Kurzer, fairer Preis.', 'Isch des im Angebot?', 'Kehrewoche zählt mit.', 'Barzahlung only.', 'Stöckle spart und prostet.'],
     probst: ['Ich sehe alles.', 'Alkoholfrei? Verdächtig.', 'Protokolliert.', 'Augen überall.', 'Probst-Radar an.', 'Heimlich? Hmm.', 'Team-Stimmung notiert.', 'Ich schweige laut.'],
-    rudi: ['Oh, hier isch schee.', 'Rudi isch da!', 'Ab 14 Uhr Legende.', 'Zweites Leben ready.', 'Latzhose-Power.', 'Wo isch mei Bier?', 'Ich fall stilvoll.', 'Rudi bleibt Rudi.']
+    himmelsbach: ['Auf geht\'s!', 'Ab 14 Uhr Antreiber.', 'Zweites Leben ready.', 'Pfeife bereit!', 'Naechste Runde, los!', 'Tribuene oder Stammtisch!', 'Ich zieh euch mit.', 'Himmelsbach bleibt am Ball.']
   };
 
   var SITUATION = {
