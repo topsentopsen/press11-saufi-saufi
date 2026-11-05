@@ -4,6 +4,13 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v12
+
+- Tippen oder Klicken auf einen Punkt der Karte: Die Figur läuft per Wegsuche (A*) dorthin, wie in Finca.
+- Zielmarker am Boden. Ein neuer Tipp ersetzt das alte Ziel, rot mit X heißt nicht erreichbar. Tasten oder Joystick brechen den Tippweg ab. Der Joystick bleibt optional.
+- Tipp auf Tresen, Jukebox, Stammtisch, Tür oder einen liegenden Kumpel: hinlaufen und die Aktion startet bei Ankunft. Ist das Ziel schon nah, sofort.
+- Handy Fix: Taps im Spiel wurden nie ausgewertet (E.klicks blieb ungelesen) und die Joystick Zone schluckte Taps auf der linken Hälfte. Kurze Tipps in der Joystick Zone gehen jetzt an die Welt.
+
 ## Neu in v11
 
 - **Musik aus:** Taste N, Knopf ♬ oben und Eintrag im Pausemenü; Effekte bleiben an, Zustand wird gespeichert.

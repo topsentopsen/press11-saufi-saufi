@@ -521,6 +521,14 @@
     var tint = tintFuer(S);
     c.globalCompositeOperation = 'multiply'; r(c, 0, 0, viewW, viewH, rgb(tint)); c.globalCompositeOperation = 'source-over';
     zeichneLichter(R, S, cx, cy, tint);
+    if (S.marker) {                                               // v12: Zielmarker wie Finca (rot = nicht erreichbar)
+      var mk = S.marker, mx = mk.x - cx, my = mk.y - cy, pu = 1 + 0.15 * Math.sin(mk.t * 8);
+      c.save(); c.globalAlpha = mk.nein ? Math.max(0, 1 - mk.t) : 0.9; c.lineWidth = 1.2; c.strokeStyle = mk.nein ? '#ff4d5e' : '#ffe066';
+      c.beginPath(); c.ellipse(mx, my + 2, 5 * pu, 2.6 * pu, 0, 0, Math.PI * 2); c.stroke();
+      if (mk.nein) { c.beginPath(); c.moveTo(mx - 3, my - 1); c.lineTo(mx + 3, my + 5); c.moveTo(mx + 3, my - 1); c.lineTo(mx - 3, my + 5); c.stroke(); }
+      else { c.fillStyle = '#ffe066'; c.beginPath(); c.moveTo(mx, my - 1 - Math.abs(Math.sin(mk.t * 5)) * 3); c.lineTo(mx - 2.5, my - 6 - Math.abs(Math.sin(mk.t * 5)) * 3); c.lineTo(mx + 2.5, my - 6 - Math.abs(Math.sin(mk.t * 5)) * 3); c.closePath(); c.fill(); }
+      c.restore();
+    }
     // Blasen nach Lichtern (lesbar ueber Fensterlichtern)
     (R.blasen || []).forEach(function (b) { blase(c, b.x, b.y, b.text, b.vermeide); });
     var nacht = karte.innen ? 0 : Sz.nachtGrad(S.uhr.minute / 60);
@@ -1233,6 +1241,7 @@
     S.doppelt = wackel;
     var weltH = (R.hochkant && R.weltH != null) ? R.weltH : H;
     var zoom = weltZoomFuer(R, S, weltH);
+    S.weltSicht = { zoom: zoom, weltH: weltH };
     // Hoch: dunkles UI-Feld unter der Welt (Hinweise/Hilfe, kein Karten-Schwarz)
     if (R.hochkant && weltH < H) r(c, 0, weltH, W, H - weltH, P.uiDunkel || '#1b1530');
     c.save();

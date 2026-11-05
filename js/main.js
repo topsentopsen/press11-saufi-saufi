@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.11', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.12', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function neuesSpiel(opt) {
@@ -74,7 +74,7 @@
   // ---------------------------------------------------------------- Uebergaenge (Tuer, Rauswurf)
   function uebergang(S, fn, dauer) { S.uebergang = { t: 0, dauer: dauer || 0.5, fn: fn, gemacht: false }; S.overlay = null; }
   function stelleHin(S, tx, ty) {
-    var sp = S.spieler; Saufi.Spieler.setzeKachel(sp, tx, ty); S.kamera.weltW = S.karte.pxW; S.kamera.weltH = S.karte.pxH;
+    var sp = S.spieler; S.tippWeg = null; S.marker = null; Saufi.Spieler.setzeKachel(sp, tx, ty); S.kamera.weltW = S.karte.pxW; S.kamera.weltH = S.karte.pxH;
     Saufi.Kamera.sofort(S.kamera, sp.x, sp.y - 8);
   }
   function musikFuerOrt(S, X) {
@@ -309,11 +309,88 @@
   }
 
   // ---------------------------------------------------------------- Aktionstaste an Stationen
-  function aktion(S, X) {
+
+  // ---------- v12: Tippen/Klicken auf die Welt wie in Finca (A*-Weg, Zielmarker, Aktion bei Ankunft) ----------
+  var TIPP_STATION_NAH = 14, TIPP_FREUND_PX = 14;
+  function weltPunkt(S, sx, sy) {
+    var ws = S.weltSicht || { zoom: 1, weltH: Infinity };
+    if (!(ws.zoom > 0) || sy > ws.weltH || !S.kamera) return null;
+    return { x: S.kamera.x + sx / ws.zoom, y: S.kamera.y + sy / ws.zoom };
+  }
+  function tippZiel(S, wx, wy) {
+    var best = null, bd = TIPP_FREUND_PX;
+    S.npcs.forEach(function (n) {
+      if (!n.aktiv || !n.liegt || n.karteId !== S.karte.id) return;
+      var d = Math.hypot(n.x - wx, n.y - 4 - wy); if (d <= bd) { bd = d; best = n; }
+    });
+    if (best) return { art: 'wecken', npc: best };
+    var st = Saufi.Karte.nahe(S.karte, wx, wy, 4);
+    if (st) return { art: 'station', st: st };
+    return { art: 'laufen' };
+  }
+  function kurzesterWeg(S, ziele) {
+    var sp = S.spieler, K = Saufi.Spieler.K, t0 = { x: Saufi.Spieler.kachelX(sp), y: Saufi.Spieler.kachelY(sp) }, best = null;
+    ziele.slice().sort(function (a, b) { return Math.hypot(a.x - t0.x, a.y - t0.y) - Math.hypot(b.x - t0.x, b.y - t0.y); }).slice(0, 10).forEach(function (z) {
+      var p = Saufi.Pfad.suche(S.karte, t0.x, t0.y, z.x, z.y);
+      if (p && (!best || p.length < best.length)) best = p;
+    });
+    return best;
+  }
+  function freieNachbarn(S, tx, ty, r) {
+    var res = [];
+    for (var y = ty - r; y <= ty + r; y++) for (var x = tx - r; x <= tx + r; x++) if (!S.karte.blockiert(x, y)) res.push({ x: x, y: y });
+    return res;
+  }
+  function tippeWelt(S, X, sx, sy) {
+    var p = weltPunkt(S, sx, sy), sp = S.spieler, K = Saufi.Spieler.K;
+    if (!p || sp.isst > 0 || S.uebergang || S.overlay) return 'nein';
+    if (sp.sitzt) { sp.sitzt = false; stoppeTippWeg(S); return 'aufstehen'; }   // wie Finca: erster Tipp steht auf
+    var z = tippZiel(S, p.x, p.y), ziele, akt = null;
+    if (z.art === 'wecken') {
+      if (Math.hypot(z.npc.x - sp.x, z.npc.y - sp.y) <= Saufi.NPCs.WECK_REICHWEITE) { stoppeTippWeg(S); wasserTrinken(S, X); return 'wecken'; }
+      ziele = freieNachbarn(S, Math.floor(z.npc.x / K), Math.floor(z.npc.y / K), 1); akt = z;
+    } else if (z.art === 'station') {
+      if (Saufi.Karte.abstand(sp.x, sp.y - 2, z.st) <= TIPP_STATION_NAH) { stoppeTippWeg(S); S.marker = { x: p.x, y: p.y, t: 0 }; aktion(S, X, z.st); return 'station'; }
+      ziele = Saufi.Karte.umgebung(S.karte, z.st); akt = z;
+    } else {
+      var tx = Math.floor(p.x / K), ty = Math.floor(p.y / K);
+      ziele = S.karte.blockiert(tx, ty) ? freieNachbarn(S, tx, ty, 1) : [{ x: tx, y: ty }];
+    }
+    var weg = ziele.length ? kurzesterWeg(S, ziele) : null;
+    if (!weg) { stoppeTippWeg(S); S.marker = { x: p.x, y: p.y, t: 0, nein: true }; return 'nein'; }
+    sp.sitzt = false;
+    var end = weg[weg.length - 1];
+    S.tippWeg = { pfad: weg, i: weg.length > 1 ? 1 : 0, aktion: akt, fest: 0, letzt: Infinity };
+    S.marker = { x: end.x * K + K / 2, y: end.y * K + K / 2, t: 0 };
+    return akt ? akt.art : 'laufen';
+  }
+  function stoppeTippWeg(S) { S.tippWeg = null; if (S.marker && !S.marker.nein) S.marker = null; }
+  // Liefert die Achse Richtung naechster Wegpunkt; bei Ankunft null und die Aktion wird ausgeloest
+  function tippAchse(S, X, dt) {
+    var w = S.tippWeg, sp = S.spieler, K = Saufi.Spieler.K;
+    while (w.i < w.pfad.length) {
+      var n = w.pfad[w.i], zx = n.x * K + K / 2, zy = n.y * K + K / 2, dx = zx - sp.x, dy = zy - sp.y, d = Math.hypot(dx, dy);
+      if (d < (w.i === w.pfad.length - 1 ? 2.5 : 4)) { w.i++; w.fest = 0; w.letzt = Infinity; continue; }
+      if (d < w.letzt - 0.5) { w.letzt = d; w.fest = 0; } else w.fest += dt;
+      if (w.fest > 1.5) {                       // haengt (Wanken, NPC): neu planen, sonst aufgeben
+        var e = w.pfad[w.pfad.length - 1], neu = kurzesterWeg(S, [e]);
+        if (!neu || w.neu) { stoppeTippWeg(S); return null; }
+        w.pfad = neu; w.i = neu.length > 1 ? 1 : 0; w.fest = 0; w.letzt = Infinity; w.neu = true; continue;
+      }
+      var l = Math.max(1, d / 6); return { x: dx / d * Math.min(1, l), y: dy / d * Math.min(1, l) };
+    }
+    var akt = w.aktion; S.tippWeg = null; S.marker = null; sp.vx *= 0.3; sp.vy *= 0.3;
+    if (akt && akt.art === 'station') aktion(S, X, akt.st);
+    else if (akt && akt.art === 'wecken' && akt.npc.liegt) wasserTrinken(S, X);
+    return null;
+  }
+
+  function aktion(S, X, stFix) {
     var sp = S.spieler, T = X.T, st;
     if (sp.isst > 0) return;
-    if (sp.sitzt) { sp.sitzt = false; return; }
-    st = Saufi.Karte.nahe(S.karte, sp.x, sp.y - 2, 14);
+    if (sp.sitzt && !stFix) { sp.sitzt = false; return; }
+    sp.sitzt = false;
+    st = stFix || Saufi.Karte.nahe(S.karte, sp.x, sp.y - 2, 14);
     // Panne nur loesen, wenn keine Station im Weg (sonst brechen Mittrunden/Menues)
     if (!st && S.pannen && S.pannen.aktiv && S.pannen.aktiv.def.loesung === 'aktion' && loeseAktivePanne(S, 'aktion', X)) return;
     if (!st) { sag(S, 'Hier gibt es nichts zu tun.', 1.2, 'info'); return; }
@@ -570,6 +647,11 @@
     }
     // Eingabe und Bewegung
     var achse = E ? E.achse() : { x: 0, y: 0 }, bewegt = Math.hypot(achse.x, achse.y) > 0.1;
+    if (E && E.klicks().length) { var kl = E.klicks()[E.klicks().length - 1]; tippeWelt(S, X, kl.x, kl.y); }
+    if (S.marker) { S.marker.t += dt; if ((S.marker.nein || !S.tippWeg) && S.marker.t > 0.9) S.marker = null; }
+    if (bewegt && S.tippWeg) stoppeTippWeg(S);          // Tasten/Joystick haben Vorrang
+    else if (!bewegt && S.tippWeg && !S.overlay && !S.uebergang && sp.isst <= 0) { var ta = tippAchse(S, X, dt); if (ta) achse = ta; }
+    else if (S.tippWeg && (S.overlay || S.uebergang)) stoppeTippWeg(S);   // Overlay/Uebergang verwirft den Tippweg
     if (sp.isst > 0) { sp.isst -= dt; sp.vx = 0; sp.vy = 0; if (sp.isst <= 0) endeEssen(S, X); }
     else if (sp.sitzt) { if (bewegt) sp.sitzt = false; else Saufi.Pegel.heile(fig, dt * 1.0); }
     else {
@@ -595,7 +677,7 @@
     Saufi.Pegel.update(fig, dt, halbiert(S));
     var fall = Saufi.Pegel.pruefe(fig);
     if (fall) {
-      sp.liegt = true; sp.sitzt = false; sp.isst = 0; sp.tanzt = 0; T.umfall();
+      sp.liegt = true; sp.sitzt = false; sp.isst = 0; sp.tanzt = 0; S.tippWeg = null; S.marker = null; T.umfall();
       Saufi.Punkte.add(S.punkte, -200, 'Umgefallen');
       S.zustand = 'umgefallen';
       S.overlay = null; S.uebergang = null; S.prost = 0;
@@ -802,7 +884,7 @@
   }
 
   Saufi.Spiel = {
-    VERSION: VERSION, neu: neuesSpiel, update: update, beende: beende, aktion: aktion, waehle: waehle, runde: runde, wasserTrinken: wasserTrinken, itemNutzen: itemNutzen, kontext: kontext, hilfeText: hilfeText, toggleMusik: toggleMusik, spontanePruefen: spontanePruefen, spontanWahl: spontanWahl, betreten: betreten,
+    VERSION: VERSION, neu: neuesSpiel, update: update, beende: beende, aktion: aktion, waehle: waehle, runde: runde, wasserTrinken: wasserTrinken, itemNutzen: itemNutzen, kontext: kontext, hilfeText: hilfeText, toggleMusik: toggleMusik, spontanePruefen: spontanePruefen, tippeWelt: tippeWelt, weltPunkt: weltPunkt, tippZiel: tippZiel, spontanWahl: spontanWahl, betreten: betreten,
     betreten: betreten, verlassen: verlassen, schnappschuss: schnappschuss, geheZuStation: geheZuStation, setze: setze, starteSpiel: starteSpiel, stationDe: stationDe,
     pauseMenue: pauseMenue, playlistOverlay: playlistOverlay, infoOverlay: infoOverlay, stammtisch: stammtisch, tanzen: tanzen, stub: stub,
     schliesse: schliesse, minispielMenue: minispielMenue
@@ -1039,7 +1121,16 @@
 
     // Virtueller Joystick (links unten, erscheint dort, wo der Daumen aufsetzt)
     var zone = doc.getElementById('stick'), basis = doc.getElementById('stick-basis'), dau = doc.getElementById('stick-dau'), stickId = null, o0 = null, stickTouch = false;
+    var stickT0 = 0, stickWeg = 0;
+    // v12: kurzer Tipp ohne Wischen in der Joystick-Zone zaehlt als Tipp auf die Welt (vorher verschluckt)
+    function stickTipp(clientX, clientY, ts) {
+      if (!canvas || !canvas.getBoundingClientRect) return;
+      var rc = canvas.getBoundingClientRect(); if (!(rc.width > 0)) return;
+      var pi = Saufi.Eingabe.zuIntern(clientX, clientY, rc, R.W, R.H);
+      if (pi.x >= 0 && pi.y >= 0 && pi.x <= R.W && pi.y <= R.H) E.zeiger(pi.x, pi.y, ts || Date.now());
+    }
     function stickStart(clientX, clientY, id) {
+      stickT0 = Date.now(); stickWeg = 0;
       var warTouch = !!E.touch;
       E.touch = true;
       if (!warTouch || !R.touch) { touchGemeldet = true; groesse(); }
@@ -1051,12 +1142,14 @@
     function stickMove(clientX, clientY) {
       if (stickId === null || !o0) return;
       var dx = clientX - o0.x, dy = clientY - o0.y, rad = 40, l = Math.hypot(dx, dy);
+      stickWeg = Math.max(stickWeg, l);
       if (l > rad) { dx = dx / l * rad; dy = dy / l * rad; l = rad; }
       var aus = stickAuslenkung(dx, dy, rad);
       E.stick.x = aus.x; E.stick.y = aus.y;
       if (dau) dau.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
     }
-    function stickEnde() {
+    function stickEnde(clientX, clientY) {
+      if (stickId !== null && o0 && clientX !== undefined && stickWeg < 10 && Date.now() - stickT0 < 350) stickTipp(clientX, clientY);
       stickId = null; stickTouch = false; E.stick.x = 0; E.stick.y = 0;
       if (basis) basis.style.display = 'none'; if (dau) dau.style.transform = '';
     }
@@ -1069,7 +1162,7 @@
       zone.addEventListener('pointermove', function (ev) {
         if (ev.pointerId !== stickId) return; ev.preventDefault(); stickMove(ev.clientX, ev.clientY);
       });
-      var ende = function (ev) { if (ev.pointerId !== stickId) return; stickEnde(); };
+      var ende = function (ev) { if (ev.pointerId !== stickId) return; stickEnde(ev.type === 'pointerup' ? ev.clientX : undefined, ev.clientY); };
       zone.addEventListener('pointerup', ende); zone.addEventListener('pointercancel', ende);
       // Touch-Fallback mit preventDefault ({passive:false}) fuer aeltere/iOS-WebKit-Pfade
       zone.addEventListener('touchstart', function (ev) {
@@ -1085,7 +1178,8 @@
       }, { passive: false });
       zone.addEventListener('touchend', function (ev) {
         if (ev.preventDefault) ev.preventDefault();
-        if (stickTouch) stickEnde();
+        var t1 = ev.changedTouches && ev.changedTouches[0];
+        if (stickTouch) stickEnde(t1 ? t1.clientX : undefined, t1 ? t1.clientY : undefined);
       }, { passive: false });
       zone.addEventListener('touchcancel', function () { stickEnde(); }, { passive: false });
     }
