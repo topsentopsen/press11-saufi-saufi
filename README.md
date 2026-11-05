@@ -35,7 +35,7 @@ Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 n
 - Motocross mit vier Fahrern (reine Formel), Überholen und Sprungbögen.
 - Stuttgart-21-Baustelle mit Bauzaun, Kränen, Schild und Musk/Boring-Company-Sprüchen.
 - Starship-Überflug ab 19:30 mit Countdown und Lift-off.
-- Musik-Intensität steigt über den Tag (BPM, Lautstärke, Schichten).
+- Musik-Intensität steigt über den Tag (stückweise BPM, Lautstärke, Schichten, Filter-Cutoff; Distortion-Kick/Sidechain/Super-Saw).
 
 ## Neu in v13
 
@@ -193,7 +193,7 @@ Es gibt drei Quellen, in dieser Reihenfolge (die erste, die geht):
 
 1. **Eigene MP3s** aus dem Ordner `music/` (falls eingetragen), abgespielt per `<audio>`.
 2. **YouTube-Einbettung** (nur Einbetten, nichts wird heruntergeladen) mit vier Videos von Tobi: "Scooter - Hyper Hyper", "Scooter - The Logical Song (Official Video)", "Scooter - One (Always Hardcore) (Official Video HQ)" und "Scooter - How Much Is the Fish?". Die Liste steht in `music/playlist.js` (`Saufi.YOUTUBE`); ein weiteres Video trägt man dort als neue Zeile `{ id: 'VIDEO_ID', titel: 'Scooter - Titel' },` ein (ID = Teil nach `youtu.be/`). Sie startet über den Knopf **Scooter-Playlist** (Menü, Pause-Menü, Jukebox in der Kneipe, Taste P) und danach automatisch in der Diskothek und beim Scooter-Boost (Hyper Hyper). Das Video läuft in einem kleinen, ein-/ausklappbaren Fenster unten links (sichtbar, 220×124). Eingeklappt wird pausiert.
-3. **Eigener Hardstyle** per WebAudio (150 BPM, Fis-Moll, Kick, Bass, Hyper-Synth) als Fallback. Er läuft sonst immer im Hintergrund und wandelt sich mit der Tageszeit.
+3. **Eigener Hardstyle** per WebAudio (150 BPM Peak, Fis-Moll, Distortion-Kick, Sidechain, Super-Saw-Lead, Riser/Drop) als Fallback. Keine fremden Melodien, keine Samples. Intensität steigt über die Nacht (stückweise BPM 96→150, Gain, Schichten, Filter-Cutoff); Lead ab 23:00. Mute (N/♬) blendet weich aus, Effekte bleiben.
 
 Die Scooter-Titelliste im Spiel ist nur Text (Hyper Hyper, Move Your Ass!, How Much Is the Fish?, Maria (I Like It Loud), Nessaja, The Logical Song, Weekend!, Jigga Jigga!, One (Always Hardcore), Posse (I Need You on the Floor), Fire). Dazu kommen Text-Einblendungen wie "HYPER HYPER!" und "HOW MUCH IS THE FISH?".
 

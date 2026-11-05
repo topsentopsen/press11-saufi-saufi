@@ -4592,6 +4592,50 @@ test('215 Nachtrag v18: Schwinki Nachschub und frueh heim, Tobi ohne starke Rund
   D.NPCs.ankommen(list, 25 * 60, karte, 0, 0); wahr(!n.aktiv, 'ab 1 Uhr daheim');
 });
 
+
+test('216 Musik-Ueberarbeitung: cutoff monoton, BPM nachts hoch, Endpunkte', function () {
+  var D = lade(), last = -1;
+  for (var m = 480; m <= 1680; m += 10) {
+    var i = D.Ton.intensitaet(m);
+    wahr(isFinite(i.cutoff), 'cutoff endlich @' + m);
+    wahr(i.cutoff >= last - 1e-9, 'cutoff mono @' + m);
+    last = i.cutoff;
+  }
+  nah(D.Ton.intensitaet(480).cutoff, 900, 1);
+  gleich(D.Ton.intensitaet(23 * 60).cutoff, 20000);
+  gleich(D.Ton.intensitaet(1680).cutoff, 20000);
+  wahr(D.Ton.intensitaet(24 * 60).bpm >= 145, 'Mitternacht schon Hardstyle-Tempo');
+  nah(D.Ton.intensitaet(18 * 60).bpm, 110, 0.01);
+  nah(D.Ton.intensitaet(23 * 60).bpm, 140, 0.01);
+  nah(D.Ton.intensitaet(25 * 60).bpm, 150, 0.01);
+});
+
+test('217 Musik-Ueberarbeitung: Riser-Takt und 8 Lead-Patterns', function () {
+  var Ton = lade().Ton;
+  var n15 = Ton.noten(15, 2); wahr(n15.some(function (s) { return s.riser; }), 'Riser ab Ebene 2 in Takt 15');
+  var n0 = Ton.noten(15, 0); wahr(n0.every(function (s) { return !s.riser; }), 'kein Riser morgens');
+  var n14 = Ton.noten(14, 3); wahr(n14.every(function (s) { return !s.riser; }), 'kein Riser in Takt 14');
+  for (var takt = 0; takt < 8; takt++) {
+    var n = Ton.noten(takt, 3);
+    gleich(n.length, 16);
+    n.forEach(function (s) {
+      if (s.lead !== null) wahr(Number.isInteger(s.lead) && s.lead >= 0 && s.lead <= 127, 'Lead MIDI ' + s.lead);
+      if (s.bass !== null) wahr(Number.isInteger(s.bass) && s.bass >= 0 && s.bass <= 127, 'Bass MIDI');
+    });
+    wahr(n.some(function (s) { return s.lead !== null; }), 'Lead-Pattern ' + takt + ' hat Toene');
+  }
+});
+
+test('218 Musik-Ueberarbeitung: setzeMusikAus/Intensitaet mit cutoff ohne Absturz', function () {
+  var Ton = lade().Ton, t = Ton.erstelle(null);
+  t.setzeMusikAus(true); t.setzeMusikAus(false);
+  t.setzeIntensitaet(Ton.intensitaet(480));
+  t.setzeIntensitaet(Ton.intensitaet(1380));
+  t.setzeMusik(true); t.setzeMusik(false);
+  wahr(/WaveShaper|supersaw|padBus|cutoff|Distortion-Kick|Super-Saw/i.test(fs.readFileSync(path.join(ROOT, 'js', 'ton.js'), 'utf8')), 'ton.js enthaelt neue Synth-Teile');
+  wahr(/Distortion-Kick|Super-Saw|stueckweise BPM/i.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README erwaehnt Ueberarbeitung');
+});
+
 tests.forEach(function (t) {
   try { t.fn(); ok++; ausgabe.push('  ok   ' + t.name); }
   catch (e) { fehler++; ausgabe.push('  FAIL ' + t.name + '\n         ' + (e && e.stack ? e.stack.split('\n').slice(0, 3).join('\n         ') : e)); }
