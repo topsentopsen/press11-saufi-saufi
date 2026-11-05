@@ -5227,7 +5227,7 @@ test('233 v25 Feedback-Seite: Formular, Entwurf, keine Schlüssel', function () 
   wahr(/<textarea id="text" name="text" required/.test(html), 'Feedback Pflicht');
   wahr(/<button type="submit">/.test(html), 'Submit');
   wahr(/id="bestaetigung"/.test(html) && /data-meldung/.test(html) && /data-issue-link/.test(html), 'Bestaetigung');
-  wahr(/src="feedback\.js\?v=0\.26\.1"/.test(html), 'Skript eingebunden');
+  wahr(/src="feedback\.js\?v=0\.27"/.test(html), 'Skript eingebunden');
   wahr(/Press11Feedback\.bind\(/.test(html), 'Submit haengt an bind');
   wahr(/Press11 0\.26/.test(html), 'Versionszeile');
   wahr(!/<canvas/.test(html), 'keine Spielflaeche');
@@ -5421,6 +5421,7 @@ test('236 Feedback: leeres ziel.json faellt auf raw und Worker zurueck', functio
   wahr(/Live-Pfad: feedback\/ziel\.json zeigt auf https:\/\/press11-feedback-eingang\.zengel-tobias\.workers\.dev/.test(html), 'HTML-Kommentar Worker-URL');
   var ziel = JSON.parse(fs.readFileSync(path.join(ROOT, 'feedback', 'ziel.json'), 'utf8'));
   gleich(ziel.url, FALLBACK);
+  gleich(ziel.stand, '2026-11-05');
   var js = fs.readFileSync(path.join(ROOT, 'feedback', 'feedback.js'), 'utf8');
   wahr(js.indexOf('FALLBACK_EINGANG') >= 0 && js.indexOf(RAW) >= 0, 'Fallback-Kette');
   wahr(!/ghp_|github_pat_|gho_|access_token|Authorization\s*:|PRIVATE KEY/.test(js), 'kein Geheimnis');
