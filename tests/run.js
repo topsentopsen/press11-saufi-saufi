@@ -60,7 +60,23 @@ function mockCtx(log) {
       if (CTX_EIGENSCHAFTEN.indexOf(k) >= 0) return t[k];
       if (CTX_METHODEN.indexOf(k) >= 0) return function (a) {
         pruefeZahlen(k, arguments);
-        if (k === 'fillText') { if (typeof a !== 'string') throw new Error('fillText mit ' + typeof a); if (log) log.push(a); }
+        if (k === 'fillText') {
+          if (typeof a !== 'string') throw new Error('fillText mit ' + typeof a);
+          if (log) {
+            log.push(a);
+            if (!log.meta) log.meta = [];
+            log.meta.push({ text: a, x: arguments[1], y: arguments[2], align: t.textAlign });
+          }
+        }
+        if (k === 'ellipse' && log) {
+          if (!log.ellipses) log.ellipses = [];
+          log.ellipses.push([].slice.call(arguments));
+        }
+        if (k === 'strokeText' && log) {
+          if (log) log.push(a);
+          if (!log.meta) log.meta = [];
+          log.meta.push({ text: a, x: arguments[1], y: arguments[2], align: t.textAlign, stroke: true });
+        }
         if (k === 'fillRect' && log) log.push([].slice.call(arguments));
         if (k === 'arc' && log) log.push(['arc'].concat([].slice.call(arguments)));
         if (k === 'rotate' && log) log.push(['rotate', a]);
@@ -70,6 +86,7 @@ function mockCtx(log) {
       throw new Error('Unbekannte Canvas-Eigenschaft: ' + String(k));
     },
     set: function (t, k, v) {
+      if (CTX_METHODEN.indexOf(k) >= 0) return true;
       if (CTX_EIGENSCHAFTEN.indexOf(k) < 0) throw new Error('Unbekannte Canvas-Eigenschaft gesetzt: ' + String(k));
       if (k === 'globalCompositeOperation' && GCO.indexOf(v) < 0) throw new Error('Unbekannte Mischart ' + v);
       if (k === 'globalAlpha' && !(v >= 0 && v <= 1)) throw new Error('globalAlpha ausserhalb 0..1: ' + v);
@@ -659,7 +676,7 @@ test('30 Rendern: alle Orte, Tageszeiten, Menues und Bildschirme ohne Fehler', f
   t.S.overlay = null; t.S.zustand = 'umgefallen'; t.S.pressF = { n: 2, noetig: 5, rest: 2, zweitesLeben: true, t: 0 }; D.Render.zeichne(R, t.S);
   D.Render.setzeBildschirm(R, true); gleich(R.H, 400); D.Render.zeichne(R, t.S); D.Render.setzeBildschirm(R, false); gleich(R.H, 176);
   wahr(gezeichnet === 56 && log.length > 100, 'es wurde Text gezeichnet');
-  wahr(['HOTEL KESSELBLICK', 'GASTHAUS MAULTÄSCHLE', 'ZUM DURSTIGEN DACHS', 'UNTERGRUND 07'].every(function (s) { return log.indexOf(s) >= 0; }), 'Schilder der vier Orte');
+  wahr(['JAZZ IN THE CITY', 'GASTHAUS MAULTÄSCHLE', 'SOPHIES BRAUHAUS', 'UNTERGRUND 07'].every(function (s) { return log.indexOf(s) >= 0; }), 'Schilder der vier Orte');
 });
 
 // ---------- Lauf 3: Fixes nach Cursor-Review ----------
@@ -762,7 +779,7 @@ test('39 Teamstimmung 0: eigener Titel statt Umgefallen/Press F', function () {
   gleich(t.S.zustand, 'ende'); gleich(t.S.ende.wertung.titel, 'Abgehängt');
   wahr(/abgehängt/.test(t.S.ende.wertung.kopf)); wahr(/Teamstimmung 0/.test(t.S.ende.grund));
   wahr(t.S.ende.wertung.kopf.indexOf('Press F') < 0);
-  gleich(D.Spiel.VERSION, '0.12');
+  gleich(D.Spiel.VERSION, '0.13');
   wahr(D.Gfx.MIN_SCHRIFT <= 7);
 });
 
@@ -817,9 +834,9 @@ test('42 DPR-Begrenzung: MAX_DPR = 2, setzeAufloesung und begrenzDpr kappen', fu
   wahr(sk === R.canvas.width / R.W, 'Skala konsistent');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
   wahr(/begrenzDpr|MAX_DPR/.test(main), 'main nutzt DPR-Begrenzung');
-  wahr(/VERSION\s*=\s*['"]0\.12['"]/.test(main), 'VERSION 0.12');
+  wahr(/VERSION\s*=\s*['"]0\.13['"]/.test(main), 'VERSION 0.13');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  wahr(/main\.js\?v=0\.12/.test(html), 'Cache-Buster v=0.10');
+  wahr(/main\.js\?v=0\.13/.test(html), 'Cache-Buster v=0.13');
 });
 
 test('43 Hochformat-Layout: Playlist und Menues passen in PORT_H', function () {
@@ -1330,16 +1347,16 @@ test('72 Quer BASE 320x176: VH == H/zoom, Flaeche >= 3', function () {
   wahr(R.VW * R.VH / (D.Render.BASE_W * D.Render.BASE_H) >= 3 - 0.02, 'Quer Flaeche >= 3');
 });
 
-test('73 Versionen: VERSION 0.12, ?v=0.12, README v10, Bau-Bericht v10', function () {
+test('73 Versionen: VERSION 0.13, ?v=0.13, README v10, Bau-Bericht v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.12');
+  gleich(D.Spiel.VERSION, '0.13');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster vorhanden');
-  vs.forEach(function (v) { gleich(v, '?v=0.12', 'Cache-Buster ' + v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.13', 'Cache-Buster ' + v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
-  wahr(/Neu in v12/.test(readme), 'README Neu in v12');
-  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v12.md')), 'bau-bericht-v12.md');
+  wahr(/Neu in v13/.test(readme), 'README Neu in v13');
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
 });
 
 // ---------- v06: Menues/Ende/Touch Hochformat ----------
@@ -1632,16 +1649,16 @@ test('82 Stick: Totzone, cancel=0, zweiter Finger ignoriert, E gleichzeitig', fu
   gleich(api.E.stick.y, 0);
 });
 
-test('83 Versionen: VERSION 0.12, ?v=0.12, README v10, Bau-Bericht v10', function () {
+test('83 Versionen: VERSION 0.13, ?v=0.13, README v10, Bau-Bericht v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.12');
+  gleich(D.Spiel.VERSION, '0.13');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.12', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.13', v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
-  wahr(/Neu in v12/.test(readme), 'README Neu in v12');
-  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v12.md')), 'bau-bericht-v12.md');
+  wahr(/Neu in v13/.test(readme), 'README Neu in v13');
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
 });
 
 test('84 StummHinweis: Flag erst im Timeout, mind. 4 s sichtbar', function () {
@@ -2007,15 +2024,15 @@ test('96 Durchspiel-Bot Seeds 1/7/42 Hoch-Touch und Quer', function () {
   });
 });
 
-test('97 Versionen: VERSION 0.12, ?v=0.12, README v10, bau-bericht-v12', function () {
+test('97 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.12');
+  gleich(D.Spiel.VERSION, '0.13');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
-  vs.forEach(function (v) { gleich(v, '?v=0.12', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.13', v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
-  wahr(/Neu in v12/.test(readme), 'README Neu in v12');
-  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v12.md')), 'bau-bericht-v12.md');
+  wahr(/Neu in v13/.test(readme), 'README Neu in v13');
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
 });
 
 // ---------- v08 ----------
@@ -2056,7 +2073,7 @@ test('99 Overlays: Banner frei von Uhr/HUD/#oben; Hoch in Reserve; Quer-Blasen',
     R.touch = true; R.cssW = cssW; R.cssH = cssH;
     var t = neuesSpielTest(D); t.S.zustand = 'spiel';
     var nr = t.S.runden.runden[0]; nr.status = 'aktiv';
-    t.S.hilfe = 'E: Hotel Kesselblick';
+    t.S.hilfe = 'E: Jazz in the City';
     D.Hinweise.zeige(t.S.hinweise, 'Tobi: Lange Dialogzeile zum Stapeln und Breitentest.', 3, 'info');
     D.Render.zeichne(R, t.S);
     var uhr = R.hudUhr, rund = R.hudRunde, links = R.hudLinks;
@@ -2239,15 +2256,15 @@ test('106 Bot-Durchspiel Seeds 1/7/42 Hoch+Quer ohne Soft-Lock/…', function ()
   [1, 7, 42].forEach(function (s) { durch(s, true, 390, 844); durch(s, false, 667, 375); });
 });
 
-test('107 Versionen: VERSION 0.12, ?v=0.12, README v10, bau-bericht-v12', function () {
+test('107 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.12');
+  gleich(D.Spiel.VERSION, '0.13');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0);
-  vs.forEach(function (v) { gleich(v, '?v=0.12', v); });
-  wahr(/Neu in v12/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
-  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v12.md')));
+  vs.forEach(function (v) { gleich(v, '?v=0.13', v); });
+  wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
 
 // ---------- v09 ----------
@@ -2262,7 +2279,7 @@ test('108 Overlays Hoch: Reserve, Uhr frei, Banner/Blasen, →HIER', function ()
     R.touch = true; R.cssW = cssW; R.cssH = cssH;
     var t = neuesSpielTest(D); t.S.zustand = 'spiel';
     t.S.runden.runden[0].status = 'aktiv';
-    t.S.hilfe = 'E: Hotel Kesselblick';
+    t.S.hilfe = 'E: Jazz in the City';
     D.Hinweise.zeige(t.S.hinweise, 'Tobi: Dialogzeile eins und zwei.', 3, 'info');
     t.S.pfeil = { x: 100, y: 80 };
     D.Render.zeichne(R, t.S);
@@ -2313,7 +2330,7 @@ test('109 Overlays Quer: Uhr+Banner ≤38, Blasen unten, Hotel frei', function (
     var t = neuesSpielTest(D); t.S.zustand = 'spiel';
     t.S.kamera.viewW = R.VW; t.S.kamera.viewH = R.VH;
     t.S.runden.runden[0].status = 'aktiv';
-    t.S.hilfe = 'E: Hotel Kesselblick';
+    t.S.hilfe = 'E: Jazz in the City';
     D.Hinweise.zeige(t.S.hinweise, 'Dialogzeile zum Breitentest Querformat.', 3, 'info');
     D.Render.zeichne(R, t.S);
     var uhr = R.hudUhr, rund = R.hudRunde, links = R.hudLinks;
@@ -2602,16 +2619,16 @@ test('117 Bot Seeds 1/7/42 Hoch+Quer, Darstellung ändert Logik nicht', function
   wahr(/text:\s*'Kehrwoche'/.test(src), 'Kehrwoche gekürzt');
 });
 
-test('118 Versionen: VERSION 0.12, ?v=0.12, README v10, bau-bericht-v12', function () {
+test('118 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.12');
+  gleich(D.Spiel.VERSION, '0.13');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0);
-  vs.forEach(function (v) { gleich(v, '?v=0.12', v); });
-  wahr(/partikel\.js\?v=0\.12/.test(html), 'partikel eingebunden');
-  wahr(/Neu in v12/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
-  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v12.md')));
+  vs.forEach(function (v) { gleich(v, '?v=0.13', v); });
+  wahr(/partikel\.js\?v=0\.13/.test(html), 'partikel eingebunden');
+  wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
 
 // ---------- v10 ----------
@@ -3012,11 +3029,11 @@ test('132 Touch-Größen v10 ≥44 / Kreis ≥36', function () {
 
 test('133 Versionen v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.12');
+  gleich(D.Spiel.VERSION, '0.13');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.12', v); });
-  wahr(/Neu in v12/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
-  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v12.md')));
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.13', v); });
+  wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
 
 // ---------- Ausfuehren ----------
@@ -3157,6 +3174,333 @@ test('148 Touch: Joystick-Zone leitet kurzen Tipp an die Welt weiter (Handy-Ursa
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
   wahr(/function stickTipp/.test(main) && /stickWeg < 10/.test(main), 'kurzer Tipp im Stick wird weitergeleitet');
   wahr(/E\.klicks\(\)\.length\) \{ var kl/.test(main), 'updateSpiel wertet Klicks aus');
+});
+
+// ---------- v13: Version mittig, Raphael, Umbenennungen, Motocross, Tribüne ----------
+function tilesHashOber(st) {
+  var w = st.w, p = [];
+  for (var y = 0; y < 30; y++) for (var x = 0; x < w; x++) p.push(st.tiles[y * w + x]);
+  return p.join(',');
+}
+function shirtPink(hex) {
+  var h = String(hex).replace('#', '');
+  if (h.length !== 6) return false;
+  var r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return r > 200 && g < 120 && b > 80 && b < 200;
+}
+function hatRaphaelImLog(log) {
+  return log.some(function (s) { return s === 'Raphael' || (typeof s === 'string' && s.indexOf('Raphael') >= 0); });
+}
+function versionMitte(log, W) {
+  if (!log.meta) return null;
+  for (var i = 0; i < log.meta.length; i++) {
+    var m = log.meta[i];
+    if (m.text === 'v0.13' && m.align === 'center' && Math.abs(m.x - W / 2) <= 1 && !m.stroke) return m;
+  }
+  return null;
+}
+
+test('149 Versionen v13: VERSION, Cache-Buster, README, Bau-Bericht', function () {
+  var D = lade();
+  gleich(D.Spiel.VERSION, '0.13');
+  var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
+  wahr(/VERSION\s*=\s*['"]0\.13['"]/.test(main), 'main.js VERSION 0.13');
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  var vs = html.match(/\?v=([0-9.]+)/g) || [];
+  wahr(vs.length > 0, 'Cache-Buster');
+  vs.forEach(function (v) { gleich(v, '?v=0.13', v); });
+  wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v13');
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
+});
+
+test('150 Versionsanzeige mittig: Start/Spiel/Ende in drei Layouts', function () {
+  var D = lade();
+  var renderSrc = fs.readFileSync(path.join(ROOT, 'js', 'render.js'), 'utf8');
+  var va = renderSrc.match(/function versionsAnzeige[\s\S]*?^  \}/m);
+  wahr(va && va[0].indexOf('freiL') < 0 && va[0].indexOf('freiR') < 0, 'versionsAnzeige ohne freiL/freiR');
+  var layouts = [
+    { hoch: false, touch: false },
+    { hoch: true, touch: false },
+    { hoch: true, touch: true, cssW: 375, cssH: 667 }
+  ];
+  layouts.forEach(function (lay) {
+    ['start', 'spiel', 'ende'].forEach(function (z) {
+      var log = [], cv = mockCanvas(log), R = D.Render.erstelle(cv, cv.ownerDocument);
+      var h = lay.hoch ? D.Render.berechnePortH(lay.cssW || 375, lay.cssH || 667) : D.Render.BASE_H;
+      D.Render.setzeBildschirm(R, lay.hoch, { h: h, touch: lay.touch });
+      if (lay.touch) { R.touch = true; R.cssW = lay.cssW || 375; R.cssH = lay.cssH || 667; }
+      var t = neuesSpielTest(D);
+      if (z === 'ende') {
+        t.S.zustand = 'ende';
+        t.S.ende = { sieg: true, grund: '', wertung: { titel: 'x', medaille: '', kopf: 'ok' }, t: 0 };
+      } else if (z === 'spiel') { t.S.zustand = 'spiel'; }
+      else { t.S.zustand = 'start'; }
+      D.Render.zeichne(R, t.S);
+      wahr(!!versionMitte(log, R.W), 'v0.13 mittig @ ' + z + ' hoch=' + lay.hoch + ' touch=' + !!lay.touch);
+    });
+  });
+});
+
+test('151 Raphael: Charakterdaten, pinkes Shirt, Raffi-Alias', function () {
+  var D = lade();
+  var rap = D.Charaktere.holen('raphael');
+  gleich(rap.extra, 'kaeppi');
+  gleich(rap.haar, null);
+  wahr(shirtPink(rap.shirt), 'Raphael pink');
+  var pinkN = 0;
+  D.Charaktere.LISTE.forEach(function (c) { if (shirtPink(c.shirt)) pinkN++; });
+  gleich(pinkN, 1, 'genau ein pinkes Shirt');
+  wahr(!shirtPink(D.Charaktere.holen('ritzi').shirt), 'Ritzi nicht pink');
+  gleich(D.Charaktere.holen('Raffi').id, 'raphael');
+});
+
+test('152 Raphael zeichnen: figur alle Richtungen, kaeppi im Quelltext', function () {
+  var D = lade(), ch = D.Charaktere.holen('raphael'), log = [], c = mockCtx(log);
+  ['oben', 'unten', 'links', 'rechts'].forEach(function (dir) {
+    D.Render.figur(c, ch, 40, 40, { dir: dir, t: 0.5, pegel: 3 });
+  });
+  D.Render.figur(c, ch, 40, 40, { dir: 'unten', liegt: true, t: 0.2, pegel: 3 });
+  var src = fs.readFileSync(path.join(ROOT, 'js', 'render.js'), 'utf8');
+  wahr(/extra === 'kaeppi'/.test(src) && /ohneHaar/.test(src) && /haar == null/.test(src), 'kaeppi ohne Haar');
+});
+
+test('153 Namensschild: Raphael im Canvas-Log (Spieler und NPC)', function () {
+  var D = lade(), K = 16;
+  function zeichneSpiel(t, cx, cy) {
+    var log = [], cv = mockCanvas(log), R = D.Render.erstelle(cv, cv.ownerDocument);
+    D.Render.setzeBildschirm(R, false);
+    D.Kamera.sofort(t.S.kamera, cx, cy);
+    t.S.zustand = 'spiel';
+    D.Render.zeichne(R, t.S);
+    wahr(hatRaphaelImLog(log), 'Raphael gezeichnet');
+  }
+  var tr = neuesSpielTest(D, { figur: 'raphael' });
+  tr.Sp.setze(tr.S, { minute: 14 * 60 });
+  tr.S.spieler.x = 25 * K + 8; tr.S.spieler.y = 13 * K + 8;
+  zeichneSpiel(tr, tr.S.spieler.x, tr.S.spieler.y - 8);
+  var tt = neuesSpielTest(D);
+  tt.Sp.setze(tt.S, { minute: 14 * 60 });
+  var rap = tt.S.npcs.filter(function (n) { return n.id === 'raphael'; })[0];
+  wahr(rap, 'Raphael NPC');
+  rap.karteId = 'stadt'; rap.x = tt.S.spieler.x + 32; rap.y = tt.S.spieler.y;
+  zeichneSpiel(tt, tt.S.spieler.x, tt.S.spieler.y - 8);
+});
+
+test('154 Umbenennungen: NAMEN, Schilder, keine Kesselblick/Dachs-Treffer', function () {
+  var D = lade(), welt = D.Karte.erstelleWelt(D.RNG.erstelle(1));
+  gleich(D.Karte.NAMEN.kneipe, 'Sophies Brauhaus');
+  gleich(D.Karte.NAMEN.hotel, 'Jazz in the City');
+  gleich(D.Karte.NAMEN.restaurant, 'Gasthaus Maultäschle');
+  var hotel = welt.stadt.gebaeude.filter(function (b) { return b.id === 'hotel'; })[0];
+  var kneipe = welt.stadt.gebaeude.filter(function (b) { return b.id === 'kneipe'; })[0];
+  var rest = welt.stadt.gebaeude.filter(function (b) { return b.id === 'restaurant'; })[0];
+  gleich(D.Szene.bauplan(hotel).schildHaupt.text, 'JAZZ IN THE CITY');
+  gleich(D.Szene.bauplan(kneipe).schildHaupt.text, 'SOPHIES BRAUHAUS');
+  gleich(D.Szene.bauplan(rest).schildHaupt.text, 'GASTHAUS MAULTÄSCHLE');
+  var renderSrc = fs.readFileSync(path.join(ROOT, 'js', 'render.js'), 'utf8');
+  wahr(/SOPHIES BRAUHAUS/.test(renderSrc) && /JAZZ IN THE CITY/.test(renderSrc), 'SCHILD_NACHT_TEXTE');
+  var jsHits = 0;
+  fs.readdirSync(path.join(ROOT, 'js')).forEach(function (f) {
+    if (!/\.js$/.test(f)) return;
+    var t = fs.readFileSync(path.join(ROOT, 'js', f), 'utf8');
+    if (/Kesselblick/.test(t)) jsHits++;
+  });
+  gleich(jsHits, 0, 'js ohne Kesselblick');
+  wahr(!/Kesselblick/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README ohne Kesselblick');
+  var dachs = 0;
+  fs.readdirSync(path.join(ROOT, 'js')).forEach(function (f) {
+    if (!/\.js$/.test(f)) return;
+    fs.readFileSync(path.join(ROOT, 'js', f), 'utf8').split('\n').forEach(function (line) {
+      if (/Dachs/.test(line) && !/Dachschatten/.test(line)) dachs++;
+    });
+  });
+  gleich(dachs, 0, 'js ohne Dachs (ausser Dachschatten-Kommentar)');
+  var tk = welt.stadt.stationen.filter(function (s) { return s.id === 'tuer_kneipe'; })[0];
+  gleich(tk.label, D.Karte.NAMEN.kneipe);
+  gleich(kneipe.name, D.Karte.NAMEN.kneipe);
+  gleich(hotel.name, D.Karte.NAMEN.hotel);
+});
+
+test('155 hilfeText Hotel-Tür: Jazz in the City', function () {
+  var D = lade(), t = neuesSpielTest(D);
+  t.Sp.geheZuStation(t.S, 'stadt', 'tuer_hotel', t.X);
+  gleich(t.Sp.hilfeText(t.S), 'E: Jazz in the City');
+});
+
+test('156 Motocross Karte: tribuene, ERDE, Hügel, Pfad Seeds 1..20', function () {
+  var D = lade(), T = D.Karte.T;
+  for (var seed = 1; seed <= 20; seed++) {
+    var st = D.Karte.erstelleWelt(D.RNG.erstelle(seed)).stadt;
+    var trib = st.stationen.filter(function (s) { return s.typ === 'tribuene'; })[0];
+    wahr(!!trib, 'Tribüne seed ' + seed);
+    gleich(trib.id, 'tribuene');
+    gleich(trib.id.length, 8);
+    var z = {};
+    for (var i = 0; i < st.tiles.length; i++) z[st.tiles[i]] = (z[st.tiles[i]] || 0) + 1;
+    wahr(z[T.ERDE] > 0, 'ERDE');
+    wahr(z[T.HUEGEL] >= 3, 'HUEGEL');
+    wahr(st.blockiert(trib.x, trib.y), 'TRIBUENE blockiert');
+    var huegelOk = false;
+    for (var hi = 0; hi < st.tiles.length; hi++) if (st.tiles[hi] === T.HUEGEL && !st.blockiert(hi % st.w, Math.floor(hi / st.w))) huegelOk = true;
+    wahr(huegelOk, 'HUEGEL begehbar');
+    var umg = D.Karte.umgebung(st, trib);
+    wahr(umg.length > 0, 'Umgebung Tribüne');
+    var ok = umg.some(function (n) { return D.Pfad.suche(st, st.spawn.x, st.spawn.y, n.x, n.y); });
+    wahr(ok, 'Pfad Spawn→Tribüne seed ' + seed);
+  }
+  wahr(/tribuene:/.test(fs.readFileSync(path.join(ROOT, 'js', 'getraenke.js'), 'utf8')), 'getraenke tribuene');
+  wahr(/case 'tribuene'/.test(fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8')), 'main tribuene');
+});
+
+test('157 Seed-Stabilität: Oberkarte hash, Motocross ohne Deko/Bäume', function () {
+  var D = lade(), T = D.Karte.T;
+  var st1 = D.Karte.erstelleWelt(D.RNG.erstelle(1)).stadt;
+  var st2 = D.Karte.erstelleWelt(D.RNG.erstelle(1)).stadt;
+  var h1 = tilesHashOber(st1), h2 = tilesHashOber(st2);
+  gleich(h1, h2, 'gleicher Seed, gleicher Ober-Hash');
+  for (var y = 0; y < 30; y++) for (var x = 0; x < st1.w; x++) {
+    var t = st1.tile(x, y);
+    wahr(t < T.ERDE, 'y<30 keine Motocross-Tiles @ ' + x + ',' + y);
+  }
+  st1.deco.forEach(function (d) {
+    var tx = Math.floor(d.x / 16), ty = Math.floor(d.y / 16);
+    wahr(!(tx >= 27 && tx <= 38 && ty >= 31 && ty <= 44), 'keine Deko auf Piste');
+  });
+  for (var yy = 31; yy <= 44; yy++) for (var xx = 27; xx <= 38; xx++) {
+    var ti = st1.tile(xx, yy);
+    wahr(ti !== T.BAUM && ti !== T.BUSCH, 'Piste ohne Baum/Busch ' + xx + ',' + yy);
+  }
+});
+
+test('158 Tribüne Aktion: offen 14:00 Menü, 09:00 geschlossen', function () {
+  var D = lade(), t = neuesSpielTest(D);
+  t.Sp.geheZuStation(t.S, 'stadt', 'tribuene', t.X);
+  t.Sp.setze(t.S, { minute: 14 * 60 });
+  gleich(t.Sp.hilfeText(t.S), 'E: Bier auf der Tribüne');
+  wahr(t.Sp.kontext(t.S).aktion.label === 'Bier', 'Kontext Tribüne kurz: Bier');
+  t.Sp.aktion(t.S, t.X);
+  wahr(!!t.S.overlay && t.S.overlay.art === 'menue', 'Menü offen');
+  wahr(t.S.overlay.eintraege.some(function (e) { return e.daten === 'pils'; }), 'Pils im Menü');
+  var t2 = neuesSpielTest(D);
+  t2.Sp.geheZuStation(t2.S, 'stadt', 'tribuene', t2.X);
+  t2.Sp.setze(t2.S, { minute: 9 * 60 });
+  t2.Sp.aktion(t2.S, t2.X);
+  gleich(t2.S.overlay, null, 'kein Overlay zu');
+  var hin = D.Hinweise.aktuell(t2.S.hinweise);
+  wahr(hin && /geschlossen|Rennen vorbei/i.test(hin.text), 'Hinweis geschlossen');
+});
+
+test('159 Tribüne Pegel/Punkte: Pils, +30 einmal, Team +1 mit Freunden', function () {
+  var D = lade(), t = neuesSpielTest(D);
+  t.Sp.geheZuStation(t.S, 'stadt', 'tribuene', t.X);
+  t.Sp.setze(t.S, { minute: 14 * 60 });
+  t.Sp.aktion(t.S, t.X);
+  var peg0 = t.S.fig.pegel, pkt0 = t.S.punkte.punkte;
+  var pils = t.S.overlay.eintraege.filter(function (e) { return e.daten === 'pils'; })[0];
+  t.Sp.waehle(t.S, pils, t.X);
+  nah(t.S.fig.pegel, peg0 + 0.20 * t.S.char.trink, 0.02, 'Pegel Pils');
+  wahr(t.S.punkte.punkte >= pkt0 + 30, '+30 Punkte');
+  var pkt1 = t.S.punkte.punkte;
+  t.Sp.aktion(t.S, t.X);
+  var pils2 = t.S.overlay.eintraege.filter(function (e) { return e.daten === 'pils'; })[0];
+  t.Sp.waehle(t.S, pils2, t.X);
+  wahr(t.S.punkte.punkte < pkt1 + 30, 'zweites Pils ohne zweites +30');
+  var t3 = neuesSpielTest(D);
+  t3.Sp.geheZuStation(t3.S, 'stadt', 'tribuene', t3.X);
+  t3.Sp.setze(t3.S, { minute: 14 * 60, team: 3 });
+  t3.S.npcs.forEach(function (n, i) {
+    if (i < 2) { n.karteId = 'stadt'; n.x = t3.S.spieler.x + 20 + i * 8; n.y = t3.S.spieler.y; n.aktiv = true; n.liegt = false; }
+  });
+  t3.Sp.aktion(t3.S, t3.X);
+  t3.Sp.waehle(t3.S, t3.S.overlay.eintraege.filter(function (e) { return e.daten === 'pils'; })[0], t3.X);
+  gleich(t3.S.runden.team, 4, 'Team +1 mit Freunden');
+  gleich(D.Runden.PLAN.length, 6);
+});
+
+test('160 Tippen Tribüne: Weg zur Station, Menü oder geschlossen', function () {
+  var D = lade(), K = 16;
+  function tribMitte(t) {
+    var st = stationVon(t.S, 'tribuene');
+    return { x: (st.x + st.w / 2) * K, y: (st.y + 0.5) * K };
+  }
+  function laufeBis(t, maxS, pred) {
+    for (var i = 0; i < maxS * 30 && !pred(t); i++) schritt(t.S, t.Sp, t.X, 1 / 30);
+    return pred(t);
+  }
+  var t = neuesSpielTest(D); erledigt(t.S);
+  t.Sp.setze(t.S, { minute: 14 * 60 }); erledigt(t.S);
+  var m = tribMitte(t);
+  tippAuf(t, m.x, m.y);
+  wahr(!!t.S.tippWeg && t.S.tippWeg.aktion && t.S.tippWeg.aktion.art === 'station', 'tippWeg Station');
+  wahr(laufeBis(t, 25, function (x) { return !!x.S.overlay; }), 'Menü nach Ankunft 14:00');
+  var t2 = neuesSpielTest(D); erledigt(t2.S);
+  t2.Sp.setze(t2.S, { minute: 9 * 60 }); erledigt(t2.S);
+  m = tribMitte(t2);
+  tippAuf(t2, m.x, m.y);
+  wahr(laufeBis(t2, 25, function (x) {
+    var h = D.Hinweise.aktuell(x.S.hinweise);
+    return h && /geschlossen|Rennen vorbei/i.test(h.text);
+  }), 'geschlossen 09:00');
+  wahr(!t2.S.overlay, 'kein Menü zu');
+});
+
+test('161 Uhr Motocross: 11:00 zu, 13:00 offen, 20:00 zu', function () {
+  var D = lade(), U = D.Uhr;
+  wahr(!U.offen('motocross', 11 * 60));
+  wahr(U.offen('motocross', 13 * 60));
+  wahr(!U.offen('motocross', 20 * 60));
+});
+
+test('162 Zielmarker Hochformat: Ellipse größer, kein NaN', function () {
+  var D = lade(), t = neuesSpielTest(D);
+  t.S.zustand = 'spiel';
+  t.S.marker = { x: 200, y: 180, t: 0, nein: false };
+  function maxRadius(log) {
+    var mx = 0;
+    (log.ellipses || []).forEach(function (a) {
+      mx = Math.max(mx, a[2], a[3]);
+      [a[2], a[3]].forEach(function (n) { wahr(isFinite(n), 'Radius endlich'); });
+    });
+    return mx;
+  }
+  var logQ = [], Rq = D.Render.erstelle(mockCanvas(logQ), mockCanvas().ownerDocument);
+  D.Render.setzeBildschirm(Rq, false);
+  D.Kamera.sofort(t.S.kamera, 100, 100);
+  D.Render.zeichne(Rq, t.S);
+  var rq = maxRadius(logQ);
+  var logH = [], Rh = D.Render.erstelle(mockCanvas(logH), mockCanvas().ownerDocument);
+  D.Render.setzeBildschirm(Rh, true, { h: D.Render.berechnePortH(375, 667), touch: true });
+  Rh.touch = true;
+  D.Kamera.sofort(t.S.kamera, 100, 100);
+  D.Render.zeichne(Rh, t.S);
+  var rh = maxRadius(logH);
+  wahr(rh > rq, 'Hochformat-Marker größer');
+});
+
+test('163 Render-Smoke: Motocross-Kamera, drei Layouts, Start/Spiel/Ende', function () {
+  var D = lade(), K = 16;
+  var layouts = [
+    { hoch: false, touch: false },
+    { hoch: true, touch: false, cssW: 375, cssH: 667 },
+    { hoch: true, touch: true, cssW: 390, cssH: 844 }
+  ];
+  layouts.forEach(function (lay) {
+    ['start', 'spiel', 'ende'].forEach(function (z) {
+      var log = [], cv = mockCanvas(log), R = D.Render.erstelle(cv, cv.ownerDocument);
+      var h = lay.hoch ? D.Render.berechnePortH(lay.cssW, lay.cssH) : D.Render.BASE_H;
+      D.Render.setzeBildschirm(R, lay.hoch, { h: h, touch: lay.touch });
+      if (lay.touch) { R.touch = true; R.cssW = lay.cssW; R.cssH = lay.cssH; }
+      var t = neuesSpielTest(D, { seed: 1 });
+      if (z === 'ende') {
+        t.S.zustand = 'ende';
+        t.S.ende = { sieg: true, grund: '', wertung: { titel: 'x', medaille: '', kopf: 'ok' }, t: 0 };
+      } else if (z === 'spiel') {
+        t.S.zustand = 'spiel';
+        D.Kamera.sofort(t.S.kamera, 32 * K, 36 * K - 8);
+      }
+      D.Render.zeichne(R, t.S);
+    });
+  });
 });
 
 tests.forEach(function (t) {

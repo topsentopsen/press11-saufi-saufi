@@ -4,6 +4,14 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v13
+
+- Versionsanzeige mittig oben (oder unten, wenn das HUD die Mitte belegt).
+- Raphael pink mit Käppi und Glatze, Namensschild über dem Kopf. Ritzi jetzt lila.
+- Sophies Brauhaus (ex Kneipe), Hotel Jazz in the City.
+- Motocross-Park mit Tribüne, Piste, Öffnungszeiten 12 bis 20 Uhr und Zuschauer-Bier.
+- Zielmarker im Hochformat größer.
+
 ## Neu in v12
 
 - Tippen oder Klicken auf einen Punkt der Karte: Die Figur läuft per Wegsuche (A*) dorthin, wie in Finca.
@@ -140,7 +148,7 @@ Handy: Hoch- und Querformat. Joystick links unten, Aktion/Wasser rechts unten (S
 
 - Sieg: Um **04:00** stehst Du noch (Standfestigkeit über 0 und Teamstimmung über 0). Eine Runde dauert ca. 12 Minuten (36 Sekunden pro Spielstunde).
 - Niederlage: Du fällst um und hast kein zweites Leben, die Teamstimmung fällt auf 0 (alle gehen heim) oder Du bekommst dreimal Hausverbot an der Disko-Tür (Pegel über 2,5).
-- Vier Orte: Hotel Kesselblick, Gasthaus Maultäschle, Zum durstigen Dachs, Untergrund 07. Alle mit eigenen Öffnungszeiten (Hotel immer, Gasthaus 11:00 bis 23:00, Kneipe 14:00 bis 03:00, Disko 22:00 bis 04:00).
+- Vier Orte: Jazz in the City, Gasthaus Maultäschle, Sophies Brauhaus, Untergrund 07. Dazu Motocross-Park mit Tribüne. Öffnungszeiten: Hotel immer, Gasthaus 11:00 bis 23:00, Kneipe 14:00 bis 03:00, Disko 22:00 bis 04:00, Motocross 12:00 bis 20:00.
 - Sechs feste Mittrunden (10:00 Hotel, 12:30 Gasthaus, 15:30 Kneipe, 19:30 Gasthaus, 22:30 und 01:30 Disko). Eine Stunde vorher gibt es eine Warnung, nach dem Ausruf hast Du ca. 20 Sekunden Echtzeit, am Stammtisch zu stehen. Mittrinken, heimlich gegen Alkoholfrei tauschen (Risiko erwischt zu werden, höchstens 3 pro Runde) oder ablehnen (Strafe).
 - Essen senkt den Pegel und stärkt, Wasser hilft, Freunde die umfallen kannst Du mit Wasser wecken (Q).
 - Disko: im Takt tanzen füllt die Scooter-Leiste, bei voller Leiste zündet R den Boost für die ganze Truppe (Verluste halbiert, schneller).

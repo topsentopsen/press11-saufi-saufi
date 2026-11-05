@@ -16,7 +16,8 @@
     spender: ['wasser'],
     tresen_restaurant: ['radler', 'wasser', 'alkoholfrei'],
     tresen_kneipe: ['pils', 'radler', 'kurzer', 'wasser', 'alkoholfrei'],
-    bar_disko: ['pils', 'kurzer', 'wasser', 'alkoholfrei']
+    bar_disko: ['pils', 'kurzer', 'wasser', 'alkoholfrei'],
+    tribuene: ['pils', 'radler', 'alkoholfrei', 'wasser']
   };
   var PREIS_PUNKTE = { bar_disko: { wasser: 10 } };
 

@@ -128,7 +128,12 @@
         else if (t === T.LATERNE) list.push({ y: (y + 1) * K, x: x * K, w: K, art: 'laterne', lx: x, ly: y });
         else if (t === T.BANK) list.push({ y: (y + 1) * K, x: x * K, w: K, art: 'bank' });
         else if (t === T.BRUNNEN && karte.tile(x - 1, y) !== T.BRUNNEN && karte.tile(x, y - 1) !== T.BRUNNEN) list.push({ y: (y + 2) * K, x: x * K, w: 32, art: 'brunnen' });
+        else if (t === T.TRIBUENE && karte.tile(x - 1, y) !== T.TRIBUENE) {
+          var tw = 1; while (karte.tile(x + tw, y) === T.TRIBUENE) tw++;
+          list.push({ y: (y + 1) * K, x: x * K, w: tw * K, art: 'tribuene' });
+        }
       }
+      if (karte.id === 'stadt') list.push({ y: 39 * K, x: 26 * K + 4, w: 34, art: 'holzschild', text: 'Motocross' });
     }
     list.sort(function (a, b) { return a.y - b.y; });
     p = R.props[karte.id] = list; return p;
@@ -153,7 +158,8 @@
       for (var sd = 0; sd < 5; sd++) {
         var hx = hash(sd, 77), bx = 24 + (hx % (karte.pxW - 80)), by = yMin + 20 + ((hx >> 8) % Math.max(1, karte.pxH - yMin - 60));
         var kx = Math.floor(bx / K), ky = Math.floor(by / K);
-        if (karte.blockiert(kx, ky)) continue;
+        var tt = karte.tile(kx, ky), TT = Saufi.Karte.T;
+        if (karte.blockiert(kx, ky) || tt === TT.ERDE || tt === TT.HUEGEL || tt === TT.TRIBUENE || tt === TT.ABSPERR) continue;
         // Beet/Feldstreifen
         r(hc, bx, by, 28, 12, sd % 2 ? '#8a6a3a' : '#6e5430');
         r(hc, bx + 2, by + 2, 24, 1, '#5a4020'); r(hc, bx + 2, by + 5, 24, 1, '#5a4020'); r(hc, bx + 2, by + 8, 24, 1, '#5a4020');
@@ -230,7 +236,7 @@
       rr(c, x - 4, y - 6.6, 15, 6.4, ch.hose, 2.6, KONT, 0.85);
       rr(c, x - 8.6, y - 8.6, 12.4, 8, ch.shirt, 3, KONT, 0.85);
       kreis(c, x - 10.6, y - 5.6, 4.4, P.haut, KONT, 0.85);
-      c.beginPath(); c.arc(x - 10.6, y - 5.6, 4.6, Math.PI * 0.95, Math.PI * 1.9); c.fillStyle = ch.haar; c.fill();
+      c.beginPath(); c.arc(x - 10.6, y - 5.6, 4.6, Math.PI * 0.95, Math.PI * 1.9); c.fillStyle = ch.haar || (extra === 'kaeppi' ? '#ff4fa0' : P.haut); c.fill();
       linie(c, x - 12, y - 5.6, x - 10.6, y - 5.3, KONT, 0.6); linie(c, x - 9.8, y - 5.6, x - 8.6, y - 5.3, KONT, 0.6);
       rr(c, x + 9, y - 4.6, 3.4, 2.6, KONT, 1.2);
       textInBox(c, 'zZz', x - 12, y - 20 + Math.sin(t * 3), 16, 10, 8, { col: '#ffffff', ausr: 'center', kontur: P.kontur, min: 7 });
@@ -309,9 +315,10 @@
     kreis(c, hx, hy, 4.7, P.haut, KONT, 0.85);
     var gaHaut = c.globalAlpha; c.globalAlpha = gaHaut * 0.22; kreis(c, hx - 1.4, hy - 1.2, 1.6, '#ffffff'); c.globalAlpha = gaHaut;
     var mundKrit = pegel >= 3.0;
-    if (dir === 'oben') haare(c, ch, hx, hy, 'oben', extra);
+    var ohneHaar = ch.haar == null || extra === 'kaeppi';
+    if (dir === 'oben') { if (!ohneHaar) haare(c, ch, hx, hy, 'oben', extra); }
     else {
-      haare(c, ch, hx, hy, dir, extra);
+      if (!ohneHaar) haare(c, ch, hx, hy, dir, extra);
       if (seite) {
         kreis(c, hx + sg * 2.4, hy + 0.6, 0.75, '#3a2a40'); kreis(c, hx + sg * 4.8, hy + 1.2, 0.8, dunkler(P.haut, 0.08));
         if (mundKrit) textInBox(c, 'o', hx + sg * 1.2, hy + 0.6, 6, 6, 6, { col: '#7a2a3a', ausr: 'center', min: 5 });
@@ -345,6 +352,12 @@
       if (dir === 'unten') rr(c, hx - 4.4, hy - 1, 8.8, 1.8, '#0e0e14', 0.8); else if (dir !== 'oben') rr(c, hx + sg * 3.4 - (sg < 0 ? 4.4 : 0), hy - 0.8, 4.4, 1.6, '#0e0e14', 0.8);
       r(c, hx - 1.6, hy - 3.6, 3.2, 0.9, '#fff8ee');
     }
+    if (extra === 'kaeppi') {
+      c.beginPath(); c.arc(hx, hy - 0.6, 5.1, Math.PI, 0); c.closePath(); c.fillStyle = '#ff4fa0'; c.fill();
+      c.lineWidth = 0.6; c.strokeStyle = '#c03070'; c.stroke();
+      if (dir === 'unten') rr(c, hx - 4.6, hy - 1, 9.2, 1.8, '#fff8ee', 0.8); else if (dir !== 'oben') rr(c, hx + sg * 3.4 - (sg < 0 ? 4.6 : 0), hy - 0.8, 4.6, 1.6, '#fff8ee', 0.8);
+      r(c, hx - 1.4, hy - 3.4, 2.8, 0.8, '#fff8ee');
+    }
     if (extra === 'hut') {
       rr(c, hx - 7, hy - 1.8, 14, 1.8, '#1a1a22', 0.9); rr(c, hx - 4.2, hy - 6.8, 8.4, 5.4, '#1a1a22', 1.8); r(c, hx - 4.2, hy - 3.4, 8.4, 1, '#c9c3d6');
     }
@@ -354,6 +367,12 @@
     }
     if (extra === 'schuhe' && o.tanzt) kreis(c, hx, hy - 8, 0.8, '#ffd75e');
     if (torkelOn) c.restore();
+  }
+
+  function namensschild(c, name, x, y) {
+    var tw = Math.max(28, Math.min(52, String(name).length * 4.2 + 6));
+    rr(c, x - tw / 2, y - 5, tw, 10, '#fff8ee', 3, P.kontur, 0.7);
+    textInBox(c, name, x - tw / 2 + 1, y - 4, tw - 2, 8, 5.5, { col: P.uiTinte, ausr: 'center', min: 5, maxZeilen: 1 });
   }
 
   function blase(c, x, y, s, vermeide) {
@@ -456,6 +475,15 @@
       else if (d.art === 'laterne') { if (SH.a > 0.02) ellipse(c, px + 8 + SH.dx * 6, fy - 1, 5, 1.2, 'rgba(50,30,80,' + SH.a + ')'); Sz.zeichneSprite(R, c, 'laterne', 14, 28, 7, 26, px + 8, fy - 0.5, function (hc) { Sz.laterneBild(hc); }); }
       else if (d.art === 'bank') Sz.zeichneSprite(R, c, 'bank', 22, 18, 11, 16, px + 8, fy - 1, function (hc) { Sz.bankBild(hc); });
       else if (d.art === 'brunnen') { Sz.zeichneSprite(R, c, 'brunnen', 40, 42, 20, 36, px + 16, fy - 3, function (hc) { Sz.brunnenBild(hc); }); Sz.brunnenWasser(c, px + 16, fy - 3, t); }
+      else if (d.art === 'tribuene') {
+        for (var ti = 0; ti < 3; ti++) rr(c, px + 1, fy - 4 - ti * 6, d.w - 2, 5, ti % 2 ? '#8a6a4a' : '#a07850', 1.2, '#4a3560', 0.55);
+        rr(c, px - 1, fy - 22, 3, 22, '#6a6a72', 0.8); rr(c, px + d.w - 2, fy - 22, 3, 22, '#6a6a72', 0.8);
+      }
+      else if (d.art === 'holzschild') {
+        r(c, px + 15, fy - 14, 2, 14, '#6a4a30');
+        rr(c, px, fy - 22, 34, 10, '#c98b5e', 1.5, '#5a3a28', 0.7);
+        textInBox(c, d.text || 'Motocross', px + 1, fy - 21, 32, 8, 5.5, { col: '#fff8ee', ausr: 'center', min: 5, maxZeilen: 1 });
+      }
       else if (d.art === 'tram') { var tx = ((t * 14) % (karte.pxW + 160)) - 90 - cx; if (tx > -80 && tx < viewW + 10) Sz.strassenbahn(c, tx, 253 - cy, t); }
       else if (d.art === 'joint') zeichneJoint(c, d.x - cx + 8, d.ky - cy + 8, t);
       else if (d.art === 'tuersteher') figur(c, { id: 'tuersteher', shirt: '#14102a', hose: '#14102a', haar: '#14102a', extra: 'hut' }, d.x - cx, d.ky - cy, { dir: 'unten', t: t });
@@ -466,6 +494,7 @@
           schwips: n.fig.pegel > 1.5, tanzt: S.tanzBeat && !n.liegt, glas: S.prost > 0 && !n.liegt,
           pegel: n.fig.pegel, prost: S.prost
         });
+        if (n.char && n.char.id === 'raphael' && !n.liegt) namensschild(c, n.char.name, n.x - cx, n.y - cy - 28);
         if (n.blase && !n.liegt) {
           var vermeide = null;
           if (!karte.innen) karte.gebaeude.forEach(function (b) {
@@ -492,10 +521,18 @@
         });
         if (!sp.liegt) {
           var mx = sp.x - cx, my = sp.y - cy - 31 + Math.sin(t * 5) * 1.2;
+          if (ch.id === 'raphael') namensschild(c, ch.name, mx, my - 10);
           poly(c, [[mx - 3.2, my], [mx + 3.2, my], [mx, my + 4]], P.gold, P.kontur, 0.7);
         }
       }
     });
+    if (karte.id === 'stadt') {
+      for (var bi = 0; bi < 2; bi++) {
+        var ang = t * 0.7 + bi * Math.PI, bx = 32.5 * K + Math.cos(ang) * 4.4 * K, by = 37.5 * K + Math.sin(ang) * 4.8 * K;
+        kreis(c, bx - cx - 3, by - cy, 2.2, '#2a2a32'); kreis(c, bx - cx + 3, by - cy, 2.2, '#2a2a32');
+        rr(c, bx - cx - 5, by - cy - 4, 10, 4, bi ? '#ff4fa0' : '#4fe6ff', 1.2);
+      }
+    }
     // Effekte (Funken-Sterne, Schaum, Staub) — nur Weltpass
     (S.effekte || []).forEach(function (e) {
       var a = Math.max(0, e.rest / e.dauer), age = e.dauer - e.rest;
@@ -521,12 +558,12 @@
     var tint = tintFuer(S);
     c.globalCompositeOperation = 'multiply'; r(c, 0, 0, viewW, viewH, rgb(tint)); c.globalCompositeOperation = 'source-over';
     zeichneLichter(R, S, cx, cy, tint);
-    if (S.marker) {                                               // v12: Zielmarker wie Finca (rot = nicht erreichbar)
-      var mk = S.marker, mx = mk.x - cx, my = mk.y - cy, pu = 1 + 0.15 * Math.sin(mk.t * 8);
-      c.save(); c.globalAlpha = mk.nein ? Math.max(0, 1 - mk.t) : 0.9; c.lineWidth = 1.2; c.strokeStyle = mk.nein ? '#ff4d5e' : '#ffe066';
-      c.beginPath(); c.ellipse(mx, my + 2, 5 * pu, 2.6 * pu, 0, 0, Math.PI * 2); c.stroke();
-      if (mk.nein) { c.beginPath(); c.moveTo(mx - 3, my - 1); c.lineTo(mx + 3, my + 5); c.moveTo(mx + 3, my - 1); c.lineTo(mx - 3, my + 5); c.stroke(); }
-      else { c.fillStyle = '#ffe066'; c.beginPath(); c.moveTo(mx, my - 1 - Math.abs(Math.sin(mk.t * 5)) * 3); c.lineTo(mx - 2.5, my - 6 - Math.abs(Math.sin(mk.t * 5)) * 3); c.lineTo(mx + 2.5, my - 6 - Math.abs(Math.sin(mk.t * 5)) * 3); c.closePath(); c.fill(); }
+    if (S.marker) {                                               // v12: Zielmarker wie Finca (rot = nicht erreichbar); v13 Hochformat groesser
+      var mk = S.marker, mx = mk.x - cx, my = mk.y - cy, ms = R.hochkant ? 1.5 : 1, pu = 1 + 0.15 * Math.sin(mk.t * 8);
+      c.save(); c.globalAlpha = mk.nein ? Math.max(0, 1 - mk.t) : 0.9; c.lineWidth = 1.2 * ms; c.strokeStyle = mk.nein ? '#ff4d5e' : '#ffe066';
+      c.beginPath(); c.ellipse(mx, my + 2, 5 * ms * pu, 2.6 * ms * pu, 0, 0, Math.PI * 2); c.stroke();
+      if (mk.nein) { c.beginPath(); c.moveTo(mx - 3 * ms, my - 1 * ms); c.lineTo(mx + 3 * ms, my + 5 * ms); c.moveTo(mx + 3 * ms, my - 1 * ms); c.lineTo(mx - 3 * ms, my + 5 * ms); c.stroke(); }
+      else { c.fillStyle = '#ffe066'; c.beginPath(); c.moveTo(mx, my - 1 * ms - Math.abs(Math.sin(mk.t * 5)) * 3 * ms); c.lineTo(mx - 2.5 * ms, my - 6 * ms - Math.abs(Math.sin(mk.t * 5)) * 3 * ms); c.lineTo(mx + 2.5 * ms, my - 6 * ms - Math.abs(Math.sin(mk.t * 5)) * 3 * ms); c.closePath(); c.fill(); }
       c.restore();
     }
     // Blasen nach Lichtern (lesbar ueber Fensterlichtern)
@@ -548,9 +585,9 @@
   }
 
   var SCHILD_NACHT_TEXTE = {
-    hotel: { haupt: 'HOTEL KESSELBLICK', hauptCol: '#ffe9a8', nebenCol: '#ffe9a8' },
+    hotel: { haupt: 'JAZZ IN THE CITY', hauptCol: '#ffe9a8', nebenCol: '#ffe9a8' },
     restaurant: { haupt: 'GASTHAUS MAULTÄSCHLE', hauptCol: '#ffe9a8', nebenCol: '#ffe9a8' },
-    kneipe: { haupt: 'ZUM DURSTIGEN DACHS', hauptCol: '#ffe9a8', nebenCol: '#ffe9a8' },
+    kneipe: { haupt: 'SOPHIES BRAUHAUS', hauptCol: '#ffe9a8', nebenCol: '#ffe9a8' },
     disko: { haupt: 'UNTERGRUND 07', hauptCol: '#7ff6ff', nebenCol: '#7ff6ff' }
   };
   function schildNachtSprite(R, key, w, h, text, col, size) {
@@ -993,6 +1030,16 @@
     }
   }
 
+  function versionsAnzeige(R) {
+    var c = R.ctx, txt = 'v' + Saufi.Spiel.VERSION, y = 2;
+    var weltH = (R.weltH != null && R.hochkant) ? R.weltH : H;
+    if (R.hudUhr && R.hudUhr.y < (R.hochkant && R.weltH != null ? R.weltH : 40)) {
+      y = Math.max(2, weltH - 10);
+      if (R.hudHilfe && R.hudHilfe.y < y + 10 && R.hudHilfe.y + R.hudHilfe.h > y) y = Math.max(2, R.hudHilfe.y - 10);
+    }
+    textInBox(c, txt, W / 2 - 20, y, 40, 8, 6, { col: '#fff8ee', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
+  }
+
   function startBild(R, S) {
     var c = R.ctx, t = S.t;
     Sz.kesselSzene(c, W, H, 8 + (t * 0.35) % 20, t);                    // Tageslauf im Hintergrund
@@ -1019,6 +1066,7 @@
     var footY = ey + 2 * (rowH + rowGap);
     textInBox(c, S.best ? 'Bestwert: ' + S.best + ' Punkte' : 'Ab 18 · Fiktives Spaß-Spiel', 20, footY, W - 40, 11, 7, { col: '#fff3c8', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
     textInBox(c, 'Tippen zum Start', 20, footY + 12, W - 40, 11, 7, { col: '#ffe9a8', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
+    versionsAnzeige(R);
   }
 
   function endeBild(R, S) {
@@ -1089,6 +1137,7 @@
     textInBox(c, btnLabel, bxBtn + 4, byBtn + 1, bwBtn - 8, btnH - 2, 8, { col: P.uiTinte, ausr: 'center', maxZeilen: 1 });
     R.treffer = [];
     R.treffer.push({ x: bxBtn, y: byBtn, w: bwBtn, h: btnH, i: 0 });
+    versionsAnzeige(R);
   }
 
   function pressFBild(R, S) {
@@ -1262,6 +1311,7 @@
     }
     c.restore();
     hud(R, S);
+    versionsAnzeige(R);
     if (S.zustand === 'umgefallen') pressFBild(R, S);
     if (S.overlay) {
       if (S.overlay.art === 'playlist') playlistBild(R, S);

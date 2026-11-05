@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.12', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.13', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function neuesSpiel(opt) {
@@ -22,7 +22,7 @@
       effekte: [], hilfe: '', pfeil: null, ende: null, pressF: null, hausverbote: 0, letzteStunde: Math.floor(Saufi.Uhr.START / 60), spontan: { zuletzt: -999, anzahl: 0, aktiv: null }, ortSek: 0, prost: 0, tanzBeat: false,
       sprechT: 4, aufnahmeWartet: [], ruhig: !!opt.ruhig, treffer: [], panel: null, musikInfo: { quelle: 'webaudio', aktiv: 'webaudio', spielt: false, youtubeVerfuegbar: false, hinweis: '' },
       best: opt.best || 0, speicher: opt.speicher || null, doppelt: false, stummAn: false, neustart: false, spielSek: 0, stats: { getrunken: 0, gegessen: 0, getauscht: 0, geweckt: 0 },
-      pannen: Saufi.Ereignisse.erstellePannen()
+      pannen: Saufi.Ereignisse.erstellePannen(), motocross: { zuletzt: -999 }
     };
     S.licht = Saufi.Uhr.licht(S.uhr);
     Saufi.NPCs.uebergang(S.npcs, welt.stadt, sp.x / K | 0, (sp.y / K | 0));
@@ -238,6 +238,7 @@
         if (e.preis && S.punkte.punkte < e.preis) { sag(S, 'Zu wenig Punkte für ' + Saufi.Getraenke.LISTE[e.daten].label + '.', 2, 'schlecht'); break; }
         if (e.preis) Saufi.Punkte.add(S.punkte, -e.preis, 'Wasser');
         trinke(S, e.daten, X); S.overlay = null;
+        tribueeneZuschauer(S, e.daten);
         sag(S, e.daten === 'alkoholfrei' ? 'Alkoholfrei. Sieht aus wie Bier. Pegel unverändert.' : Saufi.Getraenke.LISTE[e.daten].label + ': Pegel ' + Saufi.Pegel.anzeige(S.fig.pegel) + ' ‰', 2, 'info');
         break;
       case 'essen':
@@ -429,7 +430,33 @@
       case 'flasche':
         if (S.flascheGenommen) sag(S, 'Hier liegt nichts mehr.', 1.5, 'info'); else { S.flascheGenommen = true; S.flaschen = Math.min(3, S.flaschen + 1); sag(S, 'Wasserflasche gefunden (' + S.flaschen + '/3).', 2, 'gut'); T.pling(); }
         break;
+      case 'tribuene':
+        if (!Uhr.offen('motocross', m)) {
+          sag(S, 'Tribüne geschlossen. Rennen vorbei.', 2.5, 'info');
+          sp.sitzt = true; sp.vx = 0; sp.vy = 0;
+          return;
+        }
+        getraenkeMenue(S, st);
+        break;
     }
+  }
+
+  // Zuschauerrunde an der Tribuene: einmal pro 90 Spielminuten +30, Team +1 bei mind. 2 Freunden nah
+  function tribueeneZuschauer(S, id) {
+    var def = Saufi.Getraenke.LISTE[id];
+    if (!def || !def.alk || S.ort !== 'stadt') return;
+    var st = Saufi.Karte.nahe(S.karte, S.spieler.x, S.spieler.y - 2, 14);
+    if (!st || st.typ !== 'tribuene') return;
+    if (!S.motocross) S.motocross = { zuletzt: -999 };
+    var m = minute(S);
+    if (m - S.motocross.zuletzt < 90) return;
+    S.motocross.zuletzt = m;
+    Saufi.Punkte.add(S.punkte, 30, 'Tribüne');
+    var freunde = 0;
+    S.npcs.forEach(function (n) {
+      if (n.aktiv && !n.liegt && n.karteId === 'stadt' && Math.hypot(n.x - S.spieler.x, n.y - S.spieler.y) <= 64) freunde += 1;
+    });
+    if (freunde >= 2) Saufi.Runden.teamAendern(S.runden, 1);
   }
 
   function minispielMenue(S) {
@@ -484,6 +511,7 @@
     var sp = S.spieler, B = Saufi.Ereignisse.Boost, r = {};
     var h = hilfeText(S), m = /^E: (.+)$/.exec(h || '');
     r.aktion = m ? { label: m[1].replace(' (im Takt!)', ''), an: true } : { label: 'E', an: true };
+    if (m) { var KN = Saufi.Karte.NAMEN, KK = Saufi.Karte.KURZ; Object.keys(KN).forEach(function (o) { if (r.aktion.label === KN[o] && KK[o]) r.aktion.label = KK[o]; }); if (r.aktion.label === 'Bier auf der Tribüne') r.aktion.label = 'Bier'; }   // kurze Knopftexte
     var lieg = Saufi.NPCs.naechsterLiegender(S.npcs, S.ort, sp.x, sp.y, Saufi.NPCs.WECK_REICHWEITE);
     if (lieg) r.wasser = { label: 'Wecken', an: S.flaschen > 0, flaschen: S.flaschen };
     else if (S.pannen && S.pannen.aktiv && S.pannen.aktiv.def.loesung === 'wasser') r.wasser = { label: 'Wasser!', an: S.flaschen > 0, flaschen: S.flaschen };
@@ -501,7 +529,7 @@
     if (!st) return '';
     var t = { tuer: 'E: ' + (st.label || 'Tür'), ausgang: 'E: Hinaus', buffet: 'E: Frühstück', kueche: 'E: Essen bestellen', spender: 'E: Wasser', tresen_restaurant: 'E: Bestellen', tresen_kneipe: 'E: Bestellen',
       bar_disko: 'E: Bestellen', stammtisch: Saufi.Runden.aktive(S.runden) && Saufi.Runden.aktive(S.runden).ort === S.ort ? 'E: PROST!' : 'E: Stammtisch', sofa: 'E: Ausruhen', bank: 'E: Ausruhen', tanz: 'E: Tanzen (im Takt!)',
-      jukebox: 'E: Musik', joint: 'E: Aufheben', flasche: 'E: Aufheben' }[st.typ];
+      jukebox: 'E: Musik', joint: 'E: Aufheben', flasche: 'E: Aufheben', tribuene: 'E: Bier auf der Tribüne' }[st.typ];
     return t || '';
   }
   function berechnePfeil(S) {

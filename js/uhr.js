@@ -28,8 +28,8 @@
   }
 
   // Oeffnungszeiten [von, bis) in Minuten. Hotel immer, Restaurant 11-23 (Tresen bis 01:00, Kueche bis 22:00),
-  // Kneipe 14-03, Partykeller 22-04.
-  var OFFEN = { hotel: [0, 99999], restaurant: [11 * 60, 23 * 60], kneipe: [14 * 60, 27 * 60], disko: [22 * 60, 28 * 60 + 1] };
+  // Kneipe 14-03, Partykeller 22-04, Motocross-Rennen 12-20.
+  var OFFEN = { hotel: [0, 99999], restaurant: [11 * 60, 23 * 60], kneipe: [14 * 60, 27 * 60], disko: [22 * 60, 28 * 60 + 1], motocross: [12 * 60, 20 * 60] };
   function offen(ort, minute) { var o = OFFEN[ort]; return !o ? true : (minute >= o[0] && minute < o[1]); }
   // Wer schon drin ist, darf am Tresen bleiben, bis auch das zu ist.
   function tresenOffen(ort, minute) { return ort === 'restaurant' ? (minute >= OFFEN.restaurant[0] && minute < 25 * 60) : offen(ort, minute); }

@@ -9,15 +9,16 @@
     GRAS: 0, WEG: 1, PFLASTER: 2, STRASSE: 3, WASSER: 4, BRUECKE: 5, MAUER: 6, REBEN: 7, BAUM: 8, LATERNE: 9, BRUNNEN: 10, BANK: 11,
     STAEFFELE: 12, GEB: 13, TUER: 14, BUSCH: 15,
     BODEN: 20, WAND: 21, TRESEN: 22, TISCH: 23, SOFA: 24, BUFFET: 25, SPENDER: 26, TANZ: 27, DJ: 28, JUKEBOX: 29, PFLANZE: 30,
-    TEPPICH: 31, KUECHE: 32, AUSGANG: 33, KICKER: 34, TERRASSE: 35
+    TEPPICH: 31, KUECHE: 32, AUSGANG: 33, KICKER: 34, TERRASSE: 35,
+    ERDE: 36, HUEGEL: 37, TRIBUENE: 38, ABSPERR: 39
   };
   var BLOCK = {};
   [T.WASSER, T.MAUER, T.REBEN, T.BAUM, T.LATERNE, T.BRUNNEN, T.BANK, T.GEB, T.TUER, T.BUSCH, T.WAND, T.TRESEN, T.TISCH, T.SOFA, T.BUFFET,
-    T.SPENDER, T.DJ, T.JUKEBOX, T.PFLANZE, T.KUECHE, T.AUSGANG, T.KICKER].forEach(function (t) { BLOCK[t] = true; });
+    T.SPENDER, T.DJ, T.JUKEBOX, T.PFLANZE, T.KUECHE, T.AUSGANG, T.KICKER, T.TRIBUENE, T.ABSPERR].forEach(function (t) { BLOCK[t] = true; });
 
   var ORTE = ['hotel', 'restaurant', 'kneipe', 'disko'];
-  var NAMEN = { hotel: 'Hotel Kesselblick', restaurant: 'Gasthaus Maultäschle', kneipe: 'Zum durstigen Dachs', disko: 'Untergrund 07' };
-  var KURZ = { hotel: 'Kesselblick', restaurant: 'Maultäschle', kneipe: 'Dachs', disko: 'Untergrund' };
+  var NAMEN = { hotel: 'Jazz in the City', restaurant: 'Gasthaus Maultäschle', kneipe: 'Sophies Brauhaus', disko: 'Untergrund 07', motocross: 'Motocross-Park' };
+  var KURZ = { hotel: 'Jazz', restaurant: 'Maultäschle', kneipe: 'Brauhaus', disko: 'Untergrund', motocross: 'Motocross' };
 
   function neueKarte(id, w, h, fill, innen) {
     var k = {
@@ -68,13 +69,13 @@
     [[10, 8], [19, 8], [10, 13], [19, 13]].forEach(function (p) { k.setze(p[0], p[1], T.LATERNE); });
     // Hauptstrasse
     k.rect(0, 14, 40, 2, T.STRASSE);
-    // Hotel Kesselblick (oben rechts) mit Hotelallee
+    // Hotel Jazz in the City (oben rechts) mit Hotelallee
     bauwerk(k, 'hotel', 22, 7, 8, 5, 25);
     k.rect(24, 12, 3, 2, T.PFLASTER);
     // Gasthaus Maeultaeschle (links)
     bauwerk(k, 'restaurant', 2, 8, 7, 5, 5);
     k.rect(4, 13, 3, 1, T.PFLASTER);
-    // Kneipe Dachs (rechts, suedlich der Strasse) mit Kesselgasse und Dachsgasse
+    // Sophies Brauhaus (rechts, suedlich der Strasse) mit Kesselgasse und Brauhausgasse
     bauwerk(k, 'kneipe', 30, 17, 7, 4, 33);
     k.rect(27, 16, 2, 6, T.WEG);
     k.rect(27, 21, 11, 1, T.WEG);
@@ -148,8 +149,37 @@
     // Hauptweg-Suedspine nach Reben/streue: x=25 durchgaengig, Querweg y=52 zum Suedpark
     for (var sy = 46; sy <= 57; sy++) k.setze(25, sy, T.WEG);
     k.rect(11, 52, 15, 1, T.WEG);
+    // Motocross-Park (Ostseite y 31..44, x 27..38) nach streue, damit Seeds oben stabil bleiben
+    baueMotocross(k);
     k.spawn = { x: 25, y: 13 };
     return k;
+  }
+
+  function baueMotocross(k) {
+    var x, y, cx = 32.5, cy = 37.5;
+    k.rect(26, 38, 2, 1, T.WEG);                                       // Querweg nach Osten zum Eingang
+    for (y = 31; y <= 44; y++) for (x = 27; x <= 38; x++) {
+      var dx = (x + 0.5) - cx, dy = (y + 0.5) - cy;
+      var rx = dx / 5.2, ry = dy / 5.8, d2 = rx * rx + ry * ry;
+      var rand = (x === 27 || x === 38 || y === 31 || y === 44);
+      var eingang = (x === 27 && y >= 37 && y <= 39);
+      if (rand && !eingang) k.setze(x, y, T.ABSPERR);
+      else if (d2 >= 0.42 && d2 <= 0.92) k.setze(x, y, T.ERDE);
+      else k.setze(x, y, T.GRAS);
+    }
+    // Drei Huegel/Spruenge auf der Piste (begehbar)
+    k.setze(30, 34, T.HUEGEL); k.setze(35, 37, T.HUEGEL); k.setze(31, 41, T.HUEGEL);
+    // Tribuene Nordseite, Nachbarkacheln frei (Piste/Gras)
+    k.rect(28, 32, 4, 1, T.TRIBUENE);
+    k.station('tribuene', 'tribuene', 28, 32, 4, 1, 'Tribüne');
+    // Eingang offen halten und Weganschluss
+    k.setze(27, 38, T.WEG); k.setze(26, 38, T.WEG);
+    k.setze(28, 38, T.ERDE);
+    // Keine Blumen/Baeume auf der Piste; Laterne (32,40) ist ueberschrieben
+    k.deco = k.deco.filter(function (d) {
+      var tx = Math.floor(d.x / K), ty = Math.floor(d.y / K);
+      return !(tx >= 27 && tx <= 38 && ty >= 31 && ty <= 44);
+    });
   }
 
   // ---------------------------------------------------------------- Innenraeume

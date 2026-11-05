@@ -202,7 +202,7 @@
 
   // ---------- Boden-Kacheln ----------
   function nbT(karte, x, y, t) { return [karte.tile(x - 1, y) === t, karte.tile(x + 1, y) === t, karte.tile(x, y - 1) === t, karte.tile(x, y + 1) === t]; }
-  var GRUND = {}; GRUND[0] = 1; GRUND[1] = 1; GRUND[2] = 1; GRUND[3] = 1;
+  var GRUND = {}; GRUND[0] = 1; GRUND[1] = 1; GRUND[2] = 1; GRUND[3] = 1; GRUND[36] = 1; GRUND[37] = 1;
   function grundTyp(karte, x, y) {
     var T = Saufi.Karte.T, ns = [[0, 1], [0, -1], [-1, 0], [1, 0]];
     for (var i = 0; i < ns.length; i++) { var t = karte.tile(x + ns[i][0], y + ns[i][1]); if (GRUND[t]) return t; }
@@ -298,6 +298,44 @@
     }
     r(c, sx, sy, 1.2, K, '#8a7c9c'); r(c, sx + K - 1.2, sy, 1.2, K, '#8a7c9c');   // Gelaender
   }
+  function erde(c, sx, sy, hs) {
+    var hell = (hs % 3) !== 2;
+    vlauf(c, sx, sy, K, K, hell ? '#c4a078' : '#b89268', hell ? '#a88858' : '#987848');
+    for (var i = 0; i < 6; i++) {
+      var hh = hash(hs, i + 40), px = sx + 1 + hh % 14, py = sy + 1 + (hh >> 4) % 14;
+      ellipse(c, px, py, 1.1 + (hh % 2) * 0.4, 0.85, 'rgba(90,60,40,0.24)');
+    }
+    if (hs % 4 === 0) {
+      r(c, sx + 2, sy + K - 3, 10, 1.4, 'rgba(70,50,35,0.32)'); r(c, sx + 5, sy + K - 5, 8, 1.1, 'rgba(70,50,35,0.26)');
+    }
+  }
+  function huegel(c, sx, sy, hs) {
+    erde(c, sx, sy, hs);
+    poly(c, [[sx, sy + K], [sx, sy + 1.5], [sx + K, sy + K - 3.5], [sx + K, sy + K]], 'rgba(255,248,235,0.14)');
+    poly(c, [[sx, sy + K], [sx + K - 1, sy + 5], [sx + K, sy + K]], 'rgba(35,28,22,0.32)');
+    linie(c, sx + 0.5, sy + 2.5, sx + K - 1, sy + K - 4.5, 'rgba(85,65,45,0.5)', 0.85);
+    if (hs % 2 === 0) ellipse(c, sx + 5, sy + 6, 2.8, 1.3, 'rgba(105,80,55,0.28)');
+  }
+  function tribueeneBoden(c, sx, sy, hs) {
+    pflaster(c, sx, sy, hs);
+    for (var i = 0; i < 3; i++) {
+      var by = sy + 2.5 + i * 4.2;
+      r(c, sx + 1, by, K - 2, 2.6, hash(hs, i) % 2 ? '#9a7656' : '#8a6a4a');
+      r(c, sx + 1, by + 2.4, K - 2, 0.45, 'rgba(50,35,25,0.38)');
+    }
+  }
+  function absperrung(c, sx, sy, hs) {
+    pflaster(c, sx, sy, hs);
+    [sx + 2.5, sx + K - 5].forEach(function (px) {
+      rr(c, px, sy + 1.5, 2.4, K - 2.5, '#9a9a9a', 0.5, '#5a5a5a', 0.55);
+      kreis(c, px + 1.2, sy + 2.2, 0.9, '#b8b8b8', '#666', 0.4);
+    });
+    for (var s = 0; s < 4; s++) {
+      var ty = sy + 4.5 + s * 2.2, col = s % 2 ? '#f0d020' : '#2a2a2a';
+      linie(c, sx + 1, ty, sx + K - 1, ty, col, 1.1);
+    }
+    linie(c, sx + 1, sy + 4, sx + K - 1, sy + K - 2, 'rgba(240,208,32,0.35)', 0.6);
+  }
   function bodenKachel(c, karte, typ, x, y, sx, sy, hs) {
     var T = Saufi.Karte.T;
     if (typ === T.WEG) weg(c, sx, sy, hs);
@@ -314,6 +352,10 @@
     else if (t === T.MAUER) mauer(c, sx, sy, hs);
     else if (t === T.REBEN) reben(c, sx, sy, hs);
     else if (t === T.STAEFFELE) staeffele(c, sx, sy);
+    else if (t === T.ERDE) erde(c, sx, sy, hs);
+    else if (t === T.HUEGEL) huegel(c, sx, sy, hs);
+    else if (t === T.TRIBUENE) tribueeneBoden(c, sx, sy, hs);
+    else if (t === T.ABSPERR) absperrung(c, sx, sy, hs);
     else bodenKachel(c, karte, t === T.BRUNNEN || t === T.BANK ? T.PFLASTER : (t === T.LATERNE || t === T.BAUM || t === T.BUSCH ? grundTyp(karte, x, y) : T.GRAS), x, y, sx, sy, hs);
   }
 
@@ -361,7 +403,7 @@
       // Zwischen Fensterreihen auf dem Gesims (volle Breite, 1 Zeile ≥ 5,5 px) — Quelle fuer Zeichnung
       // ≥ 7 CSS-px im Hoch nicht erreichbar ohne Fenster-Overlap → Text „Kehrwoche“
       plan.schildNeben = { x: x0 + (w - 56) / 2, y: y0 + 42.3, w: 56, h: 6.4, text: 'Kehrwoche' };
-      plan.schildHaupt = { x: x0 + w / 2, y: y0 + 14, w: Math.min(w - 8, 112), h: 14, text: 'HOTEL KESSELBLICK' };
+      plan.schildHaupt = { x: x0 + w / 2, y: y0 + 14, w: Math.min(w - 8, 112), h: 14, text: 'JAZZ IN THE CITY' };
     } else if (b.id === 'restaurant') {
       for (i = 0; i < 3; i++) plan.fenster.push({ x: x0 + 8 + i * 34 + (i > 0 ? 10 : 0), y: y0 + 30, w: 14, h: 14 });
       plan.fenster.push({ x: x0 + 8, y: y0 + 54, w: 14, h: 14 }); plan.fenster.push({ x: x0 + w - 24, y: y0 + 54, w: 14, h: 14 });
@@ -371,7 +413,7 @@
       plan.neon.push({ x: x0 + w / 2 - 18, y: y0 + 16, w: 36, h: 4, farbe: P.neonGelb });
       // Feinstaub auf Markisen-Band (oben); NPC-Schlange vor der Tuer (unter Markise) — kein Overlap
       plan.schildNeben = { x: x0 + w / 2 - 30, y: y0 + 38, w: 60, h: 10, text: 'Feinstaub drin' };
-      plan.schildHaupt = { x: x0 + w / 2, y: y0 + 8, w: Math.min(w - 8, 108), h: 14, text: 'ZUM DURSTIGEN DACHS' };
+      plan.schildHaupt = { x: x0 + w / 2, y: y0 + 8, w: Math.min(w - 8, 108), h: 14, text: 'SOPHIES BRAUHAUS' };
       plan.npcZone = { x: tx - 24, y: Math.max(ty + 2, plan.schildNeben.y + plan.schildNeben.h + 2), w: K + 48, h: K + 14 };
     } else if (b.id === 'disko') {
       plan.neon.push({ x: x0 + 8, y: y0 + 18, w: w - 16, h: 3, farbe: P.neonPink });
@@ -503,11 +545,14 @@
       c.beginPath(); c.arc(ax + 6.5, my + 3, 7, 0, Math.PI); c.fillStyle = i % 2 ? '#fff8ee' : '#3f9a5e'; c.fill();
     }
     r(c, x0 + 3, my - 5, w - 6, 1.6, '#2f6a3f');
-    // Dachs-Schild (Kreis mit Streifen)
+    // Bierkrug-Emblem (Kreis mit Krug und Hopfen)
     var sx = x0 + w - 12, sy = y0 + 34;
     r(c, sx - 7, sy - 8, 7, 1.2, '#3a2a30'); kreis(c, sx, sy, 6, '#f4f1ee', '#3a2a30', 0.8);
-    ellipse(c, sx, sy + 0.8, 4, 3.4, '#8a8a96'); poly(c, [[sx - 0.8, sy - 4], [sx + 0.8, sy - 4], [sx + 1.4, sy + 4], [sx - 1.4, sy + 4]], '#f4f1ee');
-    kreis(c, sx - 2, sy - 1, 0.6, '#222'); kreis(c, sx + 2, sy - 1, 0.6, '#222'); kreis(c, sx, sy + 2.6, 0.9, '#222');
+    rr(c, sx - 2.1, sy - 0.8, 4.2, 5.2, '#c8864a', 1.1, '#3a2a30', 0.45);
+    r(c, sx - 1.8, sy - 0.8, 3.6, 1.1, '#fff8ee');
+    poly(c, [[sx + 2.1, sy + 0.2], [sx + 4.2, sy + 0.6], [sx + 4.1, sy + 3.2], [sx + 2.1, sy + 2.8]], '#b87840', '#3a2a30', 0.45);
+    poly(c, [[sx - 1.2, sy - 3.8], [sx, sy - 5.2], [sx + 1.2, sy - 3.8], [sx + 0.4, sy - 2.2], [sx - 0.4, sy - 2.2]], '#6fae6a');
+    linie(c, sx - 0.3, sy - 4.6, sx + 0.3, sy - 2.5, '#5a9a5e', 0.55);
     // Kreidetafel
     rr(c, d.x + d.w + 4, d.y + 3, 9, 12, '#3a3a40', 1, '#8a5a3a', 0.9); linie(c, d.x + d.w + 6, d.y + 7, d.x + d.w + 11, d.y + 7, '#fff8ee', 0.5); linie(c, d.x + d.w + 6, d.y + 10, d.x + d.w + 10, d.y + 10, '#fff8ee', 0.5);
     var shK = p.schildHaupt; schildGeb(c, shK.x, shK.y, shK.w, shK.h, '#2f6a3f', '#ffe9a8', shK.text, 11, '#d9b86a');
