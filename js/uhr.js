@@ -1,10 +1,10 @@
-/* Spieluhr Samstag 08:00 bis Sonntag 04:00, 36 s Echtzeit pro Spielstunde, Licht pro Uhrzeit, Oeffnungszeiten.
+/* Spieluhr Samstag 08:00 bis Sonntag 04:00, 48 s Echtzeit pro Spielstunde (ca. 16 Min Spielzeit), Licht pro Uhrzeit, Oeffnungszeiten.
    Zeit ist intern in Minuten seit Samstag 00:00 (08:00 = 480, Sonntag 04:00 = 1680). */
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
 
-  var START = 8 * 60, ENDE = 28 * 60, SEK_PRO_STUNDE = 36;
+  var START = 8 * 60, ENDE = 28 * 60, SEK_PRO_STUNDE = 48;
 
   function erstelle(tempo) { return { minute: START, tempo: tempo > 0 ? tempo : 1 }; }
 

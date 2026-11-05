@@ -115,12 +115,18 @@
     for (var i = h.liste.length - 1; i >= 0; i--) { h.liste[i].rest -= dt; if (h.liste[i].rest <= 0) h.liste.splice(i, 1); }
   }
   function aktuell(h) { return h.liste.length ? h.liste[h.liste.length - 1] : null; }
+  // Entfernt Hinweise, deren Text mit praefix beginnt (z. B. "Feierabend" beim Ortswechsel)
+  function entferne(h, praefix) {
+    for (var i = h.liste.length - 1; i >= 0; i--) {
+      if (String(h.liste[i].text || '').indexOf(praefix) === 0) h.liste.splice(i, 1);
+    }
+  }
 
   Saufi.Hinweise = {
     TITEL: TITEL, HINWEIS_VOLL: HINWEIS_VOLL, HINWEIS_START: HINWEIS_START, DANKE: DANKE,
     SHOUTS: SHOUTS, PROST: PROST, STAND_WEG: STAND_WEG, SPRUECHE: SPRUECHE,
     FIGUR: FIGUR, SITUATION: SITUATION, ORT: ORT, PEGEL: PEGEL,
     pegelStufe: pegelStufe, lallen: lallen, spruch: spruch,
-    erstelle: erstelle, zeige: zeige, update: update, aktuell: aktuell
+    erstelle: erstelle, zeige: zeige, update: update, aktuell: aktuell, entferne: entferne
   };
 })(globalThis);

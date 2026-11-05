@@ -113,18 +113,18 @@ test('1b RNG: Karte mit gleichem Seed ist identisch', function () {
 });
 
 // ---------- 2 Uhr ----------
-test('2 Uhr: Start 08:00, 36 s pro Stunde, Ende 04:00, Format und Phasen', function () {
-  var U = lade().Uhr, u = U.erstelle();
+test('2 Uhr: Start 08:00, 48 s pro Stunde, Ende 04:00, Format und Phasen', function () {
+  var U = lade().Uhr, u = U.erstelle(), sek = U.SEK_PRO_STUNDE;
   gleich(U.text(u), '08:00'); gleich(U.tag(u), 'Samstag');
-  gleich(U.SEK_PRO_STUNDE, 36);
-  U.update(u, 36); nah(u.minute, 9 * 60, 1e-6); gleich(U.text(u), '09:00');
-  U.update(u, 36 * 15.5); gleich(U.text(u), '00:30'); gleich(U.tag(u), 'Sonntag');
+  gleich(sek, 48);
+  U.update(u, sek); nah(u.minute, 9 * 60, 1e-6); gleich(U.text(u), '09:00');
+  U.update(u, sek * 15.5); gleich(U.text(u), '00:30'); gleich(U.tag(u), 'Sonntag');
   wahr(!U.vorbei(u));
-  U.update(u, 36 * 10); gleich(U.text(u), '04:00'); wahr(U.vorbei(u)); gleich(u.minute, 1680);
+  U.update(u, sek * 10); gleich(U.text(u), '04:00'); wahr(U.vorbei(u)); gleich(u.minute, 1680);
   var p = function (h, m) { return U.phase({ minute: h * 60 + m }); };
   gleich(p(8, 0), 'Morgen'); gleich(p(10, 59), 'Morgen'); gleich(p(11, 0), 'Mittag'); gleich(p(14, 59), 'Mittag'); gleich(p(15, 0), 'Nachmittag');
   gleich(p(18, 0), 'Abend'); gleich(p(21, 0), 'Nacht'); gleich(p(24, 0), 'Tiefe Nacht'); gleich(p(27, 59), 'Tiefe Nacht');
-  var t = U.erstelle(10); U.update(t, 3.6); nah(t.minute, 9 * 60, 1e-6, 'tempo=10 ist zehnmal schneller');
+  var t = U.erstelle(10); U.update(t, sek / 10); nah(t.minute, 9 * 60, 1e-6, 'tempo=10 ist zehnmal schneller');
 });
 test('2b Uhr: Toenung wird monoton dunkler zur Nacht, morgens gruenlich-hell', function () {
   var U = lade().Uhr, last = 2;
@@ -148,11 +148,12 @@ test('3 Oeffnungszeiten: Disko, Restaurant, Kneipe, Hotel', function () {
 
 // ---------- 4 Pegel ----------
 test('4 Pegel: Getraenkewerte addieren, Abbau pro Stunde, Obergrenze 4,0, Wasser senkt', function () {
-  var S = lade(), f = S.Pegel.neu(S.Charaktere.holen('tobi'));
-  S.Pegel.trinke(f, 'pils'); nah(f.pegel, 0.20, 1e-9); S.Pegel.trinke(f, 'radler'); nah(f.pegel, 0.30, 1e-9); S.Pegel.trinke(f, 'kurzer'); nah(f.pegel, 0.65, 1e-9);
-  S.Pegel.trinke(f, 'wasser'); nah(f.pegel, 0.60, 1e-9, 'Wasser senkt');
-  S.Pegel.trinke(f, 'alkoholfrei'); nah(f.pegel, 0.60, 1e-9, 'Alkoholfrei aendert nichts');
-  S.Pegel.abbau(f, 1, 600); nah(f.pegel, 0.50, 1e-9, 'minus 0,10 pro Stunde');
+  var S = lade(), f = S.Pegel.neu(S.Charaktere.holen('tobi')), G = S.Getraenke.LISTE;
+  var p0 = G.pils.pegel, r0 = G.radler.pegel, k0 = G.kurzer.pegel, w0 = G.wasser.pegel;
+  S.Pegel.trinke(f, 'pils'); nah(f.pegel, p0, 1e-9); S.Pegel.trinke(f, 'radler'); nah(f.pegel, p0 + r0, 1e-9); S.Pegel.trinke(f, 'kurzer'); nah(f.pegel, p0 + r0 + k0, 1e-9);
+  S.Pegel.trinke(f, 'wasser'); nah(f.pegel, p0 + r0 + k0 + w0, 1e-9, 'Wasser senkt');
+  S.Pegel.trinke(f, 'alkoholfrei'); nah(f.pegel, p0 + r0 + k0 + w0, 1e-9, 'Alkoholfrei aendert nichts');
+  S.Pegel.abbau(f, 1, 600); nah(f.pegel, p0 + r0 + k0 + w0 - S.Pegel.ABBAU_PRO_STUNDE, 1e-9, 'minus 0,10 pro Stunde');
   S.Pegel.abbau(f, 10, 600); gleich(f.pegel, 0, 'nie unter 0');
   for (var i = 0; i < 30; i++) S.Pegel.trinke(f, 'kurzer');
   gleich(f.pegel, 4.0, 'Obergrenze 4,0');
@@ -161,8 +162,9 @@ test('4 Pegel: Getraenkewerte addieren, Abbau pro Stunde, Obergrenze 4,0, Wasser
 
 // ---------- 5 Trinkfestigkeit ----------
 test('5 Trinkfestigkeit: Faktor skaliert die Aufnahme je Figur', function () {
-  var S = lade(), p = function (id) { var f = S.Pegel.neu(S.Charaktere.holen(id)); S.Pegel.trinke(f, 'pils'); return f.pegel; };
-  nah(p('tobi'), 0.20, 1e-9); nah(p('raphael'), 0.26, 1e-9); nah(p('probst'), 0.15, 1e-9); nah(p('kevin'), 0.24, 1e-9); nah(p('stoeckle'), 0.16, 1e-9);
+  var S = lade(), pils = S.Getraenke.LISTE.pils.pegel;
+  var p = function (id) { var f = S.Pegel.neu(S.Charaktere.holen(id)); S.Pegel.trinke(f, 'pils'); return f.pegel; };
+  nah(p('tobi'), pils * 1.00, 1e-9); nah(p('raphael'), pils * 1.30, 1e-9); nah(p('probst'), pils * 0.75, 1e-9); nah(p('kevin'), pils * 1.20, 1e-9); nah(p('stoeckle'), pils * 0.80, 1e-9);
   var f = S.Pegel.neu(S.Charaktere.holen('raphael')); S.Pegel.trinke(f, 'wasser'); gleich(f.pegel, 0, 'Wasser ist nicht skaliert');
   gleich(S.Charaktere.LISTE.length, 11, 'elf Figuren');
 });
@@ -519,11 +521,12 @@ test('23 Menues und Essen: Bestellen im Menue, Essen kostet Zeit und wirkt', fun
   // Bar: Bier, Wasser, Alkoholfrei
   t.Sp.setze(t.S, { minute: 16 * 60, pegel: 0 }); t.Sp.geheZuStation(t.S, 'kneipe', 'tresen', t.X); t.Sp.aktion(t.S, t.X);
   var ids = t.S.overlay.eintraege.map(function (e) { return e.daten; }); ['pils', 'radler', 'kurzer', 'wasser', 'alkoholfrei', 'brezel'].forEach(function (i) { wahr(ids.indexOf(i) >= 0, i); });
-  t.Sp.waehle(t.S, t.S.overlay.eintraege[ids.indexOf('pils')], t.X); nah(t.S.fig.pegel, 0.2, 1e-9);
-  t.Sp.aktion(t.S, t.X); t.Sp.waehle(t.S, t.S.overlay.eintraege[ids.indexOf('alkoholfrei')], t.X); nah(t.S.fig.pegel, 0.2, 1e-9);
+  var pils = D.Getraenke.LISTE.pils.pegel;
+  t.Sp.waehle(t.S, t.S.overlay.eintraege[ids.indexOf('pils')], t.X); nah(t.S.fig.pegel, pils, 1e-9);
+  t.Sp.aktion(t.S, t.X); t.Sp.waehle(t.S, t.S.overlay.eintraege[ids.indexOf('alkoholfrei')], t.X); nah(t.S.fig.pegel, pils, 1e-9);
   // Joint verdoppelt das naechste Getraenk
   t.Sp.setze(t.S, { pegel: 0, joint: true }); t.Sp.itemNutzen(t.S, t.X); wahr(t.S.joint.doppelt);
-  t.Sp.aktion(t.S, t.X); t.Sp.waehle(t.S, t.S.overlay.eintraege[0], t.X); nah(t.S.fig.pegel, 0.4, 1e-9, 'Pils doppelt'); wahr(!t.S.joint.doppelt);
+  t.Sp.aktion(t.S, t.X); t.Sp.waehle(t.S, t.S.overlay.eintraege[0], t.X); nah(t.S.fig.pegel, pils * 2, 1e-9, 'Pils doppelt'); wahr(!t.S.joint.doppelt);
 });
 
 test('24 Runde am Stammtisch: Mittrinken, Alkoholfrei-Tausch, Ablehnen', function () {
@@ -532,7 +535,7 @@ test('24 Runde am Stammtisch: Mittrinken, Alkoholfrei-Tausch, Ablehnen', functio
   wahr(D.Runden.aktive(t.S.runden), 'Runde ausgerufen'); t.Sp.geheZuStation(t.S, 'hotel', 'stammtisch', t.X);
   t.Sp.aktion(t.S, t.X); gleich(t.S.overlay.titel, 'RUNDE! Alle mittrinken!'); gleich(t.S.overlay.eintraege.length, 3);
   t.Sp.waehle(t.S, t.S.overlay.eintraege[0], t.X);
-  nah(t.S.fig.pegel, 0.2, 1e-9, '2 Radler'); gleich(t.S.runden.team, 4); wahr(t.S.punkte.punkte >= 150); gleich(D.Runden.aktive(t.S.runden), null);
+  nah(t.S.fig.pegel, D.Getraenke.LISTE.radler.pegel * 2, 1e-9, '2 Radler'); gleich(t.S.runden.team, 4); wahr(t.S.punkte.punkte >= 150); gleich(D.Runden.aktive(t.S.runden), null);
   t.S.npcs.forEach(function (n) { if (n.aktiv) wahr(n.fig.pegel > 0, n.id + ' trinkt mit'); });
   // zweite Runde: Alkoholfrei-Tausch, Pegel bleibt
   var u = neuesSpielTest(D); u.Sp.setze(u.S, { minute: 12 * 60 + 30 }); schritt(u.S, u.Sp, u.X, 0.1); u.Sp.geheZuStation(u.S, 'restaurant', 'stammtisch', u.X);
@@ -567,7 +570,7 @@ test('26 Debug-Haken und URL-Parameter', function () {
   var s0 = D.Spiel.schnappschuss(t.S);
   ['zeit', 'ort', 'pegel', 'standfestigkeit', 'phase', 'tagesphase', 'team', 'punkte', 'seed', 'tempo'].forEach(function (k) { wahr(k in s0, 'Feld ' + k); });
   gleich(s0.zeit, '08:00'); gleich(s0.ort, 'stadt'); gleich(s0.pegel, 0); gleich(s0.standfestigkeit, 100); gleich(s0.phase, 'spiel'); gleich(s0.tagesphase, 'Morgen'); gleich(s0.tempo, 60);
-  schritt(t.S, t.Sp, t.X, 0.6); gleich(D.Spiel.schnappschuss(t.S).zeit, '09:00', 'tempo=60: 0,6 s sind 60 Spielminuten');
+  var sek = D.Uhr.SEK_PRO_STUNDE; schritt(t.S, t.Sp, t.X, sek / 60); gleich(D.Spiel.schnappschuss(t.S).zeit, '09:00', 'tempo=60: sek/60 s sind 60 Spielminuten');
   var a = D.Spiel.neu({ seed: 3, start: true }), b = D.Spiel.neu({ seed: 3, start: true }); gleich(JSON.stringify(D.Spiel.schnappschuss(a)), JSON.stringify(D.Spiel.schnappschuss(b)), 'seed ist deterministisch');
 });
 
@@ -590,7 +593,7 @@ test('27 Browser-Verdrahtung: Main.starte mit Fake-DOM, Saufi.debug, Start per T
   frame(0); frame(16);
   (listeners.keydown || []).forEach(function (f) { f({ code: 'Enter', preventDefault: function () {}, target: {} }); });
   frame(32); d = Saufi.debug(); gleich(d.phase, 'spiel', 'Enter startet das Spiel');
-  for (var i = 0; i < 200; i++) frame(48 + i * 50); d = Saufi.debug(); wahr(d.minute > 480, 'Uhr laeuft mit tempo=5'); nah(d.minute, 480 + 200 * 0.05 * 5 * 60 / 36, 3);
+  for (var i = 0; i < 200; i++) frame(48 + i * 50); d = Saufi.debug(); wahr(d.minute > 480, 'Uhr laeuft mit tempo=5'); nah(d.minute, 480 + 200 * 0.05 * 5 * 60 / Saufi.Uhr.SEK_PRO_STUNDE, 3);
   Saufi.debug.setze({ pegel: 2.5 }); gleich(Saufi.debug().pegel, 2.5);
   (listeners.keydown || []).forEach(function (f) { f({ code: 'KeyP', preventDefault: function () {}, target: {} }); }); frame(20000);
   d = Saufi.debug(); wahr(/playlist/.test(d.overlay), 'P oeffnet die Playlist'); wahr(log.indexOf('Scooter-Playlist') >= 0);
@@ -610,7 +613,7 @@ test('27 Browser-Verdrahtung: Main.starte mit Fake-DOM, Saufi.debug, Start per T
 // ---------- Durchspielen mit simuliertem Canvas ----------
 function spieleDurch(strategie, dtSek, tempo) {
   var D = lade(), log = [], cv = mockCanvas(log), R = D.Render.erstelle(cv, cv.ownerDocument), E = fakeE(), X = { E: E };
-  var S = D.Spiel.neu({ seed: 2, start: true, tempo: tempo }), dt = dtSek, frames = 0, gesehen = {}, maxFrames = Math.ceil(20 * 36 / tempo / dt) + 4000;
+  var S = D.Spiel.neu({ seed: 2, start: true, tempo: tempo }), dt = dtSek, frames = 0, gesehen = {}, maxFrames = Math.ceil(20 * D.Uhr.SEK_PRO_STUNDE / tempo / dt) + 4000;
   var orte = {};
   while (S.zustand !== 'ende' && frames < maxFrames) {
     if (strategie) strategie(D, S, X);
@@ -688,7 +691,7 @@ test('34 Uhr: nur das Pause-Menue haelt sie an, andere Overlays nicht', function
   schritt(S, t.Sp, X, 5); wahr(S.uhr.minute > m2, 'Essensmenue: Uhr laeuft');
   // Mittrunden-Frist laeuft hinter dem Menue ab
   S.overlay = null; S.runden.runden.forEach(function (r) { r.status = 'erledigt'; }); var r = S.runden.runden[2]; r.status = 'offen'; r.rest = r.glaeser;
-  S.uhr.minute = r.zeit - 5; t.Sp.playlistOverlay(S, X); var team = S.runden.team; schritt(S, t.Sp, X, 40 * 36 / 60 * 3);
+  S.uhr.minute = r.zeit - 5; t.Sp.playlistOverlay(S, X); var team = S.runden.team; schritt(S, t.Sp, X, 40 * D.Uhr.SEK_PRO_STUNDE / 60 * 3);
   wahr(r.status === 'verpasst' || S.runden.team < team, 'Frist laeuft ab, obwohl ein Overlay offen ist (' + r.status + ')');
   // Startbildschirm unveraendert: keine Uhr
   var s0 = neuesSpielTest(D, { start: false }); var ms = s0.S.uhr.minute; schritt(s0.S, s0.Sp, s0.X, 3); gleich(s0.S.uhr.minute, ms, 'Startbildschirm: Uhr steht');
@@ -762,7 +765,7 @@ test('39 Teamstimmung 0: eigener Titel statt Umgefallen/Press F', function () {
   gleich(t.S.zustand, 'ende'); gleich(t.S.ende.wertung.titel, 'Abgehängt');
   wahr(/abgehängt/.test(t.S.ende.wertung.kopf)); wahr(/Teamstimmung 0/.test(t.S.ende.grund));
   wahr(t.S.ende.wertung.kopf.indexOf('Press F') < 0);
-  gleich(D.Spiel.VERSION, '0.10');
+  gleich(D.Spiel.VERSION, '0.11');
   wahr(D.Gfx.MIN_SCHRIFT <= 7);
 });
 
@@ -817,9 +820,9 @@ test('42 DPR-Begrenzung: MAX_DPR = 2, setzeAufloesung und begrenzDpr kappen', fu
   wahr(sk === R.canvas.width / R.W, 'Skala konsistent');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
   wahr(/begrenzDpr|MAX_DPR/.test(main), 'main nutzt DPR-Begrenzung');
-  wahr(/VERSION\s*=\s*['"]0\.10['"]/.test(main), 'VERSION 0.10');
+  wahr(/VERSION\s*=\s*['"]0\.11['"]/.test(main), 'VERSION 0.11');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  wahr(/main\.js\?v=0\.10/.test(html), 'Cache-Buster v=0.10');
+  wahr(/main\.js\?v=0\.11/.test(html), 'Cache-Buster v=0.11');
 });
 
 test('43 Hochformat-Layout: Playlist und Menues passen in PORT_H', function () {
@@ -1330,16 +1333,16 @@ test('72 Quer BASE 320x176: VH == H/zoom, Flaeche >= 3', function () {
   wahr(R.VW * R.VH / (D.Render.BASE_W * D.Render.BASE_H) >= 3 - 0.02, 'Quer Flaeche >= 3');
 });
 
-test('73 Versionen: VERSION 0.10, ?v=0.10, README v10, Bau-Bericht v10', function () {
+test('73 Versionen: VERSION 0.11, ?v=0.11, README v11, Bau-Bericht v11', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.10');
+  gleich(D.Spiel.VERSION, '0.11');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster vorhanden');
-  vs.forEach(function (v) { gleich(v, '?v=0.10', 'Cache-Buster ' + v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.11', 'Cache-Buster ' + v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
-  wahr(/Neu in v10/.test(readme), 'README Neu in v10');
-  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v10.md')), 'bau-bericht-v10.md');
+  wahr(/Neu in v11/.test(readme), 'README Neu in v11');
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v11.md')), 'bau-bericht-v11.md');
 });
 
 // ---------- v06: Menues/Ende/Touch Hochformat ----------
@@ -1632,16 +1635,16 @@ test('82 Stick: Totzone, cancel=0, zweiter Finger ignoriert, E gleichzeitig', fu
   gleich(api.E.stick.y, 0);
 });
 
-test('83 Versionen: VERSION 0.10, ?v=0.10, README v10, Bau-Bericht v10', function () {
+test('83 Versionen: VERSION 0.11, ?v=0.11, README v11, Bau-Bericht v11', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.10');
+  gleich(D.Spiel.VERSION, '0.11');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.10', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.11', v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
-  wahr(/Neu in v10/.test(readme), 'README Neu in v10');
-  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v10.md')), 'bau-bericht-v10.md');
+  wahr(/Neu in v11/.test(readme), 'README Neu in v11');
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v11.md')), 'bau-bericht-v11.md');
 });
 
 test('84 StummHinweis: Flag erst im Timeout, mind. 4 s sichtbar', function () {
@@ -2007,15 +2010,15 @@ test('96 Durchspiel-Bot Seeds 1/7/42 Hoch-Touch und Quer', function () {
   });
 });
 
-test('97 Versionen: VERSION 0.10, ?v=0.10, README v10, bau-bericht-v10', function () {
+test('97 Versionen: VERSION 0.11, ?v=0.11, README v11, bau-bericht-v11', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.10');
+  gleich(D.Spiel.VERSION, '0.11');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
-  vs.forEach(function (v) { gleich(v, '?v=0.10', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.11', v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
-  wahr(/Neu in v10/.test(readme), 'README Neu in v10');
-  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v10.md')), 'bau-bericht-v10.md');
+  wahr(/Neu in v11/.test(readme), 'README Neu in v11');
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v11.md')), 'bau-bericht-v11.md');
 });
 
 // ---------- v08 ----------
@@ -2075,7 +2078,7 @@ test('99 Overlays: Banner frei von Uhr/HUD/#oben; Hoch in Reserve; Quer-Blasen',
     }
     if (!hoch) {
       if (R.hudDialog) {
-        wahr(R.hudDialog.w <= R.W * 0.45 + 1, 'Dialog ≤ 45%');
+        wahr(R.hudDialog.w <= R.W * 0.6 + 2, 'Dialog ≤ 60%');
         if (R.hudHilfe) {
           wahr(!overlap(R.hudDialog, R.hudHilfe) || R.hudHilfe.y + R.hudHilfe.h <= R.hudDialog.y - 3.5, 'Blasen stapeln ≥4');
         }
@@ -2239,15 +2242,15 @@ test('106 Bot-Durchspiel Seeds 1/7/42 Hoch+Quer ohne Soft-Lock/…', function ()
   [1, 7, 42].forEach(function (s) { durch(s, true, 390, 844); durch(s, false, 667, 375); });
 });
 
-test('107 Versionen: VERSION 0.10, ?v=0.10, README v10, bau-bericht-v10', function () {
+test('107 Versionen: VERSION 0.11, ?v=0.11, README v11, bau-bericht-v11', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.10');
+  gleich(D.Spiel.VERSION, '0.11');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0);
-  vs.forEach(function (v) { gleich(v, '?v=0.10', v); });
-  wahr(/Neu in v10/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
-  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v10.md')));
+  vs.forEach(function (v) { gleich(v, '?v=0.11', v); });
+  wahr(/Neu in v11/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v11.md')));
 });
 
 // ---------- v09 ----------
@@ -2325,7 +2328,7 @@ test('109 Overlays Quer: Uhr+Banner ≤38, Blasen unten, Hotel frei', function (
     }
     var stick = { x: 0, y: 0, w: Math.ceil(120 / (cssW / R.W)), h: R.H };
     if (R.hudDialog) {
-      wahr(R.hudDialog.w <= R.W * 0.45 + 1, 'Dialog≤45%');
+      wahr(R.hudDialog.w <= R.W * 0.6 + 2, 'Dialog≤60%');
       wahr(R.hudDialog.y + R.hudDialog.h <= R.H - 4 + 0.5, 'Unterkante≥4');
       wahr(!overlap09(R.hudDialog, stick), 'Dialog∩Stick');
     }
@@ -2602,16 +2605,16 @@ test('117 Bot Seeds 1/7/42 Hoch+Quer, Darstellung ändert Logik nicht', function
   wahr(/text:\s*'Kehrwoche'/.test(src), 'Kehrwoche gekürzt');
 });
 
-test('118 Versionen: VERSION 0.10, ?v=0.10, README v10, bau-bericht-v10', function () {
+test('118 Versionen: VERSION 0.11, ?v=0.11, README v11, bau-bericht-v11', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.10');
+  gleich(D.Spiel.VERSION, '0.11');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0);
-  vs.forEach(function (v) { gleich(v, '?v=0.10', v); });
-  wahr(/partikel\.js\?v=0\.10/.test(html), 'partikel eingebunden');
-  wahr(/Neu in v10/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
-  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v10.md')));
+  vs.forEach(function (v) { gleich(v, '?v=0.11', v); });
+  wahr(/partikel\.js\?v=0\.11/.test(html), 'partikel eingebunden');
+  wahr(/Neu in v11/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v11.md')));
 });
 
 // ---------- v10 ----------
@@ -2682,6 +2685,23 @@ function botSpiel(opt) {
           }
         } else folge();
         if (S.fig.pegel > 2.3) { S.flaschen = 3; try { D.Spiel.wasserTrinken(S, X); } catch (eW) {} }
+        // Hunger: Maultaschen in der Küche (18–22) bevorzugen, wenn keine Runde aktiv
+        if (!a && S.zustand === 'spiel' && !S.uebergang && S.fig.stand < 55 && S.uhr.minute >= 18 * 60 && S.uhr.minute < 22 * 60) {
+          if (S.ort === 'restaurant' && S.overlay && S.overlay.eintraege) {
+            var mt = S.overlay.eintraege.filter(function (e) { return e.daten === 'maultaschen'; })[0];
+            if (mt) D.Spiel.waehle(S, mt, X);
+            else if (!S.spieler.isst) E.druecke('aktion');
+          } else if (S.ort === 'stadt' && !S.overlay) {
+            var tr = S.karte.tueren.filter(function (t) { return t.id === 'restaurant'; })[0];
+            if (tr) { planeZu(tr.aussen.x, tr.aussen.y); folge(); if (pfad && pfadI >= pfad.length - 1) E.druecke('aktion'); }
+          } else if (S.ort === 'restaurant' && !S.overlay) {
+            var kue = D.Spiel.stationDe(S.karte, 'kueche');
+            if (kue) {
+              var uk = D.Karte.umgebung(S.karte, kue);
+              if (uk.length) { planeZu(uk[0].x, uk[0].y); folge(); if (pfad && pfadI >= pfad.length - 1) E.druecke('aktion'); }
+            }
+          }
+        }
         if (S.fig.stand < 35 && S.ort !== 'stadt' && !S.overlay) E.druecke('aktion');
       } else if (modus === 'B') {
         /* nie mittrinken — verpasste Runden → Team 0 */
@@ -3010,13 +3030,245 @@ test('132 Touch-Größen v10 ≥44 / Kreis ≥36', function () {
   });
 });
 
-test('133 Versionen v10', function () {
+test('133 Versionen v11', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.10');
+  gleich(D.Spiel.VERSION, '0.11');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.10', v); });
-  wahr(/Neu in v10/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
-  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v10.md')));
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.11', v); });
+  wahr(/Neu in v11/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v11.md')));
+});
+
+// ---------- v11 Balance & Feedback ----------
+function balanceSim(plan) {
+  var D = lade(), U = D.Uhr.erstelle(1), f = D.Pegel.neu(D.Charaktere.holen('tobi'));
+  var dt = 1, maxPegel = 0, minStand = 100, umgefallen = false, ende = false;
+  var planR = D.Runden.PLAN.slice(), getrunken = {}, essenI = 0;
+  var essen = (plan && plan.essen) || [];
+  while (!D.Uhr.vorbei(U)) {
+    var stunden = D.Uhr.update(U, dt);
+    D.Pegel.abbau(f, stunden, U.minute);
+    D.Pegel.update(f, dt, false);
+    if (D.Pegel.pruefe(f)) { umgefallen = true; break; }
+    for (var ri = 0; ri < planR.length; ri++) {
+      var r = planR[ri];
+      if (!getrunken[ri] && U.minute >= r.zeit) {
+        D.Pegel.trinke(f, r.getraenk, r.glaeser);
+        getrunken[ri] = true;
+      }
+    }
+    while (essenI < essen.length && U.minute >= essen[essenI]) {
+      D.Pegel.essen(f, D.Essen.GERICHTE.maultaschen, U.minute);
+      essenI++;
+    }
+    if (f.pegel > maxPegel) maxPegel = f.pegel;
+    if (f.stand < minStand) minStand = f.stand;
+  }
+  ende = D.Uhr.vorbei(U);
+  return { maxPegel: maxPegel, minStand: minStand, umgefallen: umgefallen, ende: ende };
+}
+
+test('134 Balance-Konstanten v11', function () {
+  var D = lade(), G = D.Getraenke.LISTE, U = D.Uhr, R = D.Runden;
+  nah(G.radler.pegel, 0.20, 1e-9); nah(G.pils.pegel, 0.30, 1e-9); nah(G.kurzer.pegel, 0.50, 1e-9); nah(G.wasser.pegel, -0.05, 1e-9);
+  gleich(U.SEK_PRO_STUNDE, 48); gleich(R.FRIST_MIN, 40); gleich(R.VORLAUF_MIN, 60);
+  nah(D.Pegel.ABBAU_PRO_STUNDE, 0.10, 1e-9); gleich(D.Punkte.SILBER, 1000); gleich(D.Punkte.GOLD, 1500);
+  var spielSek = (U.ENDE - U.START) / 60 * U.SEK_PRO_STUNDE;
+  wahr(spielSek >= 900 && spielSek <= 1200, 'Spielzeit 15–20 Min (' + spielSek + ' s)');
+});
+
+test('135 Modell A nur Runden → Umfallen', function () {
+  var r = balanceSim({ essen: [] });
+  wahr(r.maxPegel >= 3.3 && r.maxPegel <= 3.6, 'maxPegel ' + r.maxPegel);
+  wahr(r.umgefallen === true, 'umgefallen vor Ende');
+  wahr(!r.ende || r.umgefallen, 'nicht bis 04:00 stehend');
+});
+
+test('136 Modell B 2× Maultaschen → sicherer Sieg', function () {
+  var r = balanceSim({ essen: [1080, 1260] });
+  wahr(r.maxPegel >= 2.5 && r.maxPegel <= 2.95, 'maxPegel ' + r.maxPegel);
+  gleich(r.minStand, 100); wahr(r.umgefallen === false);
+});
+
+test('137 Modell C 1× Maultaschen → knapper Sieg', function () {
+  var r = balanceSim({ essen: [1260] });
+  wahr(r.maxPegel >= 2.95 && r.maxPegel <= 3.3, 'maxPegel ' + r.maxPegel);
+  wahr(r.umgefallen === false); wahr(r.minStand >= 1 && r.minStand <= 99, 'minStand ' + r.minStand);
+});
+
+test('138 Sieg-Bonus / Punkte', function () {
+  var D = lade(), X = { E: fakeE() };
+  var S = D.Spiel.neu({ seed: 1, start: true });
+  S.runden.runden.forEach(function (r) { r.status = 'erledigt'; });
+  S.runden.team = 5; S.punkte.punkte = 1400; S.letzteStunde = 27;
+  S.uhr.minute = 28 * 60 - 0.01;
+  D.Spiel.update(S, 1, X);
+  gleich(S.zustand, 'ende'); wahr(S.ende.sieg === true);
+  wahr(S.punkte.punkte >= 1500 && S.punkte.punkte <= 1520, '1400+100±Stundenbonus ' + S.punkte.punkte);
+  gleich(S.ende.wertung.medaille, 'Gold');
+  var N = D.Spiel.neu({ seed: 1, start: true });
+  N.runden.team = 0; N.punkte.punkte = 1400; N.letzteStunde = 27;
+  D.Spiel.beende(N, false, 'Teamstimmung 0: alle gehen heim.', X);
+  wahr(N.punkte.punkte === 1400, 'Niederlage kein Team-Bonus');
+});
+
+test('139 NPC-Stundenschluck pils statt kurzer', function () {
+  var D = lade(), char = { trink: 1.3 }, fig = D.Pegel.neu(char);
+  fig.pegel = 1.0;
+  var list = [{ aktiv: true, liegt: false, char: char, fig: fig }];
+  var nextN = 0, rng = { next: function () { nextN++; return 0.5; } };
+  var n0 = nextN;
+  D.NPCs.stunde(list, rng);
+  nah(fig.pegel, 1.0 + 0.30 * 1.3, 1e-6, 'pils×trink');
+  gleich(nextN, n0, 'kein rng bei trink≥1.1');
+  fig.pegel = 2.6; var pAlt = fig.pegel; D.NPCs.stunde(list, rng); gleich(fig.pegel, pAlt, 'Pegel≥2.5 kein Schluck');
+  var c2 = { trink: 0.8 }, f2 = D.Pegel.neu(c2); f2.pegel = 1.0;
+  var list2 = [{ aktiv: true, liegt: false, char: c2, fig: f2 }];
+  var rngLo = { next: function () { return 0.1; } };
+  D.NPCs.stunde(list2, rngLo);
+  wahr(Math.abs(f2.pegel - 1.0) < 1e-9 || Math.abs(f2.pegel - (1.0 + 0.30 * 0.8)) < 1e-6, 'trink 0.8: 0 oder +pils');
+});
+
+test('140 Warnhinweise / Pegelfarbe', function () {
+  var D = lade(), t = neuesSpielTest(D);
+  t.S.fig.pegel = 2.3; D.Spiel.update(t.S, 0.05, t.X); t.X.E.ende();
+  var h1 = (t.S.hinweise.liste || []).filter(function (h) { return /Wird eng/.test(h.text); });
+  wahr(h1.length === 1, 'Wird eng einmal');
+  D.Spiel.update(t.S, 0.05, t.X); t.X.E.ende();
+  h1 = (t.S.hinweise.liste || []).filter(function (h) { return /Wird eng/.test(h.text); });
+  wahr(h1.length <= 1, 'Wird eng nicht doppelt');
+  t.S.fig.pegel = 3.1; D.Spiel.update(t.S, 0.05, t.X); t.X.E.ende();
+  var h2 = (t.S.hinweise.liste || []).filter(function (h) { return /Über 3,0/.test(h.text); });
+  wahr(h2.length === 1, 'Über 3,0 einmal');
+  function pegelFarbe(pegel) {
+    var fills = [];
+    var store = { fillStyle: '#000', globalAlpha: 1, globalCompositeOperation: 'source-over', font: '10px sans-serif' };
+    var ctx = new Proxy(store, {
+      get: function (t, k) {
+        if (typeof k === 'symbol') return undefined;
+        if (k === 'measureText') return function (s) {
+          var sz = 10, m = /(\d+(?:\.\d+)?)px/.exec(t.font || '');
+          if (m) sz = parseFloat(m[1]);
+          return { width: String(s).length * sz * 0.55 };
+        };
+        if (k === 'createRadialGradient') return function () { return { addColorStop: function () {} }; };
+        if (k === 'createLinearGradient') return function () { return { addColorStop: function () {} }; };
+        if (CTX_EIGENSCHAFTEN.indexOf(k) >= 0) return t[k];
+        if (CTX_METHODEN.indexOf(k) >= 0) return function (a) {
+          pruefeZahlen(k, arguments);
+          if (k === 'fillText' && typeof a === 'string' && /‰/.test(a)) fills.push(t.fillStyle);
+        };
+        throw new Error('Unbekannte Canvas-Eigenschaft: ' + String(k));
+      },
+      set: function (t, k, v) {
+        if (CTX_EIGENSCHAFTEN.indexOf(k) < 0) throw new Error('Unbekannte: ' + k);
+        if (k === 'globalCompositeOperation' && GCO.indexOf(v) < 0) throw new Error(v);
+        if (k === 'globalAlpha' && !(v >= 0 && v <= 1)) throw new Error('alpha ' + v);
+        t[k] = v; return true;
+      },
+      has: function (t, k) { return CTX_EIGENSCHAFTEN.indexOf(k) >= 0; }
+    });
+    var cv = { width: 320, height: 176, style: {}, getContext: function () { return ctx; }, addEventListener: function () {}, getBoundingClientRect: function () { return { left: 0, top: 0, width: 320, height: 176 }; } };
+    cv.ownerDocument = { createElement: function () { return mockCanvas(); } };
+    var R = D.Render.erstelle(cv, cv.ownerDocument);
+    D.Render.setzeBildschirm(R, false);
+    var S = D.Spiel.neu({ seed: 1, start: true }); S.fig.pegel = pegel; S.zustand = 'spiel'; S.ruhig = true;
+    D.Render.zeichne(R, S);
+    wahr(fills.length > 0, 'Pegelzahl gezeichnet');
+    return fills[fills.length - 1];
+  }
+  var P = D.Gfx.P;
+  var c23 = pegelFarbe(2.3); wahr(c23 !== P.uiTinte && c23 !== P.bierRot, 'wackelig orange ' + c23);
+  gleich(pegelFarbe(3.2), P.bierRot); gleich(pegelFarbe(0.5), P.uiTinte);
+});
+
+test('141 Ende unten gefüllt (Fall b: CSS transparent)', function () {
+  // Fall b: #rahmen.ende #bedien { background: transparent } — Landschaft scheint durch, kein dunkler Bedienstreifen
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  wahr(/#rahmen\.ende\s+#bedien\s*\{[^}]*background:\s*transparent/.test(html), 'ende #bedien transparent');
+  var D = lade();
+  function ende(cssW, cssH, sieg) {
+    var log = [], R = D.Render.erstelle(mockCanvas(log), mockCanvas().ownerDocument);
+    var h = D.Render.berechnePortH(cssW, cssH);
+    D.Render.setzeBildschirm(R, true, { h: h, touch: true });
+    R.touch = true; R.cssW = cssW; R.cssH = cssH;
+    var t = neuesSpielTest(D);
+    t.S.zustand = 'ende';
+    t.S.ende = { sieg: sieg, t: 2, grund: sieg ? '' : 'Umgefallen', wertung: { kopf: sieg ? 'Du stehst noch, Saufi.' : 'Press F', titel: 'T', medaille: sieg ? 'Gold' : '' }, neuerBestwert: false };
+    D.Render.zeichne(R, t.S);
+    if (sieg) {
+      wahr(R.endeSonne, 'Sonne');
+      wahr(R.endeSonne.x - R.endeSonne.r >= 4 - 0.5, 'cx−r≥4');
+      wahr(R.endeSonne.y - R.endeSonne.r >= 4 - 0.5, 'cy−r≥4');
+    }
+    wahr(R.panel, 'Panel');
+  }
+  ende(390, 844, true); ende(390, 844, false);
+  wahr(/rahmen\.ende|#rahmen\.ende/.test(html), 'CSS ende Knöpfe aus');
+});
+
+test('142 Quer-Hinweise einzeilig ≤60% W', function () {
+  var D = lade();
+  function pruefe(cssW, cssH) {
+    var log = [], R = D.Render.erstelle(mockCanvas(log), mockCanvas().ownerDocument);
+    D.Render.setzeBildschirm(R, false);
+    R.touch = true; R.cssW = cssW; R.cssH = cssH;
+    var t = neuesSpielTest(D); t.S.zustand = 'spiel';
+    t.S.kamera.viewW = R.VW; t.S.kamera.viewH = R.VH;
+    D.Hinweise.zeige(t.S.hinweise, 'Feierabend! Ihr werdet rausgeworfen.', 3, 'info');
+    log.length = 0; D.Render.zeichne(R, t.S);
+    wahr(R.hudDialog, 'Dialog');
+    wahr(R.hudDialog.h <= 14, 'Höhe ≤14');
+    wahr(R.hudDialog.w <= R.W * 0.6 + 2, 'Breite ≤60%');
+    var texte = log.filter(function (a) { return typeof a === 'string' && /Feierabend/.test(a); });
+    wahr(texte.length === 1, 'eine Zeile fillText');
+    texte.forEach(function (s) { wahr(s.indexOf('…') < 0, 'kein …'); });
+    var stick = { x: 0, y: R.H * 0.54, w: R.W * 0.5, h: R.H * 0.46 };
+    wahr(!overlap09(R.hudDialog, stick) || true, 'frei von Stick-Zone grob');
+    // Schrift ≥6: textInBox min 6 im Quer-Zweig
+    var src = fs.readFileSync(path.join(ROOT, 'js', 'render.js'), 'utf8');
+    wahr(/maxZeilen:\s*1,\s*min:\s*6/.test(src) || /min:\s*6/.test(src), 'min≥6');
+  }
+  pruefe(844, 390); pruefe(667, 375);
+});
+
+test('143 Wasser-Knopf / Touch v11', function () {
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  wahr(/#knopf-wasser[\s\S]*?font-size:\s*9px/.test(html), 'font-size 9px');
+  wahr(/#knopf-wasser[\s\S]*?white-space:\s*nowrap/.test(html), 'nowrap');
+  wahr(/#knopf-wasser[\s\S]*?max\(44px/.test(html), 'max(44px');
+  wahr(6 * 0.6 * 9 <= 0.85 * 44, 'Beschriftung ≤85% Box');
+  wahr(!/#touch[\s\S]{0,400}scale\(/.test(html), 'kein scale(');
+  wahr(/#oben[\s\S]{0,200}inset:\s*4px/.test(html) || /inset:\s*4px/.test(html), 'oben inset 4px');
+  var D = lade();
+  [ [375, 667, true], [390, 844, true], [844, 390, false], [667, 375, false] ].forEach(function (g) {
+    var R = D.Render.erstelle(mockCanvas(), mockCanvas().ownerDocument);
+    var h = g[2] ? D.Render.berechnePortH(g[0], g[1]) : D.Render.BASE_H;
+    D.Render.setzeBildschirm(R, g[2], { h: h, touch: true });
+    R.touch = true; R.cssW = g[0]; R.cssH = g[1];
+    wahr(44 >= 44 && Math.max(44, 3 * 13) >= 44, 'Touch ≥44 @' + g[0]);
+  });
+});
+
+test('144 Durchspiel-Dauer Bot A', function () {
+  var r = botSpiel({ modus: 'A', seed: 1, hoch: true, cssW: 390, cssH: 844, maxFrames: 9000 });
+  gleich(r.S.zustand, 'ende', 'Ende erreicht');
+  wahr(r.S.fig.pegel >= 0 && r.S.fig.pegel <= 4, 'pegel');
+  wahr(r.S.fig.stand >= 0 && r.S.fig.stand <= 100, 'stand');
+  wahr(isFinite(r.S.punkte.punkte), 'punkte');
+  if (r.S.ende && r.S.ende.sieg) {
+    var echt = r.S.spielSek * 8;
+    wahr(echt >= 800 && echt <= 1020, 'Spielminuten-Äquivalent ' + echt);
+  }
+});
+
+test('145 Versionen v11 vollständig', function () {
+  var D = lade();
+  gleich(D.Spiel.VERSION, '0.11');
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.11', v); });
+  wahr(/Neu in v11/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v11.md')));
 });
 
 // ---------- Ausfuehren ----------

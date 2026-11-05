@@ -4,6 +4,23 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v11
+
+- **Balance-Kurve** (Tobi, nur Pflichtrunden, Abbau 0,10/h):
+
+| Spielweise | Pegel nach Runde 6 (01:30) | Ausgang |
+|---|---|---|
+| nur Pflichtrunden, nichts essen | ≈ 3,45 | Standfestigkeit vor 04:00 auf 0 → Umfallen |
+| 1 × Maultaschen um 21:00 | ≈ 3,10 | knapper Sieg (Wasser/Sitzen hilft) |
+| 2 × Maultaschen (18:00, 21:00) | ≈ 2,75 | kein Standverlust, sicherer Sieg |
+
+- Getränke: Radler 0,20 / Pils 0,30 / Kurzer 0,50. Tempo **48 s/h** (≈ 16 Min); Frist **40** Spielmin (≈ 32 s).
+- **Sieg-Bonus:** +20 × Teamstimmung; Silber/Gold unverändert 1000/1500.
+- **Warnungen / Pegelfarbe:** Einmal-Hinweise ab 2,2 und 3,0 ‰; Pegelzahl orange (wackelig) / rot (kritisch).
+- **NPC-Stundenschluck:** Trinkfestigkeit ≥ 1,1 trinkt Pils statt Kurzen, nur bei Pegel < 2,5.
+- **Ende unten:** `#bedien` im Ende transparent — kein dunkler Streifen.
+- **Quer-Hinweise:** einzeilig, ≤ 60 % W; Wasser-Knopf `9px` / `nowrap`.
+
 ## Neu in v10
 
 - **HUD Hoch:** Uhr in der UI-Reserve (`UI_RESERVE_HOCH_TOUCH = 80`), Stapel Uhr→Banner→Hinweis→Dialog; kein Uhr-Panel mehr auf dem Hoteldach; „→ HIER“ nur als Marker wenn Ziel sichtbar.
@@ -123,10 +140,10 @@ Handy: Hoch- und Querformat. Joystick links unten, Aktion/Wasser rechts unten (S
 
 ## Spielziel
 
-- Sieg: Um **04:00** stehst Du noch (Standfestigkeit über 0 und Teamstimmung über 0). Eine Runde dauert ca. 12 Minuten (36 Sekunden pro Spielstunde).
+- Sieg: Um **04:00** stehst Du noch (Standfestigkeit über 0 und Teamstimmung über 0). Eine Runde dauert ca. 16 Minuten (48 Sekunden pro Spielstunde).
 - Niederlage: Du fällst um und hast kein zweites Leben, die Teamstimmung fällt auf 0 (alle gehen heim) oder Du bekommst dreimal Hausverbot an der Disko-Tür (Pegel über 2,5).
 - Vier Orte: Hotel Kesselblick, Gasthaus Maultäschle, Zum durstigen Dachs, Untergrund 07. Alle mit eigenen Öffnungszeiten (Hotel immer, Gasthaus 11:00 bis 23:00, Kneipe 14:00 bis 03:00, Disko 22:00 bis 04:00).
-- Sechs feste Mittrunden (10:00 Hotel, 12:30 Gasthaus, 15:30 Kneipe, 19:30 Gasthaus, 22:30 und 01:30 Disko). Eine Stunde vorher gibt es eine Warnung, nach dem Ausruf hast Du ca. 20 Sekunden Echtzeit, am Stammtisch zu stehen. Mittrinken, heimlich gegen Alkoholfrei tauschen (Risiko erwischt zu werden, höchstens 3 pro Runde) oder ablehnen (Strafe).
+- Sechs feste Mittrunden (10:00 Hotel, 12:30 Gasthaus, 15:30 Kneipe, 19:30 Gasthaus, 22:30 und 01:30 Disko). Eine Stunde vorher gibt es eine Warnung, nach dem Ausruf hast Du ca. 32 Sekunden Echtzeit, am Stammtisch zu stehen. Mittrinken, heimlich gegen Alkoholfrei tauschen (Risiko erwischt zu werden, höchstens 3 pro Runde) oder ablehnen (Strafe).
 - Essen senkt den Pegel und stärkt, Wasser hilft, Freunde die umfallen kannst Du mit Wasser wecken (Q).
 - Disko: im Takt tanzen füllt die Scooter-Leiste, bei voller Leiste zündet R den Boost für die ganze Truppe (Verluste halbiert, schneller).
 - Punkte gibt es fürs Durchhalten, nicht für die Menge. Medaillen: Bronze (Standhaft), Silber ab 1000 (Eiserner Saufi), Gold ab 1500 (Kesselkönig/-königin). Der Bestwert wird lokal gespeichert.

@@ -692,7 +692,9 @@
     c.save(); c.translate(lx, ly); c.scale(sk, sk);
     krug(c, 8, 7, fig.pegel);
     var pt = S.joint && Saufi.Ereignisse.Joint.schwammig(S.joint) ? '~' + Saufi.Pegel.anzeige(fig.pegel + Math.sin(S.t * 5) * 0.4) : Saufi.Pegel.anzeige(fig.pegel);
-    textInBox(c, pt + ' ‰', 28, 7, 66, 16, 9, { col: fig.pegel >= 3 ? P.bierRot : P.uiTinte, ausr: 'left' });
+    var schw = Saufi.Pegel.schwelle(fig.pegel);
+    var pegelCol = (schw === 'kritisch') ? P.bierRot : (schw === 'wackelig' ? '#d9701a' : P.uiTinte);
+    textInBox(c, pt + ' ‰', 28, 7, 66, 16, 9, { col: pegelCol, ausr: 'left' });
     var herzen = Math.ceil(fig.stand / 20);
     for (i = 0; i < 5; i++) { var voll = fig.stand >= (i + 1) * 20 - 0.01; herz(c, 8 + i * 11, 28, voll ? P.herzVoll : (i < herzen ? P.herzLicht : P.herzLeer)); }
     textInBox(c, 'Team', 6, 38, 28, 12, 7, { col: P.uiTinteWeich });
@@ -848,8 +850,8 @@
         c.globalAlpha = 1; R.hudDialog = null;
       } else R.hudDialog = null;
     } else {
-      // Quer: Hinweis + Dialog unten mittig zwischen Stick und Knöpfen
-      var maxBubbleW = Math.min(Math.round(W * 0.45), W - stickZone - 40);
+      // Quer: Hinweis + Dialog unten mittig zwischen Stick und Knöpfen (einzeilig, ≤ 60 % W)
+      var maxBubbleW = Math.min(Math.round(W * 0.6), W - stickZone - 40);
       var bottomPad = 4;
       var stackBottom = H - bottomPad;
       if (h && h.art === 'gross') {
@@ -857,33 +859,33 @@
         textInBox(c, h.text, 16, Math.round(H * 0.38), W - 32, 24, 14, { col: '#ffe84f', ausr: 'center', kontur: P.kontur });
         c.globalAlpha = 1; R.hudDialog = null;
       } else if (h) {
-        var messQ = textInBox(c, h.text, 0, 0, maxBubbleW - 12, 36, 8, { ausr: 'center', mess: true, maxZeilen: 2 });
-        var bwQ = Math.min(maxBubbleW, Math.round(messQ.w) + 16), hhQ = Math.round(messQ.h) + 6;
+        var messQ = textInBox(c, h.text, 0, 0, maxBubbleW - 12, 12, 7, { ausr: 'center', mess: true, maxZeilen: 1, min: 6 });
+        var bwQ = Math.min(maxBubbleW, Math.round(messQ.w) + 16), hhQ = Math.min(12, Math.max(10, Math.round(messQ.h) + 4));
         var midX = stickZone + (W - stickZone - (knopfRects[0] ? (W - knopfRects[0].x) : 40)) / 2;
         if (!isFinite(midX)) midX = W / 2;
         dialogRect = { x: Math.round(midX - bwQ / 2), y: stackBottom - hhQ, w: bwQ, h: hhQ };
         dialogRect.x = Math.max(stickZone + 4, Math.min(dialogRect.x, W - bwQ - 4));
         if (!freiVonKnoepfen(dialogRect)) {
           // verkuerzen statt verschieben
-          hhQ = Math.max(12, hhQ - 4); bwQ = Math.min(bwQ, Math.round(W * 0.4));
+          hhQ = Math.min(12, Math.max(10, hhQ - 2)); bwQ = Math.min(bwQ, Math.round(W * 0.5));
           dialogRect = { x: Math.round(W / 2 - bwQ / 2), y: stackBottom - hhQ, w: bwQ, h: hhQ };
         }
         c.globalAlpha = Math.min(1, h.rest * 3);
         panel(c, dialogRect.x, dialogRect.y, dialogRect.w, dialogRect.h, h.art === 'schlecht' ? '#ffd1da' : (h.art === 'gut' ? '#d8f5dc' : P.uiFlaeche), 6);
-        textInBox(c, h.text, dialogRect.x + 5, dialogRect.y + 1, dialogRect.w - 10, dialogRect.h - 2, 8, { col: P.uiTinte, ausr: 'center', maxZeilen: 2 });
+        textInBox(c, h.text, dialogRect.x + 5, dialogRect.y + 1, dialogRect.w - 10, dialogRect.h - 2, 7, { col: P.uiTinte, ausr: 'center', maxZeilen: 1, min: 6 });
         c.globalAlpha = 1;
         R.hudDialog = dialogRect;
         stackBottom = dialogRect.y - 4;
       } else R.hudDialog = null;
       if (S.hilfe) {
-        var hmQ = textInBox(c, S.hilfe, 0, 0, maxBubbleW - 8, 14, 8, { ausr: 'center', mess: true, maxZeilen: 1 });
+        var hmQ = textInBox(c, S.hilfe, 0, 0, maxBubbleW - 8, 12, 7, { ausr: 'center', mess: true, maxZeilen: 1, min: 6 });
         var hwQ = Math.min(maxBubbleW, Math.round(hmQ.w) + 14), hyQ = stackBottom - 12;
         hilfeRect = { x: Math.round(W / 2 - hwQ / 2), y: hyQ, w: hwQ, h: 12 };
         hilfeRect.x = Math.max(stickZone + 4, Math.min(hilfeRect.x, W - hwQ - 4));
         if (dialogRect && cutR(hilfeRect, dialogRect)) hilfeRect.y = dialogRect.y - 12 - 4;
         if (!freiVonKnoepfen(hilfeRect)) hilfeRect.x = Math.max(stickZone + 4, Math.round(W * 0.35 - hwQ / 2));
         panel(c, hilfeRect.x, hilfeRect.y, hilfeRect.w, hilfeRect.h, 'rgba(255,248,238,0.96)', 6);
-        textInBox(c, S.hilfe, hilfeRect.x + 3, hilfeRect.y + 1, hilfeRect.w - 6, 10, 7, { col: P.uiTinte, ausr: 'center', maxZeilen: 1 });
+        textInBox(c, S.hilfe, hilfeRect.x + 3, hilfeRect.y + 1, hilfeRect.w - 6, 10, 7, { col: P.uiTinte, ausr: 'center', maxZeilen: 1, min: 6 });
         R.hudHilfe = hilfeRect;
       } else R.hudHilfe = null;
     }

@@ -64,11 +64,15 @@
   #touch { display: none; position: absolute; right: max(8px, env(safe-area-inset-right, 0px)); bottom: max(8px, env(safe-area-inset-bottom, 0px)); z-index: 2; pointer-events: auto; }
   #rahmen.touch #touch { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
   #rahmen.ende #knopf-aktion, #rahmen.ende #knopf-wasser, #rahmen.ende #knopf-item, #rahmen.ende #knopf-f { display: none !important; }
+  /* Ende: Bedienleiste durchscheinend, Landschaft bis Bildrand (kein dunkler Streifen) */
+  #rahmen.ende { background: #2b3d28; }
+  #rahmen.ende #bedien { background: transparent; }
+  #rahmen.touch.hoch.ende #bedien { background: transparent; }
   #rahmen.touch.hoch #touch { top: 0; bottom: max(8px, env(safe-area-inset-bottom, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); flex-direction: row-reverse; align-items: center; }
   #rahmen.touch.hoch #stick { left: max(0px, env(safe-area-inset-left, 0px)); bottom: max(0px, env(safe-area-inset-bottom, 0px)); }
   #touch .knopf { border-radius: 50%; background: #fff8ee; box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 5px #ffb037; min-width: 44px; min-height: 44px; }
   #knopf-aktion { width: max(56px, calc(var(--s, 3) * 18px)); height: max(56px, calc(var(--s, 3) * 18px)); font-size: 16px; }
-  #knopf-wasser { width: max(44px, calc(var(--s, 3) * 13px)); height: max(44px, calc(var(--s, 3) * 13px)); box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 4px #7ec8e3 !important; font-size: 10px; }
+  #knopf-wasser { width: max(44px, calc(var(--s, 3) * 13px)); height: max(44px, calc(var(--s, 3) * 13px)); box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 4px #7ec8e3 !important; font-size: 9px; letter-spacing: -0.2px; padding: 0; white-space: nowrap; }
   #knopf-item, #knopf-f { display: none; width: max(44px, calc(var(--s, 3) * 13px)); height: max(44px, calc(var(--s, 3) * 13px)); box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 4px #ff4fa0 !important; font-size: 12px; }
   #touch .knopf:active { transform: translateY(3px); }
   /* YouTube-Fenster (Einbettung, ein-/ausklappbar, API mind. 200x113); Desktop unten links */
@@ -122,33 +126,33 @@
 </div>
 <div id="ton-hinweis" hidden>Tippen für Ton</div>
 <pre id="debug" hidden></pre>
-<script src="js/rng.js?v=0.10"></script>
-<script src="js/uhr.js?v=0.10"></script>
-<script src="js/charaktere.js?v=0.10"></script>
-<script src="js/getraenke.js?v=0.10"></script>
-<script src="js/essen.js?v=0.10"></script>
-<script src="js/pegel.js?v=0.10"></script>
-<script src="js/cheats.js?v=0.10"></script>
-<script src="js/runden.js?v=0.10"></script>
-<script src="js/ereignisse.js?v=0.10"></script>
-<script src="js/minispiele.js?v=0.10"></script>
-<script src="js/punkte.js?v=0.10"></script>
-<script src="js/hinweise.js?v=0.10"></script>
-<script src="js/speicher.js?v=0.10"></script>
-<script src="js/karte.js?v=0.10"></script>
-<script src="js/pfad.js?v=0.10"></script>
-<script src="js/kamera.js?v=0.10"></script>
-<script src="js/eingabe.js?v=0.10"></script>
-<script src="js/spieler.js?v=0.10"></script>
-<script src="js/npcs.js?v=0.10"></script>
-<script src="js/ton.js?v=0.10"></script>
-<script src="music/playlist.js?v=0.10"></script>
-<script src="js/musik.js?v=0.10"></script>
-<script src="js/gfx.js?v=0.10"></script>
-<script src="js/szene.js?v=0.10"></script>
-<script src="js/innen.js?v=0.10"></script>
-<script src="js/partikel.js?v=0.10"></script>
-<script src="js/render.js?v=0.10"></script>
-<script src="js/main.js?v=0.10"></script>
+<script src="js/rng.js?v=0.11"></script>
+<script src="js/uhr.js?v=0.11"></script>
+<script src="js/charaktere.js?v=0.11"></script>
+<script src="js/getraenke.js?v=0.11"></script>
+<script src="js/essen.js?v=0.11"></script>
+<script src="js/pegel.js?v=0.11"></script>
+<script src="js/cheats.js?v=0.11"></script>
+<script src="js/runden.js?v=0.11"></script>
+<script src="js/ereignisse.js?v=0.11"></script>
+<script src="js/minispiele.js?v=0.11"></script>
+<script src="js/punkte.js?v=0.11"></script>
+<script src="js/hinweise.js?v=0.11"></script>
+<script src="js/speicher.js?v=0.11"></script>
+<script src="js/karte.js?v=0.11"></script>
+<script src="js/pfad.js?v=0.11"></script>
+<script src="js/kamera.js?v=0.11"></script>
+<script src="js/eingabe.js?v=0.11"></script>
+<script src="js/spieler.js?v=0.11"></script>
+<script src="js/npcs.js?v=0.11"></script>
+<script src="js/ton.js?v=0.11"></script>
+<script src="music/playlist.js?v=0.11"></script>
+<script src="js/musik.js?v=0.11"></script>
+<script src="js/gfx.js?v=0.11"></script>
+<script src="js/szene.js?v=0.11"></script>
+<script src="js/innen.js?v=0.11"></script>
+<script src="js/partikel.js?v=0.11"></script>
+<script src="js/render.js?v=0.11"></script>
+<script src="js/main.js?v=0.11"></script>
 </body>
 </html>

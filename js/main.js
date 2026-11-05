@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.10', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.11', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function neuesSpiel(opt) {
@@ -22,7 +22,8 @@
       effekte: [], hilfe: '', pfeil: null, ende: null, pressF: null, hausverbote: 0, letzteStunde: Math.floor(Saufi.Uhr.START / 60), prost: 0, tanzBeat: false,
       sprechT: 4, aufnahmeWartet: [], ruhig: !!opt.ruhig, treffer: [], panel: null, musikInfo: { quelle: 'webaudio', aktiv: 'webaudio', spielt: false, youtubeVerfuegbar: false, hinweis: '' },
       best: opt.best || 0, speicher: opt.speicher || null, doppelt: false, stummAn: false, neustart: false, spielSek: 0, stats: { getrunken: 0, gegessen: 0, getauscht: 0, geweckt: 0 },
-      pannen: Saufi.Ereignisse.erstellePannen()
+      pannen: Saufi.Ereignisse.erstellePannen(),
+      warn2: false, warn3: false
     };
     S.licht = Saufi.Uhr.licht(S.uhr);
     Saufi.NPCs.uebergang(S.npcs, welt.stadt, sp.x / K | 0, (sp.y / K | 0));
@@ -61,6 +62,7 @@
     X = stub(X);
     S.zustand = 'ende'; S.overlay = null; S.uebergang = null;
     var art = sieg ? 'sieg' : (/Teamstimmung/.test(grund || '') ? 'team' : 'umfall');
+    if (sieg) Saufi.Punkte.add(S.punkte, 20 * S.runden.team, 'Truppe hält zusammen');
     var w = Saufi.Punkte.wertung(S.punkte.punkte, sieg, art), neu = false;
     if (S.speicher) { var alt = S.speicher.zahl('best', 0); if (sieg && S.punkte.punkte > alt) { S.speicher.setzeZahl('best', S.punkte.punkte); neu = true; S.best = S.punkte.punkte; } else S.best = Math.max(S.best || 0, alt); }
     else if (sieg && S.punkte.punkte > (S.best || 0)) { S.best = S.punkte.punkte; neu = true; }
@@ -94,6 +96,7 @@
   function verlassen(S, X) {
     X = stub(X);
     var von = S.ort, b = null;
+    if (Saufi.Hinweise.entferne) Saufi.Hinweise.entferne(S.hinweise, 'Feierabend');
     S.welt.stadt.gebaeude.forEach(function (g2) { if (g2.id === von) b = g2; });
     S.ort = 'stadt'; S.karte = S.welt.stadt;
     S.spieler.sitzt = false; S.spieler.isst = 0; S.spieler.essenId = null;
@@ -467,6 +470,9 @@
     // Runden
     ereignisRunden(S, Saufi.Runden.tick(S.runden, m), X);
     if (S.zustand === 'ende') return;
+    // Einmal-Warnungen bei steigendem Pegel (kein rng)
+    if (!S.warn2 && fig.pegel > 2.2) { S.warn2 = true; sag(S, 'Wird eng! Essen, Wasser oder Sitzen hilft.', 4, 'info'); }
+    if (!S.warn3 && fig.pegel > 3.0) { S.warn3 = true; sag(S, 'Über 3,0 ‰ sinkt die Standfestigkeit! Essen oder Wasser, schnell.', 4, 'schlecht'); }
     // Aufnahme-Zeremonie in der Disko
     if (S.ort === 'disko' && S.aufnahmeWartet.length) {
       S.aufnahmeWartet.splice(0).forEach(function (id) {

@@ -5,7 +5,7 @@
   var Saufi = g.Saufi = g.Saufi || {};
 
   var VORLAUF_MIN = 60;      // Vorwarnung eine Spielstunde vorher
-  var FRIST_MIN = 33;        // ca. 20 Sekunden Echtzeit nach dem Ausruf Zeit, am Tisch zu stehen
+  var FRIST_MIN = 40;        // ca. 32 Sekunden Echtzeit (bei 48 s/h) nach dem Ausruf Zeit, am Tisch zu stehen
   var TEAM_START = 3, TEAM_MAX = 5, STRAFE_STAND = 15;
 
   // 6 feste Runden (v01). Reihenfolge ist fest (kein Zufall).
