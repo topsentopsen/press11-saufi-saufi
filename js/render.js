@@ -1202,12 +1202,14 @@
     var dialogRect = null, hilfeRect = null;
     var cursorY;
     if (topBand) {
-      var band = Math.round(Math.min(130, Math.max(78, H * 0.18)));
-      var stripH = S.overlay ? 0 : 36;
+      // Daumenzone rechts (E/Trinken plus die Reihe darüber) und Stick links bleiben frei.
+      var band = Math.round(Math.min(156, Math.max(112, H * 0.2)));
+      var stripH = S.overlay ? 0 : 34;
       var cursorBottom = H - band - 4 - (stripH ? stripH + 4 : 0);
       R.teamLeiste = null;
       if (stripH && S.npcs) {
-        zeichneTeamleiste(R, S, 6, cursorBottom + 4, W - 12, stripH);
+        var stripR = 118;
+        zeichneTeamleiste(R, S, 8, cursorBottom + 4, Math.max(80, W - 8 - stripR), stripH);
       }
       function card(text2, hochK, farbe, sz) {
         var cw = Math.min(W - 16, Math.round(W * 0.92));
@@ -1491,9 +1493,10 @@
     }
     // Handy im Spiel: kleine Versionszeile ganz unten rechts, auf der Welt, nicht in einer Leiste.
     if (imSpiel && R.hochkant && R.touch) {
-      var vw = 48, vh = 9, vx = W - vw - 2, vy = H - vh - 1;
+      var vw = 52, vh = 12, vx = W - vw - 3, vy = H - vh - 2;
+      rr(c, vx, vy, vw, vh, 'rgba(27,21,48,0.78)', 4);
       R.hudVersion = { x: vx, y: vy, w: vw, h: vh };
-      textInBox(c, txt, vx, vy, vw, vh, 6, { col: '#fff8ee', ausr: 'right', kontur: P.kontur, maxZeilen: 1 });
+      textInBox(c, txt, vx, vy, vw, vh, 7, { col: '#fff8ee', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
       return;
     }
     if (R.hochkant && R.touch && R.panel && R.panel.y > H * 0.25) {
