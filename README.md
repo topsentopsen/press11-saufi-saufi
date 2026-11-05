@@ -4,6 +4,15 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v14
+
+- Freunde stecken nicht mehr in Bänken: NPC-Wege ohne Ecken abschneiden, Stuck-Teleport, eigene Standplätze.
+- Spieler-Stuck-Erkennung: nach 1,5 s in der Enge wieder frei.
+- Motocross mit vier Fahrern (reine Formel), Überholen und Sprungbögen.
+- Stuttgart-21-Baustelle mit Bauzaun, Kränen, Schild und Musk/Boring-Company-Sprüchen.
+- Starship-Überflug ab 19:30 mit Countdown und Lift-off.
+- Musik-Intensität steigt über den Tag (BPM, Lautstärke, Schichten).
+
 ## Neu in v13
 
 - Versionsanzeige mittig oben (oder unten, wenn das HUD die Mitte belegt).

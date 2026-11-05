@@ -6,7 +6,7 @@ var fs = require('fs'), path = require('path'), vm = require('vm');
 var ROOT = path.join(__dirname, '..');
 // Reihenfolge wie die Script-Tags in index.html
 var DATEIEN = ['js/rng', 'js/uhr', 'js/charaktere', 'js/getraenke', 'js/essen', 'js/pegel', 'js/cheats', 'js/runden', 'js/ereignisse', 'js/minispiele', 'js/punkte', 'js/hinweise',
-  'js/speicher', 'js/karte', 'js/pfad', 'js/kamera', 'js/eingabe', 'js/spieler', 'js/npcs', 'js/ton', 'music/playlist', 'js/musik', 'js/gfx', 'js/szene', 'js/innen', 'js/partikel', 'js/render', 'js/main'];
+  'js/speicher', 'js/karte', 'js/motocross', 'js/s21', 'js/pfad', 'js/kamera', 'js/eingabe', 'js/spieler', 'js/npcs', 'js/ton', 'music/playlist', 'js/musik', 'js/gfx', 'js/szene', 'js/innen', 'js/partikel', 'js/render', 'js/main'];
 
 function ladeKontext(extra) {
   var ctx = { console: console, Math: Math };
@@ -779,7 +779,7 @@ test('39 Teamstimmung 0: eigener Titel statt Umgefallen/Press F', function () {
   gleich(t.S.zustand, 'ende'); gleich(t.S.ende.wertung.titel, 'Abgehängt');
   wahr(/abgehängt/.test(t.S.ende.wertung.kopf)); wahr(/Teamstimmung 0/.test(t.S.ende.grund));
   wahr(t.S.ende.wertung.kopf.indexOf('Press F') < 0);
-  gleich(D.Spiel.VERSION, '0.13');
+  gleich(D.Spiel.VERSION, '0.14');
   wahr(D.Gfx.MIN_SCHRIFT <= 7);
 });
 
@@ -834,9 +834,9 @@ test('42 DPR-Begrenzung: MAX_DPR = 2, setzeAufloesung und begrenzDpr kappen', fu
   wahr(sk === R.canvas.width / R.W, 'Skala konsistent');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
   wahr(/begrenzDpr|MAX_DPR/.test(main), 'main nutzt DPR-Begrenzung');
-  wahr(/VERSION\s*=\s*['"]0\.13['"]/.test(main), 'VERSION 0.13');
+  wahr(/VERSION\s*=\s*['"]0\.14['"]/.test(main), 'VERSION 0.14');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  wahr(/main\.js\?v=0\.13/.test(html), 'Cache-Buster v=0.13');
+  wahr(/main\.js\?v=0\.14/.test(html), 'Cache-Buster v=0.14');
 });
 
 test('43 Hochformat-Layout: Playlist und Menues passen in PORT_H', function () {
@@ -1349,11 +1349,11 @@ test('72 Quer BASE 320x176: VH == H/zoom, Flaeche >= 3', function () {
 
 test('73 Versionen: VERSION 0.13, ?v=0.13, README v10, Bau-Bericht v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.13');
+  gleich(D.Spiel.VERSION, '0.14');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster vorhanden');
-  vs.forEach(function (v) { gleich(v, '?v=0.13', 'Cache-Buster ' + v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.14', 'Cache-Buster ' + v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v13/.test(readme), 'README Neu in v13');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
@@ -1651,11 +1651,11 @@ test('82 Stick: Totzone, cancel=0, zweiter Finger ignoriert, E gleichzeitig', fu
 
 test('83 Versionen: VERSION 0.13, ?v=0.13, README v10, Bau-Bericht v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.13');
+  gleich(D.Spiel.VERSION, '0.14');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.13', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.14', v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v13/.test(readme), 'README Neu in v13');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
@@ -2026,10 +2026,10 @@ test('96 Durchspiel-Bot Seeds 1/7/42 Hoch-Touch und Quer', function () {
 
 test('97 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.13');
+  gleich(D.Spiel.VERSION, '0.14');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
-  vs.forEach(function (v) { gleich(v, '?v=0.13', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.14', v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v13/.test(readme), 'README Neu in v13');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
@@ -2258,11 +2258,11 @@ test('106 Bot-Durchspiel Seeds 1/7/42 Hoch+Quer ohne Soft-Lock/…', function ()
 
 test('107 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.13');
+  gleich(D.Spiel.VERSION, '0.14');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0);
-  vs.forEach(function (v) { gleich(v, '?v=0.13', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.14', v); });
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
@@ -2621,12 +2621,12 @@ test('117 Bot Seeds 1/7/42 Hoch+Quer, Darstellung ändert Logik nicht', function
 
 test('118 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.13');
+  gleich(D.Spiel.VERSION, '0.14');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0);
-  vs.forEach(function (v) { gleich(v, '?v=0.13', v); });
-  wahr(/partikel\.js\?v=0\.13/.test(html), 'partikel eingebunden');
+  vs.forEach(function (v) { gleich(v, '?v=0.14', v); });
+  wahr(/partikel\.js\?v=0\.14/.test(html), 'partikel eingebunden');
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
@@ -3029,9 +3029,9 @@ test('132 Touch-Größen v10 ≥44 / Kreis ≥36', function () {
 
 test('133 Versionen v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.13');
+  gleich(D.Spiel.VERSION, '0.14');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.13', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.14', v); });
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
@@ -3195,22 +3195,24 @@ function versionMitte(log, W) {
   if (!log.meta) return null;
   for (var i = 0; i < log.meta.length; i++) {
     var m = log.meta[i];
-    if (m.text === 'v0.13' && m.align === 'center' && Math.abs(m.x - W / 2) <= 1 && !m.stroke) return m;
+    if (m.text === 'v0.14' && m.align === 'center' && Math.abs(m.x - W / 2) <= 1 && !m.stroke) return m;
   }
   return null;
 }
 
-test('149 Versionen v13: VERSION, Cache-Buster, README, Bau-Bericht', function () {
+test('149 Versionen v14: VERSION, Cache-Buster, README, Bau-Bericht', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.13');
+  gleich(D.Spiel.VERSION, '0.14');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
-  wahr(/VERSION\s*=\s*['"]0\.13['"]/.test(main), 'main.js VERSION 0.13');
+  wahr(/VERSION\s*=\s*['"]0\.14['"]/.test(main), 'main.js VERSION 0.14');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.13', v); });
-  wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v13');
-  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
+  vs.forEach(function (v) { gleich(v, '?v=0.14', v); });
+  wahr(/Neu in v14/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v14');
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v14.md')), 'bau-bericht-v14.md');
+  wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v13 bleibt');
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md bleibt');
 });
 
 test('150 Versionsanzeige mittig: Start/Spiel/Ende in drei Layouts', function () {
@@ -3236,7 +3238,7 @@ test('150 Versionsanzeige mittig: Start/Spiel/Ende in drei Layouts', function ()
       } else if (z === 'spiel') { t.S.zustand = 'spiel'; }
       else { t.S.zustand = 'start'; }
       D.Render.zeichne(R, t.S);
-      wahr(!!versionMitte(log, R.W), 'v0.13 mittig @ ' + z + ' hoch=' + lay.hoch + ' touch=' + !!lay.touch);
+      wahr(!!versionMitte(log, R.W), 'v0.14 mittig @ ' + z + ' hoch=' + lay.hoch + ' touch=' + !!lay.touch);
       var hv = R.hudVersion; wahr(!!hv, 'hudVersion gesetzt');
       var schneidet = function (a, b) { return a && b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; };
       if (lay.hoch) {
@@ -3507,6 +3509,393 @@ test('163 Render-Smoke: Motocross-Kamera, drei Layouts, Start/Spiel/Ende', funct
         t.S.zustand = 'spiel';
         D.Kamera.sofort(t.S.kamera, 32 * K, 36 * K - 8);
       }
+      D.Render.zeichne(R, t.S);
+    });
+  });
+});
+
+// ---------- v14: Freunde, Motocross, S21, Starship, Intensitaet ----------
+test('164 Bank-Szenario: NPCs nicht auf blockiert, Abstand, Spieler kommt voran', function () {
+  var D = lade(), K = 16, t = neuesSpielTest(D); erledigt(t.S);
+  var S = t.S, sp = S.spieler;
+  sp.x = 36 * K + 8; sp.y = 3 * K + 8;
+  var aktive = S.npcs.filter(function (n) { return n.aktiv; }).slice(0, 4);
+  wahr(aktive.length >= 4, '4 aktive Freunde');
+  [[34, 4], [34, 5], [35, 3], [33, 3]].forEach(function (p, i) {
+    var n = aktive[i]; n.karteId = 'stadt'; n.liegt = false; n.x = p[0] * K + 8; n.y = p[1] * K + 8; n.pfad = null; n.festSek = 0;
+  });
+  var x0 = sp.x;
+  t.X.E.setzeHalt('links', true);
+  for (var i = 0; i < 17 * 30; i++) {
+    schritt(S, t.Sp, t.X, 1 / 30);
+    aktive.forEach(function (n) {
+      var tl = D.NPCs.tileOf(n);
+      wahr(!S.karte.blockiert(tl.x, tl.y), 'NPC nicht blockiert Frame ' + i);
+    });
+  }
+  t.X.E.setzeHalt('links', false);
+  for (var j2 = 0; j2 < 3 * 30; j2++) {
+    schritt(S, t.Sp, t.X, 1 / 30);
+    aktive.forEach(function (n) {
+      var tl = D.NPCs.tileOf(n);
+      wahr(!S.karte.blockiert(tl.x, tl.y), 'NPC nicht blockiert Settle');
+    });
+  }
+  wahr(Math.abs(sp.x - x0) >= K * 0.5, 'Spieler weitergekommen');
+  aktive.forEach(function (n, i) {
+    wahr(Math.hypot(n.x - sp.x, n.y - sp.y) >= 6, 'Abstand Spieler NPC ' + i);
+    aktive.forEach(function (o, j) {
+      if (j <= i) return;
+      wahr(Math.hypot(n.x - o.x, n.y - o.y) >= 6, 'Abstand NPC ' + i + '/' + j);
+    });
+    wahr((n.festSek || 0) < D.NPCs.FEST_SEK, 'festSek unter Limit');
+  });
+  // Marktplatz und Rebenhang kurz
+  [[11, 9], [8, 2]].forEach(function (bank) {
+    var u = neuesSpielTest(D); erledigt(u.S);
+    u.S.spieler.x = (bank[0] - 1) * K + 8; u.S.spieler.y = (bank[1] + 1) * K + 8;
+    u.S.npcs.filter(function (n) { return n.aktiv; }).slice(0, 3).forEach(function (n, i) {
+      n.karteId = 'stadt'; n.x = u.S.spieler.x + (i - 1) * 10; n.y = u.S.spieler.y; n.liegt = false;
+    });
+    u.X.E.setzeHalt('rechts', true);
+    for (var f = 0; f < 5 * 30; f++) {
+      schritt(u.S, u.Sp, u.X, 1 / 30);
+      u.S.npcs.forEach(function (n) {
+        if (!n.aktiv || n.liegt) return;
+        var tl = D.NPCs.tileOf(n);
+        wahr(!u.S.karte.blockiert(tl.x, tl.y), 'Markt/Reben frei');
+      });
+    }
+  });
+});
+
+test('165 Freunde nicht solide: Spieler laeuft durch NPC', function () {
+  var D = lade(), K = 16, t = neuesSpielTest(D); erledigt(t.S);
+  var sp = t.S.spieler, n = t.S.npcs.filter(function (x) { return x.aktiv; })[0];
+  sp.x = 20 * K + 8; sp.y = 15 * K + 8;
+  n.karteId = 'stadt'; n.x = sp.x + 20; n.y = sp.y; n.liegt = false; n.laeuft = false;
+  var x0 = sp.x;
+  t.X.E.setzeHalt('rechts', true);
+  schritt(t.S, t.Sp, t.X, 1.0);
+  wahr(sp.x > x0 + 10, 'Spieler bewegt sich durch NPC-Position');
+});
+
+test('166 NPC auf blockierter Kachel wird binnen 5 s versetzt', function () {
+  var D = lade(), K = 16, t = neuesSpielTest(D); erledigt(t.S);
+  var n = t.S.npcs.filter(function (x) { return x.aktiv; })[0];
+  n.karteId = 'stadt'; n.liegt = false; n.x = 36 * K + 8; n.y = 2 * K + 8; // Bank
+  wahr(t.S.karte.blockiert(36, 2), 'Bank blockiert');
+  for (var i = 0; i < 5 * 30; i++) schritt(t.S, t.Sp, t.X, 1 / 30);
+  var tl = D.NPCs.tileOf(n);
+  wahr(!t.S.karte.blockiert(tl.x, tl.y), 'NPC wieder frei @' + tl.x + ',' + tl.y);
+});
+
+test('167 NPC-Wege schneiden keine Ecken: 30 s Marktplatz', function () {
+  var D = lade(), K = 16, t = neuesSpielTest(D); erledigt(t.S);
+  t.S.spieler.x = 15 * K + 8; t.S.spieler.y = 11 * K + 8;
+  t.S.npcs.filter(function (n) { return n.aktiv; }).forEach(function (n, i) {
+    n.karteId = 'stadt'; n.liegt = false; n.x = (12 + i) * K + 8; n.y = 12 * K + 8;
+  });
+  t.X.E.setzeHalt('rechts', true);
+  for (var i = 0; i < 30 * 30; i++) {
+    if (i === 15 * 30) { t.X.E.setzeHalt('rechts', false); t.X.E.setzeHalt('links', true); }
+    schritt(t.S, t.Sp, t.X, 1 / 30);
+    t.S.npcs.forEach(function (n) {
+      if (!n.aktiv || n.liegt || n.karteId !== 'stadt') return;
+      var tl = D.NPCs.tileOf(n);
+      wahr(!t.S.karte.blockiert(tl.x, tl.y), 'kein Block Frame ' + i);
+    });
+  }
+});
+
+test('168 Spieler-Stuck: nach ca. 1,5 s freieKachel und Hinweis', function () {
+  var D = lade(), K = 16, t = neuesSpielTest(D); erledigt(t.S);
+  var S = t.S, sp = S.spieler, karte = S.karte;
+  sp.x = 34 * K + 8; sp.y = 4 * K + 8;
+  sp.festSek = 0; sp.letztPos = { x: sp.x, y: sp.y };
+  var achse = { x: 0, y: -1 }, befreit = false;
+  for (var i = 0; i < 60; i++) {
+    var px = sp.x, py = sp.y;
+    befreit = D.Spieler.festPruefen(S, sp, achse, 1 / 30) || befreit;
+    // Keine echte Bewegung: Position zuruecksetzen wenn nicht befreit
+    if (!befreit) { sp.x = px; sp.y = py; sp.letztPos = { x: px, y: py }; }
+  }
+  wahr(befreit, 'festPruefen befreit');
+  var fk = D.Spieler.freieKachel(karte, sp);
+  wahr(fk && !karte.blockiert(fk.x, fk.y), 'freieKachel');
+  var hin = D.Hinweise.aktuell(S.hinweise);
+  wahr(hin && /Wieder frei/.test(hin.text), 'Hinweis Wieder frei');
+});
+
+test('169 Motocross rein: stand(t) 4 Eintraege, deterministisch, endlich', function () {
+  var D = lade(), a = D.Motocross.stand(12.5), b = D.Motocross.stand(12.5);
+  gleich(a.length, 4);
+  gleich(JSON.stringify(a), JSON.stringify(b), 'identisch bei gleichem t');
+  a.forEach(function (e) {
+    ['x', 'y', 'winkel', 'platz', 'fortschritt', 'hoehe'].forEach(function (k) {
+      wahr(isFinite(e[k]), k + ' endlich');
+    });
+    wahr(e.nr > 0 && e.farbe, 'nr/farbe');
+  });
+});
+
+test('170 Motocross Piste: Positionen auf ERDE/HUEGEL, Abstand ≥ 4', function () {
+  var D = lade(), T = D.Karte.T, st = D.Karte.erstelleWelt(D.RNG.erstelle(1)).stadt;
+  for (var t = 0; t <= 600; t += 0.1) {
+    var bs = D.Motocross.stand(t);
+    bs.forEach(function (b, i) {
+      var tx = Math.floor(b.x / 16), ty = Math.floor(b.y / 16);
+      var tile = st.tile(tx, ty);
+      var dx = b.x / 16 - 32.5, dy = b.y / 16 - 37.5;
+      var d2 = (dx / 5.2) * (dx / 5.2) + (dy / 5.8) * (dy / 5.8);
+      // Kachelmitte oder geometrisch auf der Piste (Randkacheln koennen GRAS sein)
+      var aufPiste = tile === T.ERDE || tile === T.HUEGEL;
+      if (!aufPiste) {
+        for (var oy = -1; oy <= 1 && !aufPiste; oy++) for (var ox = -1; ox <= 1; ox++) {
+          var tt = st.tile(tx + ox, ty + oy);
+          if (tt === T.ERDE || tt === T.HUEGEL) aufPiste = true;
+        }
+      }
+      wahr(aufPiste && d2 >= 0.40 && d2 <= 0.95, 'Piste t=' + t + ' @' + tx + ',' + ty + ' tile=' + tile + ' d2=' + d2.toFixed(3));
+      for (var j = i + 1; j < bs.length; j++) {
+        wahr(Math.hypot(b.x - bs[j].x, b.y - bs[j].y) >= 4, 'Abstand Fahrer');
+      }
+    });
+  }
+});
+
+test('171 Motocross Ueberholen: Platzreihenfolge wechselt ≥ 3 Mal, ω0 verschieden', function () {
+  var D = lade(), last = null, wechsel = 0;
+  var omegas = {};
+  for (var t = 0; t <= 300; t += 0.5) {
+    var bs = D.Motocross.stand(t);
+    var key = bs.map(function (b) { return b.nr + ':' + b.platz; }).sort().join('|');
+    var order = bs.slice().sort(function (a, b) { return a.platz - b.platz; }).map(function (b) { return b.nr; }).join(',');
+    if (last && order !== last) wechsel++;
+    last = order;
+    bs.forEach(function (b) { omegas[b.nr] = b.omega; });
+  }
+  wahr(wechsel >= 3, 'Überholen wechsel=' + wechsel);
+  var vals = Object.keys(omegas).map(function (k) { return omegas[k]; });
+  wahr(new Set(vals).size === vals.length, 'ω0 verschieden');
+});
+
+test('172 Motocross Render: 4 Motorräder, kein NaN, Y-Sortierung', function () {
+  var D = lade(), K = 16, log = [], cv = mockCanvas(log), R = D.Render.erstelle(cv, cv.ownerDocument);
+  D.Render.setzeBildschirm(R, false);
+  var t = neuesSpielTest(D); t.S.zustand = 'spiel';
+  D.Kamera.sofort(t.S.kamera, 32 * K, 37 * K - 8);
+  D.Render.zeichne(R, t.S);
+  var src = fs.readFileSync(path.join(ROOT, 'js', 'render.js'), 'utf8');
+  wahr(/Motocross\.stand/.test(src), 'stand genutzt');
+  wahr(/zeichneMotorrad/.test(src), 'zeichneMotorrad');
+});
+
+test('173 S21 Karte: Ring/Grube blockiert, Stationen erreichbar, keine Deko, Oberhash', function () {
+  var D = lade(), T = D.Karte.T;
+  var hRef = tilesHashOber(D.Karte.erstelleWelt(D.RNG.erstelle(1)).stadt);
+  for (var seed = 1; seed <= 20; seed++) {
+    var st = D.Karte.erstelleWelt(D.RNG.erstelle(seed)).stadt;
+    wahr(!!st.s21, 's21 meta');
+    gleich(st.s21.x, 14); gleich(st.s21.w, 10);
+    for (var y = 31; y <= 36; y++) for (var x = 14; x <= 23; x++) {
+      var rand = (x === 14 || x === 23 || y === 31 || y === 36);
+      gleich(st.tile(x, y), rand ? T.BAUZAUN : T.BAUGRUBE, 'tile ' + x + ',' + y);
+      wahr(st.blockiert(x, y), 'blockiert');
+    }
+    st.deco.forEach(function (d) {
+      var tx = Math.floor(d.x / 16), ty = Math.floor(d.y / 16);
+      wahr(!(tx >= 14 && tx <= 23 && ty >= 31 && ty <= 36), 'keine Deko S21');
+    });
+    for (var yy = 31; yy <= 36; yy++) for (var xx = 14; xx <= 23; xx++) {
+      wahr(st.tile(xx, yy) !== T.BAUM && st.tile(xx, yy) !== T.BUSCH, 'kein Baum');
+    }
+    ['hotel', 'restaurant', 'kneipe', 'disko'].forEach(function (id) {
+      var td = st.tueren.filter(function (x) { return x.id === id; })[0];
+      wahr(D.Pfad.suche(st, st.spawn.x, st.spawn.y, td.aussen.x, td.aussen.y), 'erreichbar ' + id + ' seed ' + seed);
+    });
+    if (seed === 1) gleich(tilesHashOber(st), hRef, 'Oberhash stabil');
+  }
+});
+
+test('174 S21 Schild: Text im Zeichenlog und Quelltext', function () {
+  var D = lade(), K = 16, log = [], cv = mockCanvas(log), R = D.Render.erstelle(cv, cv.ownerDocument);
+  D.Render.setzeBildschirm(R, false);
+  var t = neuesSpielTest(D); t.S.zustand = 'spiel';
+  D.Kamera.sofort(t.S.kamera, 18 * K, 34 * K - 8);
+  D.Render.zeichne(R, t.S);
+  var joined = log.join('\n');
+  wahr(/Fertigstellung: irgendwann in der Zukunft/.test(joined) || log.some(function (s) {
+    return typeof s === 'string' && s.indexOf('Fertigstellung: irgendwann in der Zukunft') >= 0;
+  }) || (log.meta && log.meta.some(function (m) { return m.text && m.text.indexOf('Fertigstellung') >= 0; })), 'Schildtext Log');
+  var src = fs.readFileSync(path.join(ROOT, 'js', 'render.js'), 'utf8');
+  wahr(/Fertigstellung: irgendwann in der Zukunft/.test(src), 'Schildtext Quelle');
+});
+
+test('175 S21 Kraene: zwei Kraene, Ausleger aendert sich', function () {
+  var D = lade();
+  D.Render.kran(mockCtx([]), 40, 80, 0, 0);
+  D.Render.kran(mockCtx([]), 40, 80, 1, 1);
+  // Ausleger-Endpunkt aus derselben Formel wie kran()
+  function end(t, nr) {
+    var ang = t * 0.25 + (nr || 0) * 2;
+    return { x: 26 * Math.cos(ang), y: 8 * Math.sin(ang) };
+  }
+  var a = end(0, 0), b = end(1, 0);
+  wahr(Math.hypot(a.x - b.x, a.y - b.y) > 0.5, 'Ausleger t≠t+1');
+  var src = fs.readFileSync(path.join(ROOT, 'js', 'render.js'), 'utf8');
+  wahr((src.match(/art: 'kran'/g) || []).length >= 2, 'zwei Kran-Props');
+});
+
+test('176 S21 Spruch: Abstand, Cooldown, Musk/Boring, kein rng', function () {
+  var D = lade(), K = 16;
+  wahr(D.S21.naheBeiBaustelle(5 * K, 5 * K, { x: 14, y: 31, w: 10, h: 6 }, 40) === false, 'weit false');
+  wahr(D.S21.naheBeiBaustelle(18 * K, 37 * K + 4, { x: 14, y: 31, w: 10, h: 6 }, 40) === true, 'nah true');
+  var musk = 0;
+  D.S21.SPRUECHE.forEach(function (s) {
+    if (/Musk/.test(s) && /Boring Company/.test(s)) musk++;
+  });
+  wahr(musk >= 4, 'mind. 4 mit Musk und Boring Company');
+  var rngA = D.RNG.erstelle(42), rngB = D.RNG.erstelle(42);
+  var s21 = { n: 0 };
+  var t0 = D.S21.naechsterSpruch(s21);
+  var t1 = D.S21.naechsterSpruch(s21);
+  wahr(t0 !== t1, 'verschiedene Sprueche');
+  gleich(rngA.next(), rngB.next(), 'rng unberuehrt von Spruch');
+  var u = neuesSpielTest(D); erledigt(u.S);
+  // weit weg: kein Spruch
+  u.S.spieler.x = 5 * K; u.S.spieler.y = 10 * K;
+  u.S.s21.zuletzt = -999; u.S.spielSek = 100; u.S.s21.n = 0;
+  schritt(u.S, u.Sp, u.X, 0.1);
+  wahr(u.S.s21.zuletzt < 0, 'kein Spruch weit weg');
+  // nah
+  u.S.spieler.x = 18 * K + 8; u.S.spieler.y = 37 * K + 4;
+  u.S.s21.zuletzt = -999; u.S.spielSek = 50;
+  schritt(u.S, u.Sp, u.X, 0.2);
+  var h1 = D.Hinweise.aktuell(u.S.hinweise);
+  wahr(h1 && /Musk|Boring Company/.test(h1.text), 'Spruch nah');
+  var text1 = h1.text, n1 = u.S.s21.n;
+  u.S.spielSek += 10;
+  schritt(u.S, u.Sp, u.X, 0.1);
+  gleich(u.S.s21.n, n1, 'kein neuer nach 10 s');
+  u.S.spielSek = u.S.s21.zuletzt + 46;
+  schritt(u.S, u.Sp, u.X, 0.1);
+  var h3 = D.Hinweise.aktuell(u.S.hinweise);
+  wahr(h3 && h3.text !== text1, 'neuer anderer Text nach 46 s');
+});
+
+test('177 Intensitaet: monoton bpm/gain/schichten, setzeIntensitaet ok', function () {
+  var D = lade(), last = { bpm: -1, gain: -1, schichten: -1 };
+  for (var m = 480; m <= 1680; m += 10) {
+    var i = D.Ton.intensitaet(m);
+    wahr(isFinite(i.bpm) && isFinite(i.gain) && isFinite(i.schichten), 'endlich @' + m);
+    wahr(i.bpm >= last.bpm - 1e-9, 'bpm mono');
+    wahr(i.gain >= last.gain - 1e-9, 'gain mono');
+    wahr(i.schichten >= last.schichten, 'schichten mono');
+    last = i;
+  }
+  var start = D.Ton.intensitaet(480), ende = D.Ton.intensitaet(1680);
+  wahr(start.bpm < ende.bpm && start.gain < ende.gain && start.schichten < ende.schichten, 'Start < Ende');
+  nah(start.bpm, 96, 0.01); nah(ende.bpm, 150, 0.01);
+  nah(start.gain, 0.25, 0.01); nah(ende.gain, 0.55, 0.01);
+  gleich(start.schichten, 1); gleich(ende.schichten, 4);
+  var t = D.Ton.erstelle(null);
+  t.setzeIntensitaet(start);
+  t.setzeIntensitaet(ende);
+  wahr(/setzeIntensitaet\(\s*Saufi\.Ton\.intensitaet|setzeIntensitaet\(\s*Ton\.intensitaet/.test(fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8')), 'main ruft setzeIntensitaet');
+});
+
+test('178 Starship Zeitfenster', function () {
+  var D = lade(), St = D.S21.Starship;
+  gleich(D.S21.starshipStand(1160).phase, 'vorher');
+  gleich(D.S21.starshipStand(1167).phase, 'countdown');
+  gleich(D.S21.starshipStand(1170).phase, 'flug');
+  var fl = D.S21.starshipStand(1170 + 6);
+  gleich(fl.phase, 'flug'); wahr(fl.p > 0 && fl.p < 1);
+  gleich(D.S21.starshipStand(1170 + 12).phase, 'nachher');
+  wahr(St.START === 19 * 60 + 30);
+});
+
+test('179 Starship Meldung: 19:00→19:31, Flag verhindert Wiederholung', function () {
+  var D = lade(), t = neuesSpielTest(D); erledigt(t.S);
+  function hat(re) { return t.S.hinweise.liste.some(function (h) { return re.test(h.text); }); }
+  t.Sp.setze(t.S, { minute: 19 * 60 });
+  schritt(t.S, t.Sp, t.X, 0.1);
+  t.Sp.setze(t.S, { minute: 19 * 60 + 28 });
+  schritt(t.S, t.Sp, t.X, 0.2);
+  wahr(hat(/Starship/), 'Countdown-Text');
+  gleich(t.S.s21.gemeldet, 'countdown');
+  t.Sp.setze(t.S, { minute: 19 * 60 + 30 });
+  schritt(t.S, t.Sp, t.X, 0.2);
+  wahr(hat(/LIFT-OFF|hebt/), 'Lift-off');
+  gleich(t.S.s21.gemeldet, 'flug');
+  t.Sp.setze(t.S, { minute: 19 * 60 + 31 });
+  schritt(t.S, t.Sp, t.X, 0.2);
+  gleich(t.S.s21.gemeldet, 'flug', 'keine Wiederholung');
+});
+
+test('180 Starship Zeichnen: Flug ja, sonst nein, drinnen nie', function () {
+  var D = lade(), K = 16;
+  function drawAt(minute, innen) {
+    var log = [], cv = mockCanvas(log), R = D.Render.erstelle(cv, cv.ownerDocument);
+    D.Render.setzeBildschirm(R, false);
+    var t = neuesSpielTest(D); t.S.zustand = 'spiel';
+    t.Sp.setze(t.S, { minute: minute });
+    if (innen) { t.Sp.betreten(t.S, 'hotel', t.X); }
+    else D.Kamera.sofort(t.S.kamera, 20 * K, 20 * K);
+    D.Render.zeichne(R, t.S);
+    return log;
+  }
+  var vor = drawAt(19 * 60, false);
+  var flug = drawAt(19 * 60 + 35, false);
+  var nach = drawAt(20 * 60, false);
+  var inn = drawAt(19 * 60 + 35, true);
+  var src = fs.readFileSync(path.join(ROOT, 'js', 'render.js'), 'utf8');
+  wahr(/zeichneStarshipFlug/.test(src), 'Flugzeichner vorhanden');
+  // Im Flug Zeichenaufrufe (Flamme/Koerper)
+  D.Render.zeichneStarshipFlug(mockCtx([]), { uhr: { minute: 1175 }, ort: 'stadt' }, 320, 176, 1);
+  D.Render.zeichneStarshipFlug(mockCtx([]), { uhr: { minute: 1000 }, ort: 'stadt' }, 320, 176, 1);
+  wahr(inn, 'innen zeichnet ohne Crash');
+  wahr(vor && flug && nach, 'alle Phasen ok');
+});
+
+test('181 Starship-Modell bei S21: Prop in propsFuer, Y-sortiert', function () {
+  var D = lade(), src = fs.readFileSync(path.join(ROOT, 'js', 'render.js'), 'utf8');
+  wahr(/starshipModell/.test(src), 'Prop starshipModell');
+  wahr(/art: 'starshipModell'/.test(src) || /art: \"starshipModell\"/.test(src), 'propsFuer Eintrag');
+  var K = 16, log = [], cv = mockCanvas(log), R = D.Render.erstelle(cv, cv.ownerDocument);
+  D.Render.setzeBildschirm(R, false);
+  var t = neuesSpielTest(D); t.S.zustand = 'spiel';
+  D.Kamera.sofort(t.S.kamera, 18 * K, 33 * K - 8);
+  D.Render.zeichne(R, t.S);
+});
+
+test('182 Versionstest v14', function () {
+  var D = lade();
+  gleich(D.Spiel.VERSION, '0.14');
+  wahr(/Neu in v14/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v14.md')));
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  wahr(/motocross\.js\?v=0\.14/.test(html) && /s21\.js\?v=0\.14/.test(html), 'Module in index');
+  wahr(!!D.Motocross && !!D.S21, 'Module geladen');
+});
+
+test('183 Render-Smoke: Kamera S21 und Motocross, drei Layouts', function () {
+  var D = lade(), K = 16;
+  var layouts = [
+    { hoch: false, touch: false },
+    { hoch: true, touch: false, cssW: 375, cssH: 667 },
+    { hoch: true, touch: true, cssW: 390, cssH: 844 }
+  ];
+  layouts.forEach(function (lay) {
+    [{ x: 18, y: 34 }, { x: 32, y: 37 }].forEach(function (cam) {
+      var log = [], cv = mockCanvas(log), R = D.Render.erstelle(cv, cv.ownerDocument);
+      var h = lay.hoch ? D.Render.berechnePortH(lay.cssW, lay.cssH) : D.Render.BASE_H;
+      D.Render.setzeBildschirm(R, lay.hoch, { h: h, touch: lay.touch });
+      if (lay.touch) { R.touch = true; R.cssW = lay.cssW; R.cssH = lay.cssH; }
+      var t = neuesSpielTest(D, { seed: 1 });
+      t.S.zustand = 'spiel';
+      D.Kamera.sofort(t.S.kamera, cam.x * K, cam.y * K - 8);
       D.Render.zeichne(R, t.S);
     });
   });

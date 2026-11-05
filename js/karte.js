@@ -10,11 +10,11 @@
     STAEFFELE: 12, GEB: 13, TUER: 14, BUSCH: 15,
     BODEN: 20, WAND: 21, TRESEN: 22, TISCH: 23, SOFA: 24, BUFFET: 25, SPENDER: 26, TANZ: 27, DJ: 28, JUKEBOX: 29, PFLANZE: 30,
     TEPPICH: 31, KUECHE: 32, AUSGANG: 33, KICKER: 34, TERRASSE: 35,
-    ERDE: 36, HUEGEL: 37, TRIBUENE: 38, ABSPERR: 39
+    ERDE: 36, HUEGEL: 37, TRIBUENE: 38, ABSPERR: 39, BAUZAUN: 40, BAUGRUBE: 41
   };
   var BLOCK = {};
   [T.WASSER, T.MAUER, T.REBEN, T.BAUM, T.LATERNE, T.BRUNNEN, T.BANK, T.GEB, T.TUER, T.BUSCH, T.WAND, T.TRESEN, T.TISCH, T.SOFA, T.BUFFET,
-    T.SPENDER, T.DJ, T.JUKEBOX, T.PFLANZE, T.KUECHE, T.AUSGANG, T.KICKER, T.TRIBUENE, T.ABSPERR].forEach(function (t) { BLOCK[t] = true; });
+    T.SPENDER, T.DJ, T.JUKEBOX, T.PFLANZE, T.KUECHE, T.AUSGANG, T.KICKER, T.TRIBUENE, T.ABSPERR, T.BAUZAUN, T.BAUGRUBE].forEach(function (t) { BLOCK[t] = true; });
 
   var ORTE = ['hotel', 'restaurant', 'kneipe', 'disko'];
   var NAMEN = { hotel: 'Jazz in the City', restaurant: 'Gasthaus Maultäschle', kneipe: 'Sophies Brauhaus', disko: 'Untergrund 07', motocross: 'Motocross-Park' };
@@ -151,8 +151,26 @@
     k.rect(11, 52, 15, 1, T.WEG);
     // Motocross-Park (Ostseite y 31..44, x 27..38) nach streue, damit Seeds oben stabil bleiben
     baueMotocross(k);
+    baueS21(k);
     k.spawn = { x: 25, y: 13 };
     return k;
+  }
+
+  function baueS21(k) {
+    var x, y;
+    // Flaeche x14..23, y31..36: freie Wiese zwischen Weg x12, Suedweg x25 und Querweg y38
+    k.rect(14, 31, 10, 6, T.GRAS);
+    // Ring Bauzaun, innen Baugrube
+    for (y = 31; y <= 36; y++) for (x = 14; x <= 23; x++) {
+      var rand = (x === 14 || x === 23 || y === 31 || y === 36);
+      k.setze(x, y, rand ? T.BAUZAUN : T.BAUGRUBE);
+    }
+    // Innen x15..22, y32..35 bereits Baugrube durch die Schleife
+    k.deco = k.deco.filter(function (d) {
+      var tx = Math.floor(d.x / K), ty = Math.floor(d.y / K);
+      return !(tx >= 14 && tx <= 23 && ty >= 31 && ty <= 36);
+    });
+    k.s21 = { x: 14, y: 31, w: 10, h: 6 };
   }
 
   function baueMotocross(k) {

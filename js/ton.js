@@ -19,7 +19,19 @@
   function skalaNote(stufe) { return ROOT + 24 + Math.floor(stufe / 7) * 12 + MOLL[((stufe % 7) + 7) % 7]; }
   function mtof(m) { return 440 * Math.pow(2, (m - 69) / 12); }
 
+  // Intensitaet nach Spielminute: 480 (08:00) → 1680 (04:00). Schichten 0 Bass … 4 Lead.
+  function intensitaet(minute) {
+    var m = Math.max(480, Math.min(1680, +minute || 480));
+    var u = (m - 480) / (1680 - 480);
+    var bpm = 96 + u * (150 - 96);
+    var gain = Math.min(0.6, 0.25 + u * (0.55 - 0.25));
+    var schichten = Math.min(4, Math.floor(1 + u * 3 + 1e-9));
+    if (m >= 1680) schichten = 4;
+    return { bpm: bpm, gain: gain, schichten: schichten };
+  }
+
   // Noten eines Taktes (16 Schritte). ebene 0 = morgens (Bass + Hat leise), 1 = Kick dazu, 2 = Clap/Hat dazu, 3 = Lead (Disko, Boost).
+  // Intensitaet.schichten 1..4 werden auf ebene 0..3 abgebildet; schichten-Semantik: 0 Bass, 1 Hat, 2 Kick, 3 Clap, 4 Lead.
   function noten(takt, ebene) {
     var out = [], prog = PROG[((takt % 4) + 4) % 4], lead = LEAD[((takt % 4) + 4) % 4];
     for (var s = 0; s < 16; s++) {
@@ -58,7 +70,7 @@
 
   function erstelle(win) {
     var Ctor = win && (win.AudioContext || win.webkitAudioContext);
-    var t = { ctx: null, gestartet: false, entsperrt: false, stummHinweisGezeigt: false, stumm: false, musikAn: false, ebene: 0, tief: false, boost: false, verfuegbar: !!Ctor,
+    var t = { ctx: null, gestartet: false, entsperrt: false, stummHinweisGezeigt: false, stumm: false, musikAn: false, ebene: 0, bpm: BPM, tief: false, boost: false, verfuegbar: !!Ctor,
       step: 0, takt: 0, naechste: 0, timer: null, beatStart: 0, bestaetigt: false };
     var master, musikBus, filter, rausch;
 
@@ -144,7 +156,7 @@
     }
 
     function planeSchritt(zeit) {
-      var n = noten(t.takt, t.boost ? 3 : t.ebene)[t.step], len = 60 / (t.boost ? 172 : BPM) / 4;
+      var n = noten(t.takt, t.boost ? 3 : t.ebene)[t.step], len = 60 / (t.boost ? 172 : (t.bpm || BPM)) / 4;
       if (n.kick) {                       // Hardstyle-Kick: Sinus mit schneller Absenkung, dazu leichte Verzerrung durch Uebersteuern
         osz('sine', 150, zeit, 0.22, 1.0, musikBus, 42); osz('triangle', 90, zeit, 0.08, 0.5, musikBus, 40);
       }
@@ -168,6 +180,18 @@
     };
     t.setzeMusik = function (an) { t.musikAn = !!an; if (an && t.ctx) t.naechste = Math.max(t.naechste, now()); };
     t.setzeEbene = function (e) { t.ebene = Math.max(0, Math.min(3, e | 0)); };
+    t.setzeIntensitaet = function (i) {
+      if (!i) return;
+      t.bpm = i.bpm || BPM;
+      t.schichten = i.schichten | 0;
+      // schichten 1..4 → alte ebene 0..3 (Disko/Boost bleibt separat bei Ebene 3)
+      var s = Math.max(0, Math.min(4, t.schichten));
+      t.ebene = s <= 0 ? 0 : Math.min(3, s - 1);
+      if (musikBus && !t.musikAus) {
+        var g = Math.min(0.6, i.gain != null ? i.gain : 0.55);
+        try { musikBus.gain.setTargetAtTime(g, now(), 0.2); } catch (e2) { musikBus.gain.value = g; }
+      }
+    };
     t.setzeTief = function (an) { t.tief = !!an; if (filter) filter.frequency.setTargetAtTime(an ? 650 : 20000, now(), 0.15); };
     t.setzeBoost = function (an) { t.boost = !!an; };
     t.setzeMusikAus = function (aus) { t.musikAus = !!aus; if (musikBus) musikBus.gain.setTargetAtTime(aus ? 0 : 0.55, now(), 0.03); };
@@ -192,7 +216,7 @@
   }
 
   Saufi.Ton = {
-    BPM: BPM, BEAT: BEAT, noten: noten, skalaNote: skalaNote, mtof: mtof, erstelle: erstelle,
+    BPM: BPM, BEAT: BEAT, noten: noten, skalaNote: skalaNote, mtof: mtof, erstelle: erstelle, intensitaet: intensitaet,
     HINWEIS_TIPPEN: HINWEIS_TIPPEN, HINWEIS_STUMMSCHALTER: HINWEIS_STUMMSCHALTER,
     stummerPuffer: stummerPuffer, spieleStumm: spieleStumm, zustandGesperrt: zustandGesperrt
   };

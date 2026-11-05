@@ -2,12 +2,12 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, SPEED = 50, AUFSTEH_SEK = 15, RUDI_ID = 'rudi', WECK_REICHWEITE = 48;
+  var K = 16, SPEED = 50, AUFSTEH_SEK = 15, RUDI_ID = 'rudi', WECK_REICHWEITE = 48, FEST_SEK = 4, FEST_MIN_V = 0.3;
 
   function erstelle(spielerId) {
     return Saufi.Charaktere.npcs(spielerId).map(function (c, i) {
       return { id: c.id, char: c, fig: Saufi.Pegel.neu(c), nr: i, aktiv: !c.kommtAb, karteId: 'stadt', x: 0, y: 0, dir: 'unten', anim: 0, schritt: 0, laeuft: false,
-        pfad: null, pfadI: 0, replan: 0, zielKey: '', liegt: false, liegtSeit: 0, blase: null, mitgetrunken: 0 };
+        pfad: null, pfadI: 0, replan: 0, zielKey: '', liegt: false, liegtSeit: 0, blase: null, mitgetrunken: 0, festSek: 0, letztPos: null };
     });
   }
 
@@ -30,13 +30,27 @@
     return res;
   }
 
+  // Freie Nachbarkachel nahe dem Spieler, nicht Spielerkachel und nicht von anderem NPC belegt
+  function freieNebenSpieler(karte, sp, list, selbst) {
+    var ptx = Math.floor(sp.x / K), pty = Math.floor((sp.y - 1) / K);
+    var belegt = {};
+    (list || []).forEach(function (o) {
+      if (!o.aktiv || o.liegt || o === selbst || o.karteId !== karte.id) return;
+      belegt[Math.floor(o.x / K) + ',' + Math.floor((o.y - 1) / K)] = true;
+    });
+    var kandidaten = nahKacheln(karte, ptx, pty, 12).filter(function (t) {
+      return !(t.x === ptx && t.y === pty) && !belegt[t.x + ',' + t.y];
+    });
+    return kandidaten[0] || nahKacheln(karte, ptx, pty, 1)[0] || { x: ptx, y: pty };
+  }
+
   // Spieler wechselt die Karte: alle stehenden NPCs kommen mit und werden rund um (tx,ty) abgesetzt.
   function uebergang(list, karte, tx, ty) {
     var mit = list.filter(function (n) { return n.aktiv && !n.liegt; });
     var plaetze = nahKacheln(karte, tx, ty, mit.length + 2);
     mit.forEach(function (n, i) {
       var p = plaetze[i] || { x: tx, y: ty };
-      n.karteId = karte.id; n.x = p.x * K + K / 2; n.y = p.y * K + K / 2; n.pfad = null; n.zielKey = ''; n.laeuft = false; n.schwarm = null; n.auftrag = null;
+      n.karteId = karte.id; n.x = p.x * K + K / 2; n.y = p.y * K + K / 2; n.pfad = null; n.zielKey = ''; n.laeuft = false; n.schwarm = null; n.auftrag = null; n.festSek = 0;
     });
   }
 
@@ -59,19 +73,62 @@
   }
   function tileOf(n) { return { x: Math.floor(n.x / K), y: Math.floor((n.y - 1) / K) }; }
 
+  function kollidiertNpc(karte, x, y) {
+    if (Saufi.Spieler && Saufi.Spieler.kollidiertBox) return Saufi.Spieler.kollidiertBox(karte, x, y, 3, 4);
+    var x0 = Math.floor((x - 3) / K), x1 = Math.floor((x + 2.99) / K), y0 = Math.floor((y - 4) / K), y1 = Math.floor((y - 0.01) / K);
+    for (var j = y0; j <= y1; j++) for (var i = x0; i <= x1; i++) if (karte.blockiert(i, j)) return true;
+    return false;
+  }
+
   function geheZu(n, karte, tx, ty, dt, faktor) {
     var t0 = tileOf(n), key = tx + ',' + ty;
+    var mx = t0.x * K + K / 2, my = t0.y * K + K / 2;
+    var amMittelpunkt = Math.hypot(n.x - mx, n.y - my) <= 3;
     n.replan -= dt;
     if (!n.pfad || n.zielKey !== key || n.replan <= 0) {
-      n.pfad = Saufi.Pfad.suche(karte, t0.x, t0.y, tx, ty); n.pfadI = 1; n.zielKey = key; n.replan = 0.6;
+      n.pfad = Saufi.Pfad.suche(karte, t0.x, t0.y, tx, ty);
+      // Wenn noch nicht am Kachelmittelpunkt: path[0] (aktuelle Kachel) zuerst ansteuern, keine Ecken abschneiden
+      n.pfadI = amMittelpunkt ? 1 : 0;
+      n.zielKey = key; n.replan = 0.6;
     }
     n.laeuft = false;
     if (!n.pfad || n.pfadI >= n.pfad.length) return;
-    var w = n.pfad[n.pfadI], wx = w.x * K + K / 2, wy = w.y * K + K / 2, dx = wx - n.x, dy = wy - n.y, d = Math.hypot(dx, dy);
-    if (d < 2) { n.pfadI += 1; return; }
-    var s = Math.min(d, SPEED * (faktor || 1) * dt);
-    n.x += dx / d * s; n.y += dy / d * s; n.laeuft = true;
-    n.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'rechts' : 'links') : (dy > 0 ? 'unten' : 'oben');
+    var w = n.pfad[n.pfadI], wx = w.x * K + K / 2, wy = w.y * K + K / 2, dx = wx - n.x, dy = wy - n.y;
+    if (Math.hypot(dx, dy) < 2) { n.pfadI += 1; return; }
+    var s = SPEED * (faktor || 1) * dt;
+    // Achsenweise: zuerst X, dann Y; blockierte Schritte verwerfen
+    var moved = false;
+    if (Math.abs(dx) > 0.5) {
+      var sx = Math.sign(dx) * Math.min(Math.abs(dx), s);
+      if (!kollidiertNpc(karte, n.x + sx, n.y)) { n.x += sx; moved = true; s = Math.max(0, s - Math.abs(sx)); }
+    }
+    if (Math.abs(dy) > 0.5 && s > 0) {
+      var sy = Math.sign(dy) * Math.min(Math.abs(dy), s);
+      if (!kollidiertNpc(karte, n.x, n.y + sy)) { n.y += sy; moved = true; }
+    }
+    if (moved) {
+      n.laeuft = true;
+      n.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'rechts' : 'links') : (dy > 0 ? 'unten' : 'oben');
+    }
+  }
+
+  function abstossen(n, andere, karte, dt) {
+    var push = 30 * dt;
+    andere.forEach(function (o) {
+      if (o === n || !o.aktiv || o.liegt || o.karteId !== n.karteId) return;
+      var dx = n.x - o.x, dy = n.y - o.y, d = Math.hypot(dx, dy);
+      if (d > 0 && d < 10) {
+        var f = push / d, nx = n.x + dx * f, ny = n.y + dy * f;
+        if (!kollidiertNpc(karte, nx, n.y)) n.x = nx;
+        if (!kollidiertNpc(karte, n.x, ny)) n.y = ny;
+      }
+    });
+  }
+
+  function festTeleport(n, karte, sp, list) {
+    var pl = freieNebenSpieler(karte, sp, list, n);
+    n.x = pl.x * K + K / 2; n.y = pl.y * K + K / 2;
+    n.pfad = null; n.zielKey = ''; n.festSek = 0; n.laeuft = false; n.letztPos = { x: n.x, y: n.y };
   }
 
   // ctx: { karte, spieler, dt, t, halbiert, faktor, tischSlots (oder null), minute }
@@ -83,7 +140,7 @@
       var f = n.fig;
       if (n.karteId !== karte.id && !n.liegt) {         // steht nach dem zweiten Leben anderswo auf: wie bei einem Uebergang neben dem Spieler absetzen
         var pl = nahKacheln(karte, tileOf(sp).x, tileOf(sp).y, 1)[0] || tileOf(sp);
-        n.karteId = karte.id; n.x = pl.x * K + K / 2; n.y = pl.y * K + K / 2; n.pfad = null; n.zielKey = ''; n.laeuft = false;
+        n.karteId = karte.id; n.x = pl.x * K + K / 2; n.y = pl.y * K + K / 2; n.pfad = null; n.zielKey = ''; n.laeuft = false; n.festSek = 0;
       }
       // Zustand der Figur (Standfestigkeit, Umfallen) laeuft auch fuer NPCs anderswo weiter
       if (!n.liegt) {
@@ -98,15 +155,34 @@
       }
       if (n.blase) { n.blase.rest -= dt; if (n.blase.rest <= 0) n.blase = null; }
       if (n.karteId !== karte.id || n.liegt) { n.laeuft = false; return; }
+
+      // Sofort befreien, wenn auf blockierter Kachel
+      var tNow = tileOf(n);
+      if (karte.blockiert(tNow.x, tNow.y)) { festTeleport(n, karte, sp, list); }
+
+      var lp = n.letztPos || { x: n.x, y: n.y };
       if (n.schwarm && n.schwarm.sek <= 0) n.schwarm = null;
       var slot = ctx.tischSlots && ctx.tischSlots.length ? ctx.tischSlots[n.nr % ctx.tischSlots.length] : null;
-      var ziel = slot || tileOf(sp);
+      var ptx = tileOf(sp).x, pty = tileOf(sp).y;
+      // Eigener Standplatz: nahKacheln-Index statt Spielerkachel (kein Stapeln)
+      var plaetze = nahKacheln(karte, ptx, pty, 6);
+      var ziel = slot || plaetze[n.nr % Math.max(1, plaetze.length)] || { x: ptx, y: pty };
+      if (!slot && ziel.x === ptx && ziel.y === pty && plaetze.length) ziel = plaetze[0];
       var t0 = tileOf(n), dist = Math.hypot(sp.x - n.x, sp.y - n.y);
       if (slot) { n.schwarm = null; if (t0.x !== slot.x || t0.y !== slot.y) geheZu(n, karte, slot.x, slot.y, dt, ctx.faktor); else n.laeuft = false; }
       else if (n.auftrag) { if (t0.x !== n.auftrag.x || t0.y !== n.auftrag.y) geheZu(n, karte, n.auftrag.x, n.auftrag.y, dt, (ctx.faktor || 1) * 1.25); else { n.laeuft = false; n.auftrag.da = true; } }
       else if (n.schwarm && (n.schwarm.sek -= dt) > 0 && dist < 120) { if (t0.x !== n.schwarm.x || t0.y !== n.schwarm.y) geheZu(n, karte, n.schwarm.x, n.schwarm.y, dt, ctx.faktor); else n.laeuft = false; }
-      else if (dist > 26 + (n.nr % 4) * 6) geheZu(n, karte, ziel.x, ziel.y, dt, ctx.faktor);
+      else if (dist > 26 + (n.nr % 4) * 6 || t0.x !== ziel.x || t0.y !== ziel.y) geheZu(n, karte, ziel.x, ziel.y, dt, ctx.faktor);
       else n.laeuft = false;
+      // Weiche Abstoßung vom Spieler und anderen NPCs
+      abstossen(n, [{ x: sp.x, y: sp.y, aktiv: true, liegt: false, karteId: karte.id }].concat(list), karte, dt);
+      // Stuck: nach Bewegung messen (sonst ist v immer 0)
+      if (n.laeuft) {
+        var v = Math.hypot(n.x - lp.x, n.y - lp.y) / Math.max(dt, 1e-6);
+        if (v < FEST_MIN_V) n.festSek = (n.festSek || 0) + dt; else n.festSek = 0;
+        if (n.festSek >= FEST_SEK) festTeleport(n, karte, sp, list);
+      } else n.festSek = 0;
+      n.letztPos = { x: n.x, y: n.y };
       if (n.laeuft) { n.anim += dt * 8; n.schritt = Math.floor(n.anim) % 4; } else n.schritt = 0;
     });
     return ev;
@@ -168,7 +244,7 @@
   }
 
   Saufi.NPCs = {
-    SPEED: SPEED, AUFSTEH_SEK: AUFSTEH_SEK, erstelle: erstelle, sichtbar: sichtbar, uebergang: uebergang, ausschwaermen: ausschwaermen, update: update, trinkeRunde: trinkeRunde,
-    stunde: stunde, abbau: abbau, naechsterLiegender: naechsterLiegender, WECK_REICHWEITE: WECK_REICHWEITE, wecke: wecke, ankommen: ankommen, sprechen: sprechen, nahKacheln: nahKacheln, tileOf: tileOf
+    SPEED: SPEED, AUFSTEH_SEK: AUFSTEH_SEK, FEST_SEK: FEST_SEK, erstelle: erstelle, sichtbar: sichtbar, uebergang: uebergang, ausschwaermen: ausschwaermen, update: update, trinkeRunde: trinkeRunde,
+    stunde: stunde, abbau: abbau, naechsterLiegender: naechsterLiegender, WECK_REICHWEITE: WECK_REICHWEITE, wecke: wecke, ankommen: ankommen, sprechen: sprechen, nahKacheln: nahKacheln, tileOf: tileOf, geheZu: geheZu
   };
 })(globalThis);

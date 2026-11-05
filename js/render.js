@@ -133,7 +133,14 @@
           list.push({ y: (y + 1) * K, x: x * K, w: tw * K, art: 'tribuene' });
         }
       }
-      if (karte.id === 'stadt') list.push({ y: 39 * K, x: 26 * K + 4, w: 34, art: 'holzschild', text: 'Motocross' });
+      if (karte.id === 'stadt') {
+        list.push({ y: 39 * K, x: 26 * K + 4, w: 34, art: 'holzschild', text: 'Motocross' });
+        // S21: zwei Kraene, Starship-Modell, Bauschild
+        list.push({ y: 34 * K + 8, x: 16 * K, w: 8, art: 'kran', nr: 0, kx: 16, ky: 34 });
+        list.push({ y: 33 * K + 8, x: 21 * K, w: 8, art: 'kran', nr: 1, kx: 21, ky: 33 });
+        list.push({ y: 33 * K + 4, x: 20 * K, w: 12, art: 'starshipModell' });
+        list.push({ y: 37 * K + 2, x: 18 * K - 10, w: 40, art: 'bauschild', zeile1: 'Stuttgart 21', zeile2: 'Fertigstellung: irgendwann in der Zukunft' });
+      }
     }
     list.sort(function (a, b) { return a.y - b.y; });
     p = R.props[karte.id] = list; return p;
@@ -453,9 +460,10 @@
     if (karte.id === 'hotel' && S.joint && !S.joint.gefunden) dinge.push({ y: 8 * K + 12, art: 'joint', x: 14 * K, ky: 8 * K });
     S.npcs.forEach(function (n) { if (n.aktiv && n.karteId === karte.id) dinge.push({ y: n.y, art: 'npc', n: n }); });
     if (S.zustand !== 'start') dinge.push({ y: S.spieler.y + 0.1, art: 'spieler' });
-    if (karte.id === 'stadt') for (var bi = 0; bi < 2; bi++) {          // Motorraeder nach Y sortiert mit allem anderen
-      var ang = t * 0.7 + bi * Math.PI;
-      dinge.push({ art: 'motorrad', bi: bi, bx: 32.5 * K + Math.cos(ang) * 4.4 * K, y: 37.5 * K + Math.sin(ang) * 4.8 * K });
+    if (karte.id === 'stadt' && Saufi.Motocross && Saufi.Motocross.stand) {
+      Saufi.Motocross.stand(t).forEach(function (b) {
+        dinge.push({ y: b.y, art: 'motorrad', b: b, x: b.x });
+      });
     }
     if (karte.id === 'disko') dinge.push({ y: 10 * K + 8, art: 'tuersteher', x: 6 * K + 8, ky: 10 * K + 8 });
     dinge.sort(function (a, b) { return a.y - b.y || (a.art === 'spieler' ? 1 : 0) - (b.art === 'spieler' ? 1 : 0); });
@@ -489,11 +497,16 @@
         rr(c, px, fy - 22, 34, 10, '#c98b5e', 1.5, '#5a3a28', 0.7);
         textInBox(c, d.text || 'Motocross', px + 1, fy - 21, 32, 8, 5.5, { col: '#fff8ee', ausr: 'center', min: 5, maxZeilen: 1 });
       }
-      else if (d.art === 'tram') { var tx = ((t * 14) % (karte.pxW + 160)) - 90 - cx; if (tx > -80 && tx < viewW + 10) Sz.strassenbahn(c, tx, 253 - cy, t); }
-      else if (d.art === 'motorrad') {
-        kreis(c, d.bx - cx - 3, d.y - cy, 2.2, '#2a2a32'); kreis(c, d.bx - cx + 3, d.y - cy, 2.2, '#2a2a32');
-        rr(c, d.bx - cx - 5, d.y - cy - 4, 10, 4, d.bi ? '#ff4fa0' : '#4fe6ff', 1.2);
+      else if (d.art === 'bauschild') {
+        r(c, px + 28, fy - 20, 2.5, 20, '#6a4a30');
+        rr(c, px - 4, fy - 46, 66, 28, '#e8a020', 1.5, '#5a3a28', 0.7);
+        textInBox(c, d.zeile1 || 'Stuttgart 21', px - 2, fy - 44, 62, 9, 7, { col: '#1a1020', ausr: 'center', min: 5, maxZeilen: 1 });
+        textInBox(c, d.zeile2 || 'Fertigstellung: irgendwann in der Zukunft', px - 2, fy - 35, 62, 16, 5.5, { col: '#1a1020', ausr: 'center', min: 4.5, maxZeilen: 2 });
       }
+      else if (d.art === 'kran') kran(c, px + 4, fy, t, d.nr || 0);
+      else if (d.art === 'starshipModell') zeichneStarshipModell(c, px + 6, fy);
+      else if (d.art === 'tram') { var tx = ((t * 14) % (karte.pxW + 160)) - 90 - cx; if (tx > -80 && tx < viewW + 10) Sz.strassenbahn(c, tx, 253 - cy, t); }
+      else if (d.art === 'motorrad') zeichneMotorrad(c, d.b || d, cx, cy);
       else if (d.art === 'joint') zeichneJoint(c, d.x - cx + 8, d.ky - cy + 8, t);
       else if (d.art === 'tuersteher') figur(c, { id: 'tuersteher', shirt: '#14102a', hose: '#14102a', haar: '#14102a', extra: 'hut' }, d.x - cx, d.ky - cy, { dir: 'unten', t: t });
       else if (d.art === 'npc') {
@@ -577,6 +590,90 @@
       vg.addColorStop(1, 'rgba(10,8,40,' + (0.42 * nacht).toFixed(3) + ')');
       c.fillStyle = vg; c.fillRect(0, 0, viewW, viewH);
     }
+    // Starship-Overlay in Bildschirmkoordinaten (nur Stadt, nach Lichtern und Vignette)
+    if (!karte.innen && Saufi.S21 && Saufi.S21.starshipStand) zeichneStarshipFlug(c, S, viewW, viewH, t);
+  }
+
+  function kran(c, px, fy, t, nr) {
+    var ang = t * 0.25 + (nr || 0) * 2;
+    var ausX = 26 * Math.cos(ang), ausY = 8 * Math.sin(ang);
+    // Mast (Gitter)
+    r(c, px - 1.5, fy - 40, 3, 40, '#c8c8d0');
+    for (var i = 0; i < 5; i++) linie(c, px - 1.5, fy - 38 + i * 7, px + 1.5, fy - 32 + i * 7, '#8a8a98', 0.7);
+    // Ausleger
+    linie(c, px, fy - 38, px + ausX, fy - 38 + ausY, '#d0d0d8', 2.2);
+    linie(c, px, fy - 36, px + ausX, fy - 36 + ausY, '#a0a0b0', 1.0);
+    // Gegengewicht
+    rr(c, px - Math.sign(ausX || 1) * 10 - 4, fy - 40, 8, 5, '#6a6a78', 1);
+    // Hakenseil und Last mit Pendeln
+    var pend = Math.sin(t * 2.1 + nr) * 3;
+    var hx = px + ausX + pend, hy = fy - 38 + ausY + 14;
+    linie(c, px + ausX, fy - 38 + ausY, hx, hy, '#aaa', 0.8);
+    rr(c, hx - 3, hy, 6, 5, '#e07030', 1);
+  }
+
+  function zeichneStarshipModell(c, px, fy) {
+    // Edelstahl-Modell 12x44 px, Spitze oben
+    var w = 12, h = 44;
+    poly(c, [[px, fy - h], [px + w / 2, fy - h - 8], [px + w, fy - h]], '#c8d0d8');
+    rr(c, px, fy - h, w, h, '#b8c0c8', 1.5, '#8a9098', 0.7);
+    r(c, px + 2, fy - h + 8, w - 4, 3, '#9098a0');
+    r(c, px + 2, fy - h + 20, w - 4, 3, '#9098a0');
+    // Flossen
+    poly(c, [[px - 3, fy - 2], [px, fy - 10], [px, fy]], '#a8b0b8');
+    poly(c, [[px + w + 3, fy - 2], [px + w, fy - 10], [px + w, fy]], '#a8b0b8');
+  }
+
+  function zeichneMotorrad(c, b, cx, cy) {
+    if (!b) return;
+    var x = (b.x != null ? b.x : b.bx) - cx, y = (b.y != null ? b.y : 0) - cy;
+    var hoehe = b.hoehe || 0, winkel = b.winkel != null ? b.winkel : 0;
+    var cos = Math.cos(winkel), farbe = b.farbe || '#4fe6ff';
+    // Schatten am Boden
+    ellipse(c, x, y + 1, 7, 2.2, 'rgba(40,30,60,0.35)');
+    c.save();
+    c.translate(x, y - hoehe);
+    var ansicht = Math.abs(cos) > 0.5 ? (cos > 0 ? 'rechts' : 'links') : (Math.sin(winkel) > 0 ? 'vorn' : 'hinten');
+    if (ansicht === 'links' || ansicht === 'rechts') {
+      var sp = ansicht === 'rechts' ? 1 : -1;
+      kreis(c, -7 * sp, 0, 2.4, '#2a2a32'); kreis(c, 7 * sp, 0, 2.4, '#2a2a32');
+      rr(c, -8, -5, 16, 4, farbe, 1.2);
+      // Fahrer
+      kreis(c, 0, -10, 2.6, '#1a1a22'); // Helm
+      rr(c, -3, -8, 6, 5, farbe, 1);
+      // Nummernschild
+      rr(c, -4, -3, 8, 3.5, '#fff8ee', 0.8);
+      textInBox(c, String(b.nr || ''), -4, -3, 8, 3.5, 4, { col: '#1a1020', ausr: 'center', min: 3, maxZeilen: 1 });
+    } else {
+      kreis(c, -3, 0, 2.2, '#2a2a32'); kreis(c, 3, 0, 2.2, '#2a2a32');
+      rr(c, -5, -6, 10, 5, farbe, 1.2);
+      kreis(c, 0, -11, 2.6, '#1a1a22');
+      rr(c, -3.5, -3, 7, 3, '#fff8ee', 0.8);
+      textInBox(c, String(b.nr || ''), -3.5, -3, 7, 3, 3.5, { col: '#1a1020', ausr: 'center', min: 3, maxZeilen: 1 });
+    }
+    c.restore();
+  }
+
+  function zeichneStarshipFlug(c, S, viewW, viewH, t) {
+    var st = Saufi.S21.starshipStand(S.uhr.minute);
+    if (st.phase !== 'flug') return;
+    var p = Math.max(0, Math.min(1, st.p));
+    if (!isFinite(p)) return;
+    var sx = viewW * 0.55, sy = viewH + 20 - p * (viewH + 60);
+    if (!isFinite(sx) || !isFinite(sy)) return;
+    // Rauchspur
+    for (var i = 0; i < 8; i++) {
+      var a = 0.35 * (1 - i / 8) * (1 - p * 0.3);
+      kreis(c, sx + Math.sin(t * 3 + i) * 2, sy + 18 + i * 7, 4 + i * 0.8, 'rgba(180,180,200,' + a.toFixed(3) + ')');
+    }
+    // Flamme
+    var fr = 6 + Math.abs(Math.sin(t * 18)) * 4;
+    if (!isFinite(fr) || fr < 0) fr = 6;
+    kreis(c, sx, sy + 14, fr, '#ff8a20');
+    kreis(c, sx, sy + 16, fr * 0.55, '#ffe066');
+    // Koerper
+    rr(c, sx - 5, sy - 28, 10, 36, '#c8d0d8', 1.5, '#8a9098', 0.7);
+    poly(c, [[sx - 5, sy - 28], [sx, sy - 40], [sx + 5, sy - 28]], '#d0d8e0');
   }
 
   function tintFuer(S) {
@@ -1334,6 +1431,7 @@
 
   Saufi.Render = {
     P: P, K: K, erstelle: erstelle, setzeBildschirm: setzeBildschirm, setzeAufloesung: setzeAufloesung, begrenzDpr: begrenzDpr, zeichne: zeichne, bauplan: bauplan, figur: figur,
+    kran: kran, zeichneMotorrad: zeichneMotorrad, zeichneStarshipFlug: zeichneStarshipFlug,
     kameraView: kameraView, weltView: weltView, berechnePortH: berechnePortH,
     W: BASE_W, H: BASE_H, BASE_W: BASE_W, BASE_H: BASE_H, PORT_H: PORT_H, PORT_H_MIN: PORT_H_MIN, PORT_H_MAX: PORT_H_MAX,
     MAX_BREITE: MAX_BREITE, MAX_BG_SKALA: MAX_BG_SKALA, MAX_DPR: MAX_DPR,

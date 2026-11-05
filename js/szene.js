@@ -356,7 +356,35 @@
     else if (t === T.HUEGEL) huegel(c, sx, sy, hs);
     else if (t === T.TRIBUENE) tribueeneBoden(c, sx, sy, hs);
     else if (t === T.ABSPERR) absperrung(c, sx, sy, hs);
+    else if (t === T.BAUZAUN) bauzaun(c, sx, sy, hs);
+    else if (t === T.BAUGRUBE) baugrube(c, sx, sy, hs);
     else bodenKachel(c, karte, t === T.BRUNNEN || t === T.BANK ? T.PFLASTER : (t === T.LATERNE || t === T.BAUM || t === T.BUSCH ? grundTyp(karte, x, y) : T.GRAS), x, y, sx, sy, hs);
+  }
+  function bauzaun(c, sx, sy, hs) {
+    gras(c, sx, sy, hs);
+    // Fuss
+    r(c, sx + 1, sy + K - 3, K - 2, 2.2, '#6a6a72');
+    // Gitterpaneele orange-weiss
+    for (var i = 0; i < 3; i++) {
+      var px = sx + 1 + i * 5, col = i % 2 ? '#f4a020' : '#f4f4f0';
+      rr(c, px, sy + 2, 4.5, K - 5.5, col, 0.6, '#5a5a60', 0.5);
+      for (var g = 0; g < 3; g++) {
+        linie(c, px + 0.6, sy + 3.5 + g * 3.2, px + 3.9, sy + 3.5 + g * 3.2, 'rgba(40,40,50,0.35)', 0.6);
+        linie(c, px + 1.2 + g, sy + 2.5, px + 1.2 + g, sy + K - 4, 'rgba(40,40,50,0.3)', 0.5);
+      }
+    }
+  }
+  function baugrube(c, sx, sy, hs) {
+    vlauf(c, sx, sy, K, K, '#8a8a90', '#6e6e78');
+    // Betonplatten
+    r(c, sx + 1, sy + 1, 6, 5, '#9a9aa2'); r(c, sx + 8, sy + 7, 6, 5, '#94949c');
+    // Pfuetzen
+    ellipse(c, sx + 5 + (hs % 3), sy + 10, 3.2, 1.4, 'rgba(70,110,150,0.45)');
+    // Bewehrung
+    for (var i = 0; i < 3; i++) {
+      linie(c, sx + 2 + i * 4, sy + 3, sx + 3 + i * 4, sy + 13, '#c07040', 0.9);
+      linie(c, sx + 1, sy + 4 + i * 3.5, sx + K - 1, sy + 5 + i * 3.5, '#b86838', 0.7);
+    }
   }
 
   // Hang: Licht von oben, Dunst, Halbhoehenhaeuser und Funkturm auf dem Kamm (nur Optik auf den gesperrten Reben-Kacheln)

@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.13', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.14', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function neuesSpiel(opt) {
@@ -22,7 +22,8 @@
       effekte: [], hilfe: '', pfeil: null, ende: null, pressF: null, hausverbote: 0, letzteStunde: Math.floor(Saufi.Uhr.START / 60), spontan: { zuletzt: -999, anzahl: 0, aktiv: null }, ortSek: 0, prost: 0, tanzBeat: false,
       sprechT: 4, aufnahmeWartet: [], ruhig: !!opt.ruhig, treffer: [], panel: null, musikInfo: { quelle: 'webaudio', aktiv: 'webaudio', spielt: false, youtubeVerfuegbar: false, hinweis: '' },
       best: opt.best || 0, speicher: opt.speicher || null, doppelt: false, stummAn: false, neustart: false, spielSek: 0, stats: { getrunken: 0, gegessen: 0, getauscht: 0, geweckt: 0 },
-      pannen: Saufi.Ereignisse.erstellePannen(), motocross: { zuletzt: -999 }
+      pannen: Saufi.Ereignisse.erstellePannen(), motocross: { zuletzt: -999 },
+      s21: { zuletzt: -999, n: 0, gemeldet: null }
     };
     S.licht = Saufi.Uhr.licht(S.uhr);
     Saufi.NPCs.uebergang(S.npcs, welt.stadt, sp.x / K | 0, (sp.y / K | 0));
@@ -78,9 +79,14 @@
     Saufi.Kamera.sofort(S.kamera, sp.x, sp.y - 8);
   }
   function musikFuerOrt(S, X) {
-    var T = X.T, h = S.uhr.minute / 60, e = h < 11 ? 0 : (h < 18 ? 1 : 2);
-    if (S.ort === 'disko' || S.boostAktiv) e = 3;
-    T.setzeEbene(e); T.setzeTief(S.ort === 'kneipe');
+    var T = X.T;
+    if (S.ort === 'disko' || S.boostAktiv) T.setzeEbene(3);
+    else if (T.setzeIntensitaet && Saufi.Ton.intensitaet) T.setzeIntensitaet(Saufi.Ton.intensitaet(S.uhr.minute));
+    else {
+      var h = S.uhr.minute / 60, e = h < 11 ? 0 : (h < 18 ? 1 : 2);
+      T.setzeEbene(e);
+    }
+    T.setzeTief(S.ort === 'kneipe');
   }
   function betreten(S, ort, X) {
     X = stub(X);
@@ -684,6 +690,30 @@
     else {
       var faktor = Saufi.Ereignisse.Boost.bewegung(S.boost) * Saufi.Pegel.bewegung(fig, m) * Saufi.Ereignisse.Joint.bewegung(S.joint);
       Saufi.Spieler.bewegung(sp, achse, fig.pegel, dt, S.t, faktor, S.karte);
+      if (Saufi.Spieler.festPruefen) Saufi.Spieler.festPruefen(S, sp, achse, dt);
+    }
+    // S21-Spruch nahe der Baustelle (eigener Zaehler, kein rng)
+    if (S.ort === 'stadt' && S.karte.s21 && Saufi.S21 && Saufi.S21.naheBeiBaustelle(sp.x, sp.y, S.karte.s21, 40)) {
+      if (!S.s21) S.s21 = { zuletzt: -999, n: 0, gemeldet: null };
+      if (S.spielSek - S.s21.zuletzt >= 45) {
+        var spr = Saufi.S21.naechsterSpruch(S.s21);
+        S.s21.zuletzt = S.spielSek;
+        sag(S, spr, 4.5, 'info');
+        var freund = S.npcs.filter(function (n) { return n.aktiv && !n.liegt && n.karteId === 'stadt' && Math.hypot(n.x - sp.x, n.y - sp.y) < 60; })[0];
+        if (freund && !freund.blase) freund.blase = { text: spr, rest: 3.5 };
+      }
+    }
+    // Starship-Meldungen (auch drinnen)
+    if (Saufi.S21 && Saufi.S21.starshipStand) {
+      if (!S.s21) S.s21 = { zuletzt: -999, n: 0, gemeldet: null };
+      var ss = Saufi.S21.starshipStand(m);
+      if (ss.phase === 'countdown' && S.s21.gemeldet !== 'countdown') {
+        S.s21.gemeldet = 'countdown';
+        sag(S, 'Starship: T-minus 3 … 2 … 1 …', 3, 'gross');
+      } else if (ss.phase === 'flug' && S.s21.gemeldet !== 'flug') {
+        S.s21.gemeldet = 'flug';
+        sag(S, 'LIFT-OFF! Wenigstens DAS hebt pünktlich ab.', 3.5, 'gross');
+      }
     }
     if (sp.tanzt > 0) sp.tanzt -= dt;
     if (S.prost > 0) S.prost -= dt;
@@ -733,7 +763,7 @@
     // Kamera, Hilfe, Pfeil, Musik
     Saufi.Kamera.update(S.kamera, sp.x, sp.y - 8, dt);
     S.hilfe = S.overlay ? '' : hilfeText(S); S.pfeil = berechnePfeil(S);
-    var e0 = minute(S) / 60 < 11 ? 0 : (minute(S) / 60 < 18 ? 1 : 2);
+    var e0 = Math.floor(minute(S));
     if (S.ort !== 'disko' && !S.boostAktiv && S._ebene !== e0) { S._ebene = e0; musikFuerOrt(S, X); }
     // Niederlage / Sieg
     if (Saufi.Runden.verloren(S.runden)) beende(S, false, 'Teamstimmung 0: alle gehen heim.', X);
