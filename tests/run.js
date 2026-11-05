@@ -5227,7 +5227,7 @@ test('233 v25 Feedback-Seite: Formular, Entwurf, keine Schlüssel', function () 
   wahr(/<textarea id="text" name="text" required/.test(html), 'Feedback Pflicht');
   wahr(/<button type="submit">/.test(html), 'Submit');
   wahr(/id="bestaetigung"/.test(html) && /data-meldung/.test(html) && /data-issue-link/.test(html), 'Bestaetigung');
-  wahr(/src="feedback\.js\?v=0\.26\.1"/.test(html), 'Skript eingebunden');
+  wahr(/src="feedback\.js\?v=0\.27"/.test(html), 'Skript eingebunden');
   wahr(/Press11Feedback\.bind\(/.test(html), 'Submit haengt an bind');
   wahr(/Press11 0\.26/.test(html), 'Versionszeile');
   wahr(!/<canvas/.test(html), 'keine Spielflaeche');
@@ -5417,6 +5417,8 @@ test('236 Feedback: leeres ziel.json faellt auf Raw und Worker zurueck', functio
   var F = ladeFeedback();
   var FALLBACK = 'https://press11-feedback-eingang.zengel-tobias.workers.dev';
   var RAW = 'https://raw.githubusercontent.com/topsentopsen/press11-saufi-saufi/main/feedback/ziel.json';
+  var ziel = JSON.parse(fs.readFileSync(path.join(ROOT, 'feedback', 'ziel.json'), 'utf8'));
+  gleich(ziel.url, FALLBACK, 'ziel.json behaelt die Worker-URL');
   var js = fs.readFileSync(path.join(ROOT, 'feedback', 'feedback.js'), 'utf8');
   wahr(js.indexOf("var FALLBACK_EINGANG = '" + FALLBACK + "'") >= 0, 'Fallback-Konstante');
   wahr(js.indexOf(RAW) >= 0, 'Raw-URL');
