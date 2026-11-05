@@ -1,0 +1,8 @@
+{
+  "name": "press11-feedback-eingang",
+  "private": true,
+  "description": "Cloudflare Worker for Press11 anonymous feedback ingress",
+  "devDependencies": {
+    "wrangler": "4.158.0"
+  }
+}
