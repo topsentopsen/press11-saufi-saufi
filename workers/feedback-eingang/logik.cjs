@@ -4,8 +4,10 @@
 'use strict';
 
 var ARTEN = { feedback: true, idee: true, sprache: true };
+var ERLAUBTE_FELDER = { art: true, name: true, text: true, website: true };
 var TEXT_MAX = 4000;
 var NAME_MAX = 80;
+var BODY_MAX = 8192;
 var RATE_N = 5;
 var RATE_MS = 10 * 60 * 1000;
 var hits = {};
@@ -18,8 +20,22 @@ function normArt(art) {
   return ARTEN[art] ? art : '';
 }
 
-function pruefe(daten) {
+function nurErlaubteFelder(daten) {
   daten = daten || {};
+  var out = {};
+  Object.keys(ERLAUBTE_FELDER).forEach(function (k) {
+    if (Object.prototype.hasOwnProperty.call(daten, k)) out[k] = daten[k];
+  });
+  return out;
+}
+
+function contentTypeOk(ct) {
+  ct = String(ct || '').split(';')[0].trim().toLowerCase();
+  return ct === 'application/json';
+}
+
+function pruefe(daten) {
+  daten = nurErlaubteFelder(daten);
   if (eineZeile(daten.website)) return { ok: true, still: true };
   var art = normArt(daten.art);
   var text = String(daten.text == null ? '' : daten.text).replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
@@ -48,18 +64,39 @@ function vorschau(text) {
   return s.slice(0, 59).replace(/\s+$/g, '') + '…';
 }
 
+function ohneMentions(s) {
+  return String(s == null ? '' : s).replace(/@/g, '(at)');
+}
+
+function ohneBackticks(s) {
+  return String(s == null ? '' : s).replace(/`/g, "'");
+}
+
+function codeFence(text) {
+  var max = 2;
+  var m = String(text).match(/`+/g);
+  if (m) {
+    for (var i = 0; i < m.length; i++) {
+      if (m[i].length > max) max = m[i].length;
+    }
+  }
+  return new Array(max + 2).join('`');
+}
+
 function issueFelder(art, name, text) {
   art = normArt(art) || 'feedback';
-  name = eineZeile(name).slice(0, NAME_MAX);
-  text = String(text == null ? '' : text).replace(/\r\n/g, '\n').trim();
+  name = ohneBackticks(ohneMentions(eineZeile(name).slice(0, NAME_MAX)));
+  text = ohneBackticks(ohneMentions(String(text == null ? '' : text).replace(/\r\n/g, '\n').trim()));
   if (text.length > TEXT_MAX) text = text.slice(0, TEXT_MAX);
   var prefix = art === 'idee' ? '[Idee]' : (art === 'sprache' ? '[Feedback (Sprache)]' : '[Feedback]');
   var kurz = vorschau(text);
   var title = (kurz ? prefix + ' ' + kurz : prefix).slice(0, 240);
-  var body = text;
-  if (art === 'idee') body = 'Art: Idee' + (name ? '\nName: ' + name : '') + '\n\n' + text;
-  else if (art === 'sprache') body = 'Art: Feedback (Sprache)\nQuelle: Sprache' + (name ? '\nName: ' + name : '') + '\n\n' + text;
-  else if (name) body = 'Name: ' + name + '\n\n' + text;
+  var meta = '';
+  if (art === 'idee') meta = 'Art: Idee' + (name ? '\nName: ' + name : '');
+  else if (art === 'sprache') meta = 'Art: Feedback (Sprache)\nQuelle: Sprache' + (name ? '\nName: ' + name : '');
+  else if (name) meta = 'Name: ' + name;
+  var fence = codeFence(text);
+  var body = (meta ? meta + '\n\n' : '') + fence + '\n' + text + '\n' + fence;
   var labels = art === 'sprache' ? ['feedback', 'sprache'] : [art === 'idee' ? 'idee' : 'feedback'];
   return { title: title, body: body, labels: labels };
 }
@@ -94,6 +131,16 @@ function optionen(origin) {
   });
 }
 
+async function cfRateOk(env, key) {
+  if (!env || !env.RATE_LIMITER || typeof env.RATE_LIMITER.limit !== 'function') return true;
+  try {
+    var r = await env.RATE_LIMITER.limit({ key: String(key || 'unbekannt') });
+    return !!(r && r.success);
+  } catch (e) {
+    return true;
+  }
+}
+
 async function fetchHandler(request, env, hole) {
   var rohOrigin = request.headers.get('Origin') || '';
   var origin = originErlaubt(rohOrigin);
@@ -106,11 +153,30 @@ async function fetchHandler(request, env, hole) {
   var erlaubt = origin || 'https://topsentopsen.github.io';
   if (request.method === 'OPTIONS') return optionen(erlaubt);
   if (request.method !== 'POST') return jsonAntwort(405, { ok: false, fehler: 'Nur POST.' }, erlaubt);
+  if (!contentTypeOk(request.headers.get('Content-Type'))) {
+    return jsonAntwort(415, { ok: false, fehler: 'Content-Type muss application/json sein.' }, erlaubt);
+  }
+  var len = request.headers.get('Content-Length');
+  if (len != null && len !== '' && Number(len) > BODY_MAX) {
+    return jsonAntwort(413, { ok: false, fehler: 'Anfrage zu gross.' }, erlaubt);
+  }
   var ip = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || '';
   ip = String(ip).split(',')[0].trim() || 'unbekannt';
+  if (!(await cfRateOk(env, 'fb:' + ip))) {
+    return jsonAntwort(429, { ok: false, fehler: 'Zu viele Nachrichten. Bitte kurz warten.' }, erlaubt);
+  }
+  var roh;
+  try { roh = await request.arrayBuffer(); }
+  catch (e0) { return jsonAntwort(400, { ok: false, fehler: 'Kein JSON.' }, erlaubt); }
+  if (roh.byteLength > BODY_MAX) {
+    return jsonAntwort(413, { ok: false, fehler: 'Anfrage zu gross.' }, erlaubt);
+  }
   var daten;
-  try { daten = await request.json(); }
+  try { daten = JSON.parse(new TextDecoder().decode(roh)); }
   catch (e) { return jsonAntwort(400, { ok: false, fehler: 'Kein JSON.' }, erlaubt); }
+  if (!daten || typeof daten !== 'object' || Array.isArray(daten)) {
+    return jsonAntwort(400, { ok: false, fehler: 'Kein JSON.' }, erlaubt);
+  }
   var p = pruefe(daten);
   if (!p.ok) return jsonAntwort(p.status || 400, { ok: false, fehler: p.fehler }, erlaubt);
   if (p.still) return jsonAntwort(200, { ok: true }, erlaubt);
@@ -149,5 +215,7 @@ module.exports = {
   reset: reset,
   issueFelder: issueFelder,
   originErlaubt: originErlaubt,
+  contentTypeOk: contentTypeOk,
+  nurErlaubteFelder: nurErlaubteFelder,
   fetch: fetchHandler
 };

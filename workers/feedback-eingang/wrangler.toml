@@ -4,3 +4,9 @@ compatibility_date = "2024-11-01"
 
 [vars]
 PRESS11_REPO = "topsentopsen/press11-saufi-saufi"
+
+# Cloudflare Rate Limiting (D4): 5 Requests / 60s je Key und Standort
+[[ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "1105"
+simple = { limit = 5, period = 60 }

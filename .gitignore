@@ -6,3 +6,8 @@ music/*.MP3
 .DS_Store
 Thumbs.db
 *.swp
+
+# Worker local deps (Wrangler)
+workers/**/node_modules/
+workers/**/.wrangler/
+workers/**/.dev.vars

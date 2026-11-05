@@ -14,8 +14,10 @@ jobs:
       - uses: actions/github-script@v7
         with:
           script: |
+            const ALLOW = { feedback: true, idee: true, sprache: true };
+            const LABEL_ALLOW = { feedback: true, idee: true, sprache: true };
             const p = context.payload.client_payload || {};
-            const art = p.art === 'idee' || p.art === 'sprache' ? p.art : (p.art === 'feedback' ? 'feedback' : '');
+            const art = ALLOW[p.art] ? p.art : '';
             if (!art) {
               core.setFailed('Art fehlt');
               return;
@@ -26,22 +28,33 @@ jobs:
               return;
             }
             if (text.length > 4000) text = text.slice(0, 4000);
+            text = text.replace(/@/g, '(at)').replace(/`/g, "'");
             let name = String(p.name == null ? '' : p.name).replace(/\s+/g, ' ').trim();
             if (name.length > 80) name = name.slice(0, 80);
+            name = name.replace(/@/g, '(at)').replace(/`/g, "'");
             function eine(s) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); }
             function vorschau(s) {
               const z = eine(s);
               if (z.length <= 60) return z;
               return z.slice(0, 59).replace(/\s+$/g, '') + '…';
             }
+            function codeFence(s) {
+              let max = 2;
+              const m = String(s).match(/`+/g);
+              if (m) for (const x of m) if (x.length > max) max = x.length;
+              return '`'.repeat(max + 1);
+            }
             const prefix = art === 'idee' ? '[Idee]' : (art === 'sprache' ? '[Feedback (Sprache)]' : '[Feedback]');
             const kurz = vorschau(text);
             const title = (kurz ? prefix + ' ' + kurz : prefix).slice(0, 240);
-            let body = text;
-            if (art === 'idee') body = 'Art: Idee' + (name ? '\nName: ' + name : '') + '\n\n' + text;
-            else if (art === 'sprache') body = 'Art: Feedback (Sprache)\nQuelle: Sprache' + (name ? '\nName: ' + name : '') + '\n\n' + text;
-            else if (name) body = 'Name: ' + name + '\n\n' + text;
-            const labels = art === 'sprache' ? ['feedback', 'sprache'] : [art === 'idee' ? 'idee' : 'feedback'];
+            let meta = '';
+            if (art === 'idee') meta = 'Art: Idee' + (name ? '\nName: ' + name : '');
+            else if (art === 'sprache') meta = 'Art: Feedback (Sprache)\nQuelle: Sprache' + (name ? '\nName: ' + name : '');
+            else if (name) meta = 'Name: ' + name;
+            const fence = codeFence(text);
+            const body = (meta ? meta + '\n\n' : '') + fence + '\n' + text + '\n' + fence;
+            const labels = (art === 'sprache' ? ['feedback', 'sprache'] : [art === 'idee' ? 'idee' : 'feedback'])
+              .filter((l) => LABEL_ALLOW[l]);
             const farbe = { feedback: 'd93f0b', idee: '6f42c1', sprache: '1d76db' };
             for (const label of labels) {
               try {
