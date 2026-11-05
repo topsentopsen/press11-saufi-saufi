@@ -44,6 +44,7 @@
     box-shadow: 0 0 0 1.5px #4a3560; z-index: -1; pointer-events: none; }
   #ton-knopf.aus::before { background: #e3dbea; }
   #ton-knopf.aus { text-decoration: line-through; }
+  #musik-knopf.aus { text-decoration: line-through; opacity: .55; }
   /* Bedienleiste: Hochformat unter dem Spielfeld; Querformat Overlay unten am Canvas */
   #bedien { display: none; position: relative; flex: 0 0 auto; width: 100%; height: 0; overflow: visible; z-index: 1; }
   #rahmen.touch #bedien { display: block; }
@@ -67,8 +68,10 @@
   #rahmen.touch.hoch #touch { top: 0; bottom: max(8px, env(safe-area-inset-bottom, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); flex-direction: row-reverse; align-items: center; }
   #rahmen.touch.hoch #stick { left: max(0px, env(safe-area-inset-left, 0px)); bottom: max(0px, env(safe-area-inset-bottom, 0px)); }
   #touch .knopf { border-radius: 50%; background: #fff8ee; box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 5px #ffb037; min-width: 44px; min-height: 44px; }
-  #knopf-aktion { width: max(56px, calc(var(--s, 3) * 18px)); height: max(56px, calc(var(--s, 3) * 18px)); font-size: 16px; }
-  #knopf-wasser { width: max(44px, calc(var(--s, 3) * 13px)); height: max(44px, calc(var(--s, 3) * 13px)); box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 4px #7ec8e3 !important; font-size: 10px; }
+  .knopf.aus { opacity: .45; }
+  #knopf-aktion, #knopf-wasser, #knopf-item { border-radius: 14px !important; line-height: 1.05; padding: 2px 4px; overflow: hidden; white-space: normal; word-break: break-word; }
+  #knopf-aktion { min-width: 72px; font-size: 13px !important; width: max(56px, calc(var(--s, 3) * 18px)); height: max(56px, calc(var(--s, 3) * 18px)); font-size: 16px; }
+  #knopf-wasser { width: max(44px, calc(var(--s, 3) * 13px)); height: max(44px, calc(var(--s, 3) * 13px)); box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 4px #7ec8e3 !important; font-size: 12px; min-width: 56px; }
   #knopf-item, #knopf-f { display: none; width: max(44px, calc(var(--s, 3) * 13px)); height: max(44px, calc(var(--s, 3) * 13px)); box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 4px #ff4fa0 !important; font-size: 12px; }
   #touch .knopf:active { transform: translateY(3px); }
   /* YouTube-Fenster (Einbettung, ein-/ausklappbar, API mind. 200x113); Desktop unten links */
@@ -101,6 +104,7 @@
   <canvas id="spiel" width="320" height="176" tabindex="0" aria-label="Press11 - Saufi Saufi"></canvas>
   <div id="oben">
     <button id="playlist-knopf" class="knopf" type="button" title="Scooter-Playlist (Taste P)" aria-label="Scooter-Playlist">&#9835;</button>
+    <button id="musik-knopf" class="knopf" type="button" title="Musik an oder aus (Taste N)" aria-label="Musik an oder aus">&#9836;</button>
     <button id="ton-knopf" class="knopf" type="button" title="Ton an oder aus (Taste M)" aria-label="Ton an oder aus">&#9834;</button>
     <button id="vollbild-knopf" class="knopf" type="button" title="Vollbild" aria-label="Vollbild">&#9974;</button>
     <button id="info-knopf" class="knopf" type="button" title="Hinweis 18+" aria-label="Hinweis 18 plus">i</button>
@@ -122,33 +126,33 @@
 </div>
 <div id="ton-hinweis" hidden>Tippen für Ton</div>
 <pre id="debug" hidden></pre>
-<script src="js/rng.js?v=0.10"></script>
-<script src="js/uhr.js?v=0.10"></script>
-<script src="js/charaktere.js?v=0.10"></script>
-<script src="js/getraenke.js?v=0.10"></script>
-<script src="js/essen.js?v=0.10"></script>
-<script src="js/pegel.js?v=0.10"></script>
-<script src="js/cheats.js?v=0.10"></script>
-<script src="js/runden.js?v=0.10"></script>
-<script src="js/ereignisse.js?v=0.10"></script>
-<script src="js/minispiele.js?v=0.10"></script>
-<script src="js/punkte.js?v=0.10"></script>
-<script src="js/hinweise.js?v=0.10"></script>
-<script src="js/speicher.js?v=0.10"></script>
-<script src="js/karte.js?v=0.10"></script>
-<script src="js/pfad.js?v=0.10"></script>
-<script src="js/kamera.js?v=0.10"></script>
-<script src="js/eingabe.js?v=0.10"></script>
-<script src="js/spieler.js?v=0.10"></script>
-<script src="js/npcs.js?v=0.10"></script>
-<script src="js/ton.js?v=0.10"></script>
-<script src="music/playlist.js?v=0.10"></script>
-<script src="js/musik.js?v=0.10"></script>
-<script src="js/gfx.js?v=0.10"></script>
-<script src="js/szene.js?v=0.10"></script>
-<script src="js/innen.js?v=0.10"></script>
-<script src="js/partikel.js?v=0.10"></script>
-<script src="js/render.js?v=0.10"></script>
-<script src="js/main.js?v=0.10"></script>
+<script src="js/rng.js?v=0.11"></script>
+<script src="js/uhr.js?v=0.11"></script>
+<script src="js/charaktere.js?v=0.11"></script>
+<script src="js/getraenke.js?v=0.11"></script>
+<script src="js/essen.js?v=0.11"></script>
+<script src="js/pegel.js?v=0.11"></script>
+<script src="js/cheats.js?v=0.11"></script>
+<script src="js/runden.js?v=0.11"></script>
+<script src="js/ereignisse.js?v=0.11"></script>
+<script src="js/minispiele.js?v=0.11"></script>
+<script src="js/punkte.js?v=0.11"></script>
+<script src="js/hinweise.js?v=0.11"></script>
+<script src="js/speicher.js?v=0.11"></script>
+<script src="js/karte.js?v=0.11"></script>
+<script src="js/pfad.js?v=0.11"></script>
+<script src="js/kamera.js?v=0.11"></script>
+<script src="js/eingabe.js?v=0.11"></script>
+<script src="js/spieler.js?v=0.11"></script>
+<script src="js/npcs.js?v=0.11"></script>
+<script src="js/ton.js?v=0.11"></script>
+<script src="music/playlist.js?v=0.11"></script>
+<script src="js/musik.js?v=0.11"></script>
+<script src="js/gfx.js?v=0.11"></script>
+<script src="js/szene.js?v=0.11"></script>
+<script src="js/innen.js?v=0.11"></script>
+<script src="js/partikel.js?v=0.11"></script>
+<script src="js/render.js?v=0.11"></script>
+<script src="js/main.js?v=0.11"></script>
 </body>
 </html>

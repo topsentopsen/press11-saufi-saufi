@@ -4,6 +4,14 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v11
+
+- **Musik aus:** Taste N, Knopf ♬ oben und Eintrag im Pausemenü; Effekte bleiben an, Zustand wird gespeichert.
+- **MP3 Playlist:** eigene Titel in `music/` ablegen und in `music/playlist.js` eintragen; Reihenfolge MP3, dann YouTube, dann WebAudio.
+- **Aktive Truppe:** beim Betreten schwärmt die Truppe aus; in Kneipe, Restaurant und Disko holt ein Freund spontan eine Runde (Mittrinken Team +1, Ablehnen Team −1).
+- **Wecken mit Q repariert:** Reichweite 48 px statt 28 px (Freunde stehen 26 bis 53 px hinter Dir); Hinweis nur in Reichweite; Geweckte fallen nicht sofort wieder um.
+- **Touch Kontextknöpfe:** Aktion, Wecken/Trinken und Boost/Tüte zeigen ihre Beschriftung und sind ausgegraut, wenn nichts geht.
+
 ## Neu in v10
 
 - **HUD Hoch:** Uhr in der UI-Reserve (`UI_RESERVE_HOCH_TOUCH = 80`), Stapel Uhr→Banner→Hinweis→Dialog; kein Uhr-Panel mehr auf dem Hoteldach; „→ HIER“ nur als Marker wenn Ziel sichtbar.

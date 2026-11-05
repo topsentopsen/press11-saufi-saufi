@@ -11,7 +11,7 @@
     wasser: ['KeyQ'],                                       // Wasser schnell trinken / Freund wecken
     item: ['KeyR'],                                         // Joint, Scooter-Boost
     playlist: ['KeyP'],                                     // Scooter-Playlist
-    stumm: ['KeyM'], pause: ['Escape'],
+    stumm: ['KeyM'], musik: ['KeyN'], pause: ['Escape'],
     wahl1: ['Digit1', 'Numpad1'], wahl2: ['Digit2', 'Numpad2'], wahl3: ['Digit3', 'Numpad3'],
     debug: ['Backquote']
   };

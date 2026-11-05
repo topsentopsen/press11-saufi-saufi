@@ -2,7 +2,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, SPEED = 50, AUFSTEH_SEK = 15, RUDI_ID = 'rudi';
+  var K = 16, SPEED = 50, AUFSTEH_SEK = 15, RUDI_ID = 'rudi', WECK_REICHWEITE = 48;
 
   function erstelle(spielerId) {
     return Saufi.Charaktere.npcs(spielerId).map(function (c, i) {
@@ -36,10 +36,27 @@
     var plaetze = nahKacheln(karte, tx, ty, mit.length + 2);
     mit.forEach(function (n, i) {
       var p = plaetze[i] || { x: tx, y: ty };
-      n.karteId = karte.id; n.x = p.x * K + K / 2; n.y = p.y * K + K / 2; n.pfad = null; n.zielKey = ''; n.laeuft = false;
+      n.karteId = karte.id; n.x = p.x * K + K / 2; n.y = p.y * K + K / 2; n.pfad = null; n.zielKey = ''; n.laeuft = false; n.schwarm = null; n.auftrag = null;
     });
   }
 
+  // v11: Beim Betreten eines Ortes schwaermt die Truppe aus (Tresen, Tanzflaeche, Tische, Sofa) statt nur hinterherzulaufen
+  var SCHWARM_TYPEN = ['tresen_kneipe', 'tresen_restaurant', 'bar_disko', 'tanz', 'stammtisch', 'sofa', 'bank', 'buffet', 'jukebox', 'spender'];
+  function ausschwaermen(list, karte) {
+    if (!karte || !karte.innen) return 0;
+    var ziele = [], belegt = {};
+    karte.stationen.forEach(function (st) {
+      if (SCHWARM_TYPEN.indexOf(st.typ) < 0) return;
+      Saufi.Karte.umgebung(karte, st).forEach(function (t) { var k = t.x + ',' + t.y; if (!belegt[k]) { belegt[k] = true; ziele.push({ x: t.x, y: t.y, typ: st.typ }); } });
+    });
+    if (!ziele.length) return 0;
+    var mit = list.filter(function (n) { return n.aktiv && !n.liegt && n.karteId === karte.id; }), z = 0;
+    mit.forEach(function (n, i) {
+      var t = ziele[Math.floor((i + 0.5) * ziele.length / mit.length) % ziele.length];
+      n.schwarm = { x: t.x, y: t.y, typ: t.typ, sek: 9 + (n.nr % 4) * 1.5 }; z += 1;
+    });
+    return z;
+  }
   function tileOf(n) { return { x: Math.floor(n.x / K), y: Math.floor((n.y - 1) / K) }; }
 
   function geheZu(n, karte, tx, ty, dt, faktor) {
@@ -81,11 +98,14 @@
       }
       if (n.blase) { n.blase.rest -= dt; if (n.blase.rest <= 0) n.blase = null; }
       if (n.karteId !== karte.id || n.liegt) { n.laeuft = false; return; }
+      if (n.schwarm && n.schwarm.sek <= 0) n.schwarm = null;
       var slot = ctx.tischSlots && ctx.tischSlots.length ? ctx.tischSlots[n.nr % ctx.tischSlots.length] : null;
       var ziel = slot || tileOf(sp);
       var t0 = tileOf(n), dist = Math.hypot(sp.x - n.x, sp.y - n.y);
-      if (slot) { if (t0.x !== slot.x || t0.y !== slot.y) geheZu(n, karte, slot.x, slot.y, dt, ctx.faktor); else n.laeuft = false; }
-      else if (dist > 26 + (n.nr % 4) * 9) geheZu(n, karte, ziel.x, ziel.y, dt, ctx.faktor);
+      if (slot) { n.schwarm = null; if (t0.x !== slot.x || t0.y !== slot.y) geheZu(n, karte, slot.x, slot.y, dt, ctx.faktor); else n.laeuft = false; }
+      else if (n.auftrag) { if (t0.x !== n.auftrag.x || t0.y !== n.auftrag.y) geheZu(n, karte, n.auftrag.x, n.auftrag.y, dt, (ctx.faktor || 1) * 1.25); else { n.laeuft = false; n.auftrag.da = true; } }
+      else if (n.schwarm && (n.schwarm.sek -= dt) > 0 && dist < 120) { if (t0.x !== n.schwarm.x || t0.y !== n.schwarm.y) geheZu(n, karte, n.schwarm.x, n.schwarm.y, dt, ctx.faktor); else n.laeuft = false; }
+      else if (dist > 26 + (n.nr % 4) * 6) geheZu(n, karte, ziel.x, ziel.y, dt, ctx.faktor);
       else n.laeuft = false;
       if (n.laeuft) { n.anim += dt * 8; n.schritt = Math.floor(n.anim) % 4; } else n.schritt = 0;
     });
@@ -118,7 +138,7 @@
   function wecke(n) {
     if (!n.liegt) return false;
     var f = n.fig;
-    n.liegt = false; f.umgefallen = false; f.verloren = false; f.leben = Math.max(1, f.leben); f.stand = 30; f.pegel = Math.max(0, f.pegel - 0.5);
+    n.liegt = false; f.umgefallen = false; f.verloren = false; f.leben = Math.max(1, f.leben); f.stand = 45; f.pegel = Math.max(Math.min(f.pegel, 2.5), f.pegel - 1.2);
     n.pfad = null;
     return true;
   }
@@ -148,7 +168,7 @@
   }
 
   Saufi.NPCs = {
-    SPEED: SPEED, AUFSTEH_SEK: AUFSTEH_SEK, erstelle: erstelle, sichtbar: sichtbar, uebergang: uebergang, update: update, trinkeRunde: trinkeRunde,
-    stunde: stunde, abbau: abbau, naechsterLiegender: naechsterLiegender, wecke: wecke, ankommen: ankommen, sprechen: sprechen, nahKacheln: nahKacheln, tileOf: tileOf
+    SPEED: SPEED, AUFSTEH_SEK: AUFSTEH_SEK, erstelle: erstelle, sichtbar: sichtbar, uebergang: uebergang, ausschwaermen: ausschwaermen, update: update, trinkeRunde: trinkeRunde,
+    stunde: stunde, abbau: abbau, naechsterLiegender: naechsterLiegender, WECK_REICHWEITE: WECK_REICHWEITE, wecke: wecke, ankommen: ankommen, sprechen: sprechen, nahKacheln: nahKacheln, tileOf: tileOf
   };
 })(globalThis);

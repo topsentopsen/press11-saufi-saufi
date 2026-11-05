@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.10', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.11', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function neuesSpiel(opt) {
@@ -17,9 +17,9 @@
       version: VERSION, seed: seed, tempo: tempo, rng: Saufi.RNG.erstelle(seed + 1000), welt: welt, ort: 'stadt', karte: welt.stadt, char: char,
       fig: Saufi.Pegel.neu(char), uhr: Saufi.Uhr.erstelle(tempo), spieler: sp, kamera: Saufi.Kamera.erstelle(viewW, viewH, welt.stadt.pxW, welt.stadt.pxH),
       npcs: Saufi.NPCs.erstelle(char.id), runden: Saufi.Runden.erstelle(), cheats: Saufi.Cheats.erstelle(), punkte: Saufi.Punkte.erstelle(),
-      joint: Saufi.Ereignisse.Joint.erstelle(), boost: Saufi.Ereignisse.Boost.erstelle(), boostAktiv: false, flaschen: 2, flascheGenommen: false,
+      joint: Saufi.Ereignisse.Joint.erstelle(), boost: Saufi.Ereignisse.Boost.erstelle(), boostAktiv: false, flaschen: 3, flascheGenommen: false,
       hinweise: Saufi.Hinweise.erstelle(), licht: null, t: 0, zustand: opt.start ? 'spiel' : 'start', startIndex: 0, overlay: null, uebergang: null,
-      effekte: [], hilfe: '', pfeil: null, ende: null, pressF: null, hausverbote: 0, letzteStunde: Math.floor(Saufi.Uhr.START / 60), prost: 0, tanzBeat: false,
+      effekte: [], hilfe: '', pfeil: null, ende: null, pressF: null, hausverbote: 0, letzteStunde: Math.floor(Saufi.Uhr.START / 60), spontan: { zuletzt: -999, anzahl: 0, aktiv: null }, ortSek: 0, prost: 0, tanzBeat: false,
       sprechT: 4, aufnahmeWartet: [], ruhig: !!opt.ruhig, treffer: [], panel: null, musikInfo: { quelle: 'webaudio', aktiv: 'webaudio', spielt: false, youtubeVerfuegbar: false, hinweis: '' },
       best: opt.best || 0, speicher: opt.speicher || null, doppelt: false, stummAn: false, neustart: false, spielSek: 0, stats: { getrunken: 0, gegessen: 0, getauscht: 0, geweckt: 0 },
       pannen: Saufi.Ereignisse.erstellePannen()
@@ -86,6 +86,8 @@
     X = stub(X);
     S.ort = ort; S.karte = S.welt.innen[ort]; stelleHin(S, S.karte.spawn.x, S.karte.spawn.y);
     Saufi.NPCs.uebergang(S.npcs, S.karte, S.karte.spawn.x, S.karte.spawn.y);
+    S.ortSek = 0; if (S.spontan) S.spontan.aktiv = null;
+    if (Saufi.NPCs.ausschwaermen(S.npcs, S.karte) > 0) sag(S, 'Die Truppe schwärmt aus!', 1.6, 'info');
     S.spieler.sitzt = false; X.T.tuer();
     sag(S, Saufi.Karte.NAMEN[ort], 2, 'info');
     if (ort === 'disko' && X.M) X.M.starte('disko');
@@ -95,7 +97,7 @@
     X = stub(X);
     var von = S.ort, b = null;
     S.welt.stadt.gebaeude.forEach(function (g2) { if (g2.id === von) b = g2; });
-    S.ort = 'stadt'; S.karte = S.welt.stadt;
+    S.ort = 'stadt'; S.karte = S.welt.stadt; S.ortSek = 0; if (S.spontan) S.spontan.aktiv = null;
     S.spieler.sitzt = false; S.spieler.isst = 0; S.spieler.essenId = null;
     if (b && b.aussen) {
       stelleHin(S, b.aussen.x, b.aussen.y);
@@ -209,7 +211,7 @@
     var M = X.M;
     oeffneMenue(S, 'Pause', ['Die Uhr steht still.'],
       [{ label: 'Weiter', id: 'weiter' }, { label: 'Scooter-Playlist', id: 'playlist' },
-        { label: 'Ton', rechts: S.stummAn ? 'aus' : 'an', id: 'ton' }, { label: 'Ruhiger Modus', rechts: S.ruhig ? 'an' : 'aus', id: 'ruhig' },
+        { label: 'Musik', rechts: S.musikAus ? 'aus' : 'an', id: 'musik' }, { label: 'Ton', rechts: S.stummAn ? 'aus' : 'an', id: 'ton' }, { label: 'Ruhiger Modus', rechts: S.ruhig ? 'an' : 'aus', id: 'ruhig' },
         { label: 'Hinweis 18+', id: 'info' }, { label: 'Neustart', id: 'neustart' }]);
   }
   function playlistOverlay(S, X) {
@@ -243,14 +245,17 @@
       case 'spender_trinken': S.overlay = null; trinke(S, 'wasser', X); sag(S, 'Wasser. Gut so!', 1.8, 'gut'); break;
       case 'spender_fuellen': S.overlay = null; S.flaschen = Math.min(3, S.flaschen + 1); sag(S, 'Flasche aufgefüllt (' + S.flaschen + '/3).', 2, 'gut'); T.pling(); break;
       case 'runde_trinken': case 'runde_frei': case 'runde_ablehnen': S.overlay = null; runde(S, e.id, X); break;
+      case 'spontan_trinken': case 'spontan_ablehnen': S.overlay = null; spontanWahl(S, e.id, X); break;
       case 'playlist': playlistOverlay(S, X); break;
       case 'pl_start':
+        if (S.musikAus) toggleMusik(S, X);
         if (X.M) { X.M.starte('playlist'); S.musikInfo = X.M.zustand(); }
         S.overlay = null; // Songwahl schließt die Jukebox/Playlist (Regression: Bewegung wieder frei)
         break;
       case 'pl_fenster': if (X.M) { X.M.klappe(); S.musikInfo = X.M.zustand(); } break;
       case 'pl_beat': if (X.M) { X.M.stopp(); X.M.waehleYoutube(false); S.musikInfo = X.M.zustand(); } S.overlay = null; break;
-      case 'ton': toggleTon(S, X); pauseMenue(S, X); S.overlay.index = 2; break;
+      case 'musik': toggleMusik(S, X); pauseMenue(S, X); S.overlay.index = 2; break;
+      case 'ton': toggleTon(S, X); pauseMenue(S, X); S.overlay.index = 3; break;
       case 'ruhig': S.ruhig = !S.ruhig; if (S.speicher) S.speicher.setzeBool('ruhig', S.ruhig); pauseMenue(S, X); S.overlay.index = 3; break;
       case 'info': infoOverlay(S); break;
       case 'neustart': S.neustart = true; break;
@@ -289,6 +294,14 @@
     if (X && X.T) X.T.pling();
     if (S.overlay && S.overlay.art === 'panne') S.overlay = null;
     return true;
+  }
+  function toggleMusik(S, X) {
+    S.musikAus = !S.musikAus;
+    if (X.T.setzeMusikAus) X.T.setzeMusikAus(S.musikAus);
+    if (X.M && X.M.setzeAus) X.M.setzeAus(S.musikAus);
+    if (S.speicher) S.speicher.setzeBool('musikAus', S.musikAus);
+    sag(S, S.musikAus ? 'Musik aus (Effekte bleiben).' : 'Musik an.', 1.8, 'info');
+    if (S.doc) { var b = S.doc.getElementById('musik-knopf'); if (b && b.classList) b.classList.toggle('aus', S.musikAus); }
   }
   function toggleTon(S, X) {
     S.stummAn = !S.stummAn; X.T.setzeStumm(S.stummAn); if (X.M) X.M.setzeStumm(S.stummAn);
@@ -360,7 +373,7 @@
   }
 
   function wasserTrinken(S, X) {
-    var sp = S.spieler, n = Saufi.NPCs.naechsterLiegender(S.npcs, S.ort, sp.x, sp.y, 28);
+    var sp = S.spieler, n = Saufi.NPCs.naechsterLiegender(S.npcs, S.ort, sp.x, sp.y, Saufi.NPCs.WECK_REICHWEITE);
     if (n) {
       if (S.flaschen <= 0) { sag(S, 'Keine Flasche zum Wecken. Am Spender auffüllen!', 2.5, 'schlecht'); return; }
       S.flaschen -= 1; Saufi.NPCs.wecke(n); S.stats.geweckt += 1;
@@ -387,10 +400,26 @@
   }
 
   // ---------------------------------------------------------------- Hilfetext, Pfeil
+  // Kontextaktionen fuer Touch-Knoepfe (E/Enter, Q, R): Beschriftung und ob sinnvoll
+  function kontext(S) {
+    var aus = { aktion: { label: S.overlay ? 'OK' : 'E', an: true }, wasser: { label: 'Wasser', an: false }, item: { label: 'R', an: false } };
+    if (S.zustand !== 'spiel' || S.overlay || S.uebergang) return aus;
+    var sp = S.spieler, B = Saufi.Ereignisse.Boost, r = {};
+    var h = hilfeText(S), m = /^E: (.+)$/.exec(h || '');
+    r.aktion = m ? { label: m[1].replace(' (im Takt!)', ''), an: true } : { label: 'E', an: true };
+    var lieg = Saufi.NPCs.naechsterLiegender(S.npcs, S.ort, sp.x, sp.y, Saufi.NPCs.WECK_REICHWEITE);
+    if (lieg) r.wasser = { label: 'Wecken', an: S.flaschen > 0, flaschen: S.flaschen };
+    else if (S.pannen && S.pannen.aktiv && S.pannen.aktiv.def.loesung === 'wasser') r.wasser = { label: 'Wasser!', an: S.flaschen > 0, flaschen: S.flaschen };
+    else r.wasser = { label: 'Trinken', an: S.flaschen > 0, flaschen: S.flaschen };
+    if (S.ort === 'disko' && B.bereit(S.boost)) r.item = { label: 'Boost', an: true };
+    else if (S.joint && S.joint.hat) r.item = { label: 'Tüte', an: true };
+    else r.item = { label: 'R', an: false };
+    return r;
+  }
   function hilfeText(S) {
     var sp = S.spieler;
+    if (Saufi.NPCs.naechsterLiegender(S.npcs, S.ort, sp.x, sp.y, Saufi.NPCs.WECK_REICHWEITE)) return 'Q: Freund wecken';
     if (sp.sitzt) return 'Bewegen: aufstehen';
-    if (Saufi.NPCs.naechsterLiegender(S.npcs, S.ort, sp.x, sp.y, 28)) return 'Q: Freund wecken';
     var st = Saufi.Karte.nahe(S.karte, sp.x, sp.y - 2, 14);
     if (!st) return '';
     var t = { tuer: 'E: ' + (st.label || 'Tür'), ausgang: 'E: Hinaus', buffet: 'E: Frühstück', kueche: 'E: Essen bestellen', spender: 'E: Wasser', tresen_restaurant: 'E: Bestellen', tresen_kneipe: 'E: Bestellen',
@@ -424,6 +453,66 @@
         if (Saufi.Runden.verloren(S.runden)) beende(S, false, 'Teamstimmung 0: alle gehen heim.', X);
       }
     });
+  }
+  // v11: Ein Freund holt von sich aus eine Runde (Tresen -> zum Spieler), man muss mittrinken
+  var SPONTAN_ORTE = { kneipe: 'pils', restaurant: 'radler', disko: 'kurzer' }, SPONTAN_ABSTAND = 90, SPONTAN_MAX = 4;
+  function spontanePruefen(S, X, dt) {
+    var sp = S.spontan; if (!sp) return;
+    S.ortSek = (S.ortSek || 0) + dt;
+    var m = minute(S), a = sp.aktiv;
+    if (a) {
+      var n = a.npc;
+      a.sek += dt;
+      var feste = Saufi.Runden.aktive(S.runden);
+      if (!n.aktiv || n.liegt || n.karteId !== S.karte.id || a.sek > (a.phase === 'angebot' ? a.angebotBis : 30) || feste) {
+        n.auftrag = null; sp.aktiv = null;
+        if (a.phase === 'angebot' && S.overlay && S.overlay.spontan) { S.overlay = null; if (!feste) sag(S, 'Runde verpufft, ' + n.char.name + ' trinkt sie allein.', 2, 'info'); }
+        return;
+      }
+      if (a.phase === 'holen' && n.auftrag && n.auftrag.da) { a.phase = 'bringen'; n.blase = { text: 'Runde kommt!', rest: 2.5 }; }
+      if (a.phase === 'bringen') {
+        var t = Saufi.NPCs.tileOf(S.spieler); n.auftrag = { x: t.x, y: t.y };
+        if (Math.hypot(n.x - S.spieler.x, n.y - S.spieler.y) < 26 && !S.overlay && !S.uebergang) {
+          n.auftrag = null; a.phase = 'angebot'; a.angebotBis = a.sek + 15;
+          var gn = Saufi.Getraenke.LISTE[a.getraenk].name || a.getraenk;
+          oeffneMenue(S, n.char.name + ' bringt eine Runde', [gn + ' für alle. Mittrinken ist Ehrensache!'],
+            [{ label: 'Mittrinken (Team +1)', id: 'spontan_trinken' }, { label: 'Ablehnen (Team -1)', id: 'spontan_ablehnen' }]);
+          S.overlay.spontan = true;
+        }
+      }
+      return;
+    }
+    var gt = SPONTAN_ORTE[S.ort];
+    if (!gt || S.ortSek < 8 || S.overlay || S.uebergang || S.zustand !== 'spiel' || sp.anzahl >= SPONTAN_MAX) return;
+    if (m - sp.zuletzt < SPONTAN_ABSTAND || S.runden.team < 2 || Saufi.Runden.aktive(S.runden)) return;
+    var nx = Saufi.Runden.naechste(S.runden); if (nx && nx.status === 'warnung') return;
+    var tr = null; S.karte.stationen.forEach(function (st) { if (!tr && /^(tresen|bar)/.test(st.typ)) tr = st; });
+    if (!tr) return;
+    var frei = S.npcs.filter(function (q) { return q.aktiv && !q.liegt && q.karteId === S.karte.id; });
+    if (!frei.length) return;
+    var wer = frei[sp.anzahl % frei.length], um = Saufi.Karte.umgebung(S.karte, tr);
+    if (!um.length) return;
+    if (S.ort === 'restaurant' && m >= 18 * 60) gt = 'pils';
+    if (m >= 22 * 60) gt = 'kurzer';
+    sp.zuletzt = m; sp.anzahl += 1;
+    wer.schwarm = null; wer.auftrag = { x: um[0].x, y: um[0].y };
+    sp.aktiv = { npc: wer, phase: 'holen', sek: 0, getraenk: gt };
+    wer.blase = { text: 'Ich hol \'ne Runde!', rest: 3 };
+    sag(S, wer.char.name + ' holt eine Runde!', 2.5, 'info');
+  }
+  function spontanWahl(S, id, X) {
+    var a = S.spontan && S.spontan.aktiv; if (!a) return;
+    S.spontan.aktiv = null;
+    if (id === 'spontan_trinken') {
+      trinke(S, a.getraenk, X);
+      S.npcs.forEach(function (q) { if (q.aktiv && !q.liegt && q.karteId === S.karte.id) Saufi.Pegel.trinke(q.fig, a.getraenk, 1); });
+      Saufi.Runden.teamAendern(S.runden, 1); Saufi.Punkte.add(S.punkte, 60, 'Spontanrunde');
+      S.prost = 1.2; sag(S, 'PROST! Team +1', 2.5, 'gut');
+    } else {
+      Saufi.Runden.teamAendern(S.runden, -1);
+      sag(S, a.npc.char.name + ' ist beleidigt. Team -1', 2.5, 'schlecht');
+      if (Saufi.Runden.verloren(S.runden)) beende(S, false, 'Teamstimmung 0: alle gehen heim.', X);
+    }
   }
   function stundenEreignisse(S, X) {
     var h = Math.floor(minute(S) / 60);
@@ -524,6 +613,7 @@
         Saufi.Runden.peinlich(S.runden, e.npc.id, -10);
       } else if (e.typ === 'aufgestanden') sag(S, e.npc.char.name + ' steht wieder auf (zweites Leben)!', 3, 'gut');
     });
+    spontanePruefen(S, X, dt);
     S.sprechT -= dt; if (S.sprechT <= 0) { Saufi.NPCs.sprechen(S.npcs, S.rng, S.ort, S.fig.pegel); S.sprechT = 5 + S.rng.next() * 5; }
     Saufi.Ereignisse.updatePannen(S.pannen, dt);
     if (S.rng.next() < dt * 0.015) {
@@ -637,6 +727,7 @@
     Saufi.Hinweise.update(S.hinweise, dt);
     S.effekte = S.effekte.filter(function (e) { e.rest -= dt; return e.rest > 0; });
     if (E && E.neu('stumm') && S.zustand !== 'start') toggleTon(S, X);
+    if (E && E.neu('musik') && S.zustand !== 'start') toggleMusik(S, X);
     if (X.M) { var stat = S.overlay && S.overlay.art === 'playlist'; if (stat) S.musikInfo = X.M.zustand(); }
     if (S.zustand === 'start') { updateStart(S, X, E); }
     else if (S.zustand === 'ende') {
@@ -651,6 +742,7 @@
     }
     else if (S.overlay) {
       if (!istPause(S.overlay) && S.zustand === 'spiel') uhrLaeuft(S, dt, X);
+      if (S.overlay && S.overlay.spontan && S.zustand === 'spiel') spontanePruefen(S, X, dt);
       if (S.overlay && S.overlay.art === 'minispiel') Saufi.Minispiele.update(S.overlay, dt, false);
       if (S.overlay && S.overlay.art === 'minispiel' && S.overlay.fertig) beendeMinispiel(S, X);
       if (S.overlay) { updateOverlay(S, X, E); S.hilfe = ''; }
@@ -710,7 +802,7 @@
   }
 
   Saufi.Spiel = {
-    VERSION: VERSION, neu: neuesSpiel, update: update, beende: beende, aktion: aktion, waehle: waehle, runde: runde, wasserTrinken: wasserTrinken, itemNutzen: itemNutzen,
+    VERSION: VERSION, neu: neuesSpiel, update: update, beende: beende, aktion: aktion, waehle: waehle, runde: runde, wasserTrinken: wasserTrinken, itemNutzen: itemNutzen, kontext: kontext, hilfeText: hilfeText, toggleMusik: toggleMusik, spontanePruefen: spontanePruefen, spontanWahl: spontanWahl, betreten: betreten,
     betreten: betreten, verlassen: verlassen, schnappschuss: schnappschuss, geheZuStation: geheZuStation, setze: setze, starteSpiel: starteSpiel, stationDe: stationDe,
     pauseMenue: pauseMenue, playlistOverlay: playlistOverlay, infoOverlay: infoOverlay, stammtisch: stammtisch, tanzen: tanzen, stub: stub,
     schliesse: schliesse, minispielMenue: minispielMenue
@@ -760,6 +852,7 @@
       if (mobilHoch) Saufi.Render.setzeBildschirm(R, true, { h: logH0, stadtPxH: R.stadtPxH, touch: isTouch });
       if (S.kamera) { S.kamera.viewW = R.VW || R.W; S.kamera.viewH = R.VH || R.H; Saufi.Kamera.sofort(S.kamera, S.spieler.x, S.spieler.y - 8); }
       S.stummAn = speicher.bool('stumm', false); T.setzeStumm(S.stummAn); M.setzeStumm(S.stummAn);
+      S.musikAus = speicher.bool('musikAus', false); if (T.setzeMusikAus) T.setzeMusikAus(S.musikAus); if (M.setzeAus) M.setzeAus(S.musikAus);
     }
     X = { E: E, M: M, T: T };
     neuStarten();
@@ -915,6 +1008,7 @@
     // Knoepfe
     function knopf(id, fn) { var b = doc.getElementById(id); if (!b) return; b.addEventListener('click', function (ev) { ev.preventDefault(); geste(); fn(b); }); return b; }
     knopf('ton-knopf', function (b) { toggleTon(S, X); b.classList.toggle('aus', S.stummAn); });
+    var mk = knopf('musik-knopf', function (b) { toggleMusik(S, X); b.classList.toggle('aus', S.musikAus); }); if (mk && mk.classList) mk.classList.toggle('aus', !!S.musikAus);
     knopf('vollbild-knopf', function () { var el = rahmen; if (doc.fullscreenElement) doc.exitFullscreen(); else if (el.requestFullscreen) el.requestFullscreen(); });
     knopf('playlist-knopf', function () { if (S.zustand === 'spiel' || S.zustand === 'start') { if (S.overlay && S.overlay.art === 'playlist') schliesse(S); else playlistOverlay(S, X); } });
     knopf('info-knopf', function () { if (S.zustand === 'spiel' || S.zustand === 'start') infoOverlay(S); });
@@ -924,6 +1018,7 @@
       var pointerMs = -1;
       function feuer(ev) {
         if (ev && ev.preventDefault) ev.preventDefault();
+        if (b.disabled || (b.classList && b.classList.contains('aus'))) return;
         var warTouch = !!E.touch;
         E.touch = true;
         if (!warTouch || !R.touch) { touchGemeldet = true; groesse(); }
@@ -1005,9 +1100,20 @@
       if (rahmen && rahmen.classList) rahmen.classList.toggle('ende', endeAn);
       if (akt) akt.hidden = endeAn;
       if (was) was.hidden = endeAn;
+      var mkn = doc.getElementById('musik-knopf'); if (mkn && mkn.classList) mkn.classList.toggle('aus', !!S.musikAus);
+      var kx = kontext(S);
+      function setze(el, k, txt) {
+        if (!el) return;
+        if (el.textContent !== txt) el.textContent = txt;
+        if (el.classList) el.classList.toggle('aus', !k.an);
+        el.setAttribute && el.setAttribute('aria-label', txt);
+      }
+      setze(akt, kx.aktion, kx.aktion.label);
+      setze(was, kx.wasser, kx.wasser.label + (kx.wasser.flaschen !== undefined ? ' ×' + kx.wasser.flaschen : ''));
       if (item) {
         item.hidden = endeAn;
-        item.style.display = endeAn ? 'none' : ((S.joint.hat || (S.ort === 'disko' && S.boost.leiste >= 1)) ? 'block' : 'none');
+        setze(item, kx.item, kx.item.label);
+        item.style.display = endeAn ? 'none' : (kx.item.an ? 'block' : 'none');
       }
       if (f) {
         f.hidden = endeAn;

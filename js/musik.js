@@ -176,6 +176,8 @@
     // anlass: 'playlist' (Knopf, Nutzer waehlt YouTube), 'disko', 'boost'
     m.starte = function (anlass) {
       m.letzter = anlass;
+      if (m.aus && anlass !== 'playlist') return 'aus';
+      if (m.aus) m.setzeAus(false);
       if (anlass === 'playlist') { m.gewaehlt = true; m.manuell = true; if (env.speicher) env.speicher.setzeBool('youtube', true); }
       var q = m.quelle();
       if (anlass !== 'playlist' && q === 'webaudio') {
@@ -195,6 +197,13 @@
     // Disko oder Boost vorbei: nur zurueck zum Beat, wenn nicht ueber den Playlist-Knopf gestartet
     m.ende = function () { if (!m.manuell && m.aktiv !== 'webaudio') zurueckZumBeat(''); };
     m.stopp = function () { m.manuell = false; zurueckZumBeat(''); };
+    // Musik ganz aus (Effekte bleiben): externe Quelle pausieren, starte() spielt nichts mehr
+    m.setzeAus = function (aus) {
+      m.aus = !!aus;
+      if (audio) { try { if (m.aus) audio.pause(); else if (m.aktiv === 'mp3') { var p = audio.play(); if (p && p.catch) p.catch(function () {}); } } catch (e) { /* egal */ } }
+      if (player) { try { if (m.aus) player.pauseVideo(); else if (m.aktiv === 'youtube' && !m.zu) player.playVideo(); } catch (e) { /* egal */ } }
+      if (env.ton && env.ton.setzeMusikAus) env.ton.setzeMusikAus(m.aus);
+    };
     m.setzeStumm = function (s) {
       m.stumm = !!s;
       if (audio) audio.muted = m.stumm;

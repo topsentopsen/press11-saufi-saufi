@@ -69,7 +69,7 @@
       master = c.createGain(); master.gain.value = t.stumm ? 0 : 0.7;
       var komp = c.createDynamicsCompressor(); master.connect(komp); komp.connect(c.destination);
       filter = c.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 20000; filter.connect(master);
-      musikBus = c.createGain(); musikBus.gain.value = 0.55; musikBus.connect(filter);
+      musikBus = c.createGain(); musikBus.gain.value = t.musikAus ? 0 : 0.55; musikBus.connect(filter);
       var len = c.sampleRate, buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
       for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
       rausch = buf;
@@ -170,6 +170,7 @@
     t.setzeEbene = function (e) { t.ebene = Math.max(0, Math.min(3, e | 0)); };
     t.setzeTief = function (an) { t.tief = !!an; if (filter) filter.frequency.setTargetAtTime(an ? 650 : 20000, now(), 0.15); };
     t.setzeBoost = function (an) { t.boost = !!an; };
+    t.setzeMusikAus = function (aus) { t.musikAus = !!aus; if (musikBus) musikBus.gain.setTargetAtTime(aus ? 0 : 0.55, now(), 0.03); };
     t.setzeStumm = function (s) { t.stumm = !!s; if (master) master.gain.setTargetAtTime(s ? 0 : 0.7, now(), 0.03); };
     // Ist gerade ein Beat? Mit laufender Musik am Audio-Takt, sonst an der Echtzeit (t = Sekunden).
     t.aufBeat = function (zeit) {

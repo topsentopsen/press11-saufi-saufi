@@ -481,7 +481,7 @@
           });
           R.blasen.push({ x: n.x - cx, y: n.y - cy - 25, text: n.char.name + ': ' + n.blase.text, vermeide: vermeide });
         }
-        else if (n.liegt) textInBox(c, 'Q = wecken', n.x - cx - 28, n.y - cy - 22, 56, 12, 8, { col: '#ffffff', ausr: 'center', kontur: P.kontur, min: 7 });
+        else if (n.liegt && Math.hypot(n.x - S.spieler.x, n.y - S.spieler.y) <= Saufi.NPCs.WECK_REICHWEITE) textInBox(c, (S.touch ? 'Wecken!' : 'Q = wecken'), n.x - cx - 28, n.y - cy - 22, 56, 12, 8, { col: '#ffffff', ausr: 'center', kontur: P.kontur, min: 7 });
       }
       else if (d.art === 'spieler') {
         var sp = S.spieler, ch = S.char;
