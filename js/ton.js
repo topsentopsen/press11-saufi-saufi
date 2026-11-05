@@ -87,6 +87,19 @@
   var HINWEIS_TIPPEN = 'Tippen für Ton';
   var HINWEIS_STUMMSCHALTER = 'Kein Ton? Stummschalter am iPhone prüfen';
 
+  // Prost-Klang je Ort: Hotel leise, Kneipe Glas, Disko Bass, Gasthaus wärmer. normal = der alte Doppelklang.
+  var PROST_TON = {
+    normal: { name: 'normal', welle: ['sine', 'sine'], freq: [2400, 3300], vol: [0.18, 0.12], dauer: 0.35, knall: 4000, knallVol: 0.12 },
+    hotel: { name: 'hotel', welle: ['sine', 'sine'], freq: [1680, 2140], vol: [0.07, 0.04], dauer: 0.22, knall: 0, knallVol: 0 },
+    kneipe: { name: 'kneipe', welle: ['sine', 'sine'], freq: [2200, 3100], vol: [0.2, 0.14], dauer: 0.32, knall: 4200, knallVol: 0.16 },
+    disko: { name: 'disko', welle: ['square', 'sine'], freq: [150, 2900], vol: [0.22, 0.1], dauer: 0.2, knall: 1600, knallVol: 0.18 },
+    restaurant: { name: 'restaurant', welle: ['triangle', 'sine'], freq: [2000, 2700], vol: [0.14, 0.1], dauer: 0.3, knall: 3600, knallVol: 0.1 }
+  };
+  function prostTon(art) {
+    if (art && PROST_TON[art]) return PROST_TON[art];
+    return PROST_TON.normal;
+  }
+
   // Stummer 1-Sample-Puffer: iOS entsperrt WebAudio erst nach Abspielen in einer Nutzergeste.
   function stummerPuffer(ctx) {
     if (!ctx || !ctx.createBuffer || !ctx.createBufferSource) return null;
@@ -346,8 +359,14 @@
       return ph < 0.2 || ph > 0.85;
     };
 
-    function fx(fn) { return function () { if (!t.gestartet || !t.ctx || t.stumm) return; try { fn(now() + 0.01); } catch (e) { /* kein Ton ist besser als ein Absturz */ } }; }
-    t.prost = fx(function (z) { osz('sine', 2400, z, 0.35, 0.18, master); osz('sine', 3300, z + 0.02, 0.3, 0.12, master); knall(z, 0.05, 0.12, 4000, master); });
+    function fx(fn) { return function () { if (!t.gestartet || !t.ctx || t.stumm) return; var args = arguments; try { fn(now() + 0.01, args); } catch (e) { /* kein Ton ist besser als ein Absturz */ } }; }
+    t.prost = fx(function (z, args) {
+      var spec = prostTon(args && args[0]);
+      var w0 = spec.welle[0], w1 = spec.welle[1], dauer = spec.dauer || 0.3;
+      osz(w0, spec.freq[0], z, dauer, spec.vol[0], master);
+      osz(w1, spec.freq[1], z + 0.02, dauer * 0.85, spec.vol[1], master);
+      if (spec.knall) knall(z, 0.05, spec.knallVol || 0.12, spec.knall, master);
+    });
     t.schluck = fx(function (z) { osz('sine', 220, z, 0.12, 0.25, master, 120); osz('sine', 180, z + 0.14, 0.1, 0.2, master, 100); });
     t.umfall = fx(function (z) { osz('sawtooth', 300, z, 0.7, 0.25, master, 40); });
     t.glocke = fx(function (z) { osz('triangle', 880, z, 0.8, 0.25, master); osz('triangle', 1320, z, 0.6, 0.15, master); });
@@ -361,6 +380,7 @@
 
   Saufi.Ton = {
     BPM: BPM, AUSWAHL_BPM: AUSWAHL_BPM, BEAT: BEAT, noten: noten, auswahlNoten: auswahlNoten, skalaNote: skalaNote, mtof: mtof, erstelle: erstelle, intensitaet: intensitaet,
+    PROST_TON: PROST_TON, prostTon: prostTon,
     HINWEIS_TIPPEN: HINWEIS_TIPPEN, HINWEIS_STUMMSCHALTER: HINWEIS_STUMMSCHALTER,
     stummerPuffer: stummerPuffer, spieleStumm: spieleStumm, zustandGesperrt: zustandGesperrt
   };

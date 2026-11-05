@@ -50,6 +50,12 @@
       aktiv: function () { return klicks.length > 0 || Object.keys(frisch).length > 0 || Object.keys(halt).some(function (c) { return halt[c]; }); },
       // Knopf auf dem Bildschirm: wirkt wie ein kurzer Tastendruck
       tippe: function (a) { if (AKTIONEN[a]) frisch[AKTIONEN[a][0]] = true; },
+      // Gedrückt halten (Krug-Fenster, Touch-Knopf). an=true setzt auch den ersten Tipp.
+      halte: function (a, an) {
+        var code = AKTIONEN[a] && AKTIONEN[a][0];
+        if (!code) return;
+        if (an) e.druecke(code); else e.loese(code);
+      },
       touch: false,
       setzeMass: function (nw, nh) { if (nw > 0) W = nw; if (nh > 0) H = nh; },
       klicks: function () { return klicks; },

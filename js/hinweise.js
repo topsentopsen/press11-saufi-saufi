@@ -25,6 +25,17 @@
 
   var SHOUTS = ['HYPER HYPER!', 'HOW MUCH IS THE FISH?', 'ONE MORE!', 'WIE VIEL IST DER KESSEL?', 'JIGGA JIGGA!'];
   var PROST = ['PROST!', 'ZUM WOHL!', 'AUF DIE TRUPPE!', 'SCHWABENTROPFEN!', 'UFF DIE KESSELWELLE!'];
+  // Ruf und Ton-Schlüssel je Spielort. PROST[0] bleibt der neutrale Ruf.
+  var PROST_ORT = {
+    hotel: { ruf: 'PROST IM JAZ!', prompt: 'Leise, die Rezeption hört mit.', ton: 'hotel' },
+    kneipe: { ruf: 'PROST, SOPHIE!', prompt: 'Der Wirt haut auf den Tresen.', ton: 'kneipe' },
+    disko: { ruf: 'PROST, UNTERGRUND!', prompt: 'Über den Bass hinweg.', ton: 'disko' },
+    restaurant: { ruf: 'ZUM WOHL, MAULTÄSCHLE!', prompt: 'Gläser über den Maultaschen.', ton: 'restaurant' }
+  };
+  function prostFuer(ort) {
+    if (ort && PROST_ORT[ort]) return PROST_ORT[ort];
+    return { ruf: PROST[0], prompt: '', ton: 'normal' };
+  }
   var STAND_WEG = ['Noch zu, Saufi.', 'Hier isch noch zu.', 'Mach auf, Wirt!', 'Kehrwoche? Nein, Kneipenruhe.'];
 
   // v18: Sprechblasen nur noch kurze Scooter-Titel und Rufe (keine Liedtexte)
@@ -92,7 +103,7 @@
 
   Saufi.Hinweise = {
     TITEL: TITEL, HINWEIS_VOLL: HINWEIS_VOLL, HINWEIS_START: HINWEIS_START, DANKE: DANKE,
-    SHOUTS: SHOUTS, PROST: PROST, STAND_WEG: STAND_WEG, SPRUECHE: SPRUECHE, SCOOTER: SCOOTER,
+    SHOUTS: SHOUTS, PROST: PROST, PROST_ORT: PROST_ORT, prostFuer: prostFuer, STAND_WEG: STAND_WEG, SPRUECHE: SPRUECHE, SCOOTER: SCOOTER,
     FIGUR: FIGUR, SITUATION: SITUATION, ORT: ORT, PEGEL: PEGEL,
     pegelStufe: pegelStufe, lallen: lallen, spruch: spruch, BLASE_SEK: BLASE_SEK,
     erstelle: erstelle, zeige: zeige, update: update, aktuell: aktuell

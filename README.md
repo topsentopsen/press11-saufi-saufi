@@ -4,6 +4,13 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v27
+
+- Siebolds Mäxle, Dampfhammer und Sinnlos saufen bleiben als Gag. Titel und Menü sagen „Gag-Alias, eigentlich dasselbe“. Dieselbe Mechanik, kein stiller Fake-Name.
+- Disko Shot-Train an der Bar: zwei Kurze in fünf Sekunden. Läuft die Zwei-Kurze-Runde, steht derselbe Zug auch am Stammtisch.
+- Der PROST-Ruf hängt am Ort. Jaz, Sophie, Untergrund und Maultäschle haben eigenen Text und eigenen Ton.
+- Maßkrugstemmen: erst stemmen, dann E gedrückt halten. Das Fenster ist enger. Ein Tipp hebt den Krug nicht.
+
 ## Neu in v26
 
 - Die Stadt bewegt sich: Frau Hilde, Jugendliche im Südpark, spielende Kinder, Hunde, Vögel, Autos und Fahrräder. Sie trinken nicht mit und ziehen kein Spiel-Zufall.
