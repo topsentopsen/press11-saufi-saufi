@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.14', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.15', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function neuesSpiel(opt) {
@@ -23,7 +23,10 @@
       sprechT: 4, aufnahmeWartet: [], ruhig: !!opt.ruhig, treffer: [], panel: null, musikInfo: { quelle: 'webaudio', aktiv: 'webaudio', spielt: false, youtubeVerfuegbar: false, hinweis: '' },
       best: opt.best || 0, speicher: opt.speicher || null, doppelt: false, stummAn: false, neustart: false, spielSek: 0, stats: { getrunken: 0, gegessen: 0, getauscht: 0, geweckt: 0 },
       pannen: Saufi.Ereignisse.erstellePannen(), motocross: { zuletzt: -999 },
-      s21: { zuletzt: -999, n: 0, gemeldet: null }
+      s21: { zuletzt: -999, n: 0, gemeldet: null },
+      elon: { zuletzt: 0, n: 0, idx: {} },
+      frech: { zuletzt: 0, n: 0, r: 0, f: 0 },
+      kaesten: {}
     };
     S.licht = Saufi.Uhr.licht(S.uhr);
     Saufi.NPCs.uebergang(S.npcs, welt.stadt, sp.x / K | 0, (sp.y / K | 0));
@@ -123,7 +126,7 @@
     if (def.pegel < 0) f = jointFaktor(S);
     Saufi.Pegel.trinke(S.fig, id, f);
     if (def.alk) S.stats.getrunken += 1;
-    X.T.schluck();
+    if (X && X.T) X.T.schluck();
   }
   function startEssen(S, id) {
     var g2 = Saufi.Essen.GERICHTE[id];
@@ -443,6 +446,18 @@
         }
         getraenkeMenue(S, st);
         break;
+      case 'bierkasten':
+        if (!S.kaesten) S.kaesten = {};
+        if (S.kaesten[st.id] != null && m - S.kaesten[st.id] < 20) {
+          sag(S, 'Kasten leer, später wieder.', 2, 'info');
+          return;
+        }
+        trinke(S, 'pils', X);
+        S.kaesten[st.id] = m;
+        S.prost = 1.4;
+        Saufi.Punkte.add(S.punkte, 5, 'Bierkasten');
+        sag(S, 'Kessel-Pils: Pegel ' + Saufi.Pegel.anzeige(S.fig.pegel) + ' ‰', 2, 'info');
+        break;
     }
   }
 
@@ -534,7 +549,7 @@
     if (!st) return '';
     var t = { tuer: 'E: ' + (st.label || 'Tür'), ausgang: 'E: Hinaus', buffet: 'E: Frühstück', kueche: 'E: Essen bestellen', spender: 'E: Wasser', tresen_restaurant: 'E: Bestellen', tresen_kneipe: 'E: Bestellen',
       bar_disko: 'E: Bestellen', stammtisch: Saufi.Runden.aktive(S.runden) && Saufi.Runden.aktive(S.runden).ort === S.ort ? 'E: PROST!' : 'E: Stammtisch', sofa: 'E: Ausruhen', bank: 'E: Ausruhen', tanz: 'E: Tanzen (im Takt!)',
-      jukebox: 'E: Musik', joint: 'E: Aufheben', flasche: 'E: Aufheben', tribuene: 'E: Bier auf der Tribüne' }[st.typ];
+      jukebox: 'E: Musik', joint: 'E: Aufheben', flasche: 'E: Aufheben', tribuene: 'E: Bier auf der Tribüne', bierkasten: 'E: Bier' }[st.typ];
     return t || '';
   }
   function berechnePfeil(S) {
@@ -701,6 +716,38 @@
         sag(S, spr, 4.5, 'info');
         var freund = S.npcs.filter(function (n) { return n.aktiv && !n.liegt && n.karteId === 'stadt' && Math.hypot(n.x - sp.x, n.y - sp.y) < 60; })[0];
         if (freund && !freund.blase) freund.blase = { text: spr, rest: 3.5 };
+      }
+    }
+    // Elon-Spruch (nur Tobi, kein rng, nach S21-Block wegen Abklingzeit)
+    if (Saufi.Elon && S.char && S.char.id === 'tobi' && !S.overlay && !S.uebergang && !sp.liegt && sp.isst <= 0) {
+      if (!S.elon) S.elon = { zuletzt: 0, n: 0, idx: {} };
+      if (!S.s21) S.s21 = { zuletzt: -999, n: 0, gemeldet: null };
+      var elonOk = S.spielSek - S.elon.zuletzt >= Saufi.Elon.intervall(S.elon.n);
+      var s21Frei = S.spielSek - S.s21.zuletzt >= 12;
+      var grossAktiv = S.hinweise.liste.some(function (h) { return h.art === 'gross' && h.rest > 0; });
+      if (elonOk && s21Frei && !grossAktiv) {
+        var eKon = null;
+        if (S.ort === 'kneipe') eKon = 'kneipe';
+        else if (S.ort === 'stadt') {
+          if (S.karte.s21 && Saufi.S21.naheBeiBaustelle(sp.x, sp.y, S.karte.s21, 40)) eKon = 's21';
+          else {
+            var trib = stationDe(S.karte, 'tribuene');
+            if (trib && Saufi.Karte.abstand(sp.x, sp.y, trib) <= 48) eKon = 'tribuene';
+          }
+        }
+        var eTxt = Saufi.Elon.naechster(S.elon, eKon);
+        S.elon.zuletzt = S.spielSek;
+        sag(S, 'Tobi: ' + eTxt, 3.5, 'info');
+      }
+    }
+    // v15: Raffi-Gag und freche Blasen (eigener Zaehler, kein rng)
+    if (Saufi.Frech && !S.overlay && !S.uebergang) {
+      if (!S.frech) S.frech = { zuletzt: 0, n: 0, r: 0, f: 0 };
+      if (S.spielSek - S.frech.zuletzt >= Saufi.Frech.intervall(S.frech.n)) {
+        var fe = Saufi.Frech.naechster(S.frech);
+        var fn = Saufi.Frech.sprecher(S.npcs, S.ort, fe, S.frech.n);
+        S.frech.zuletzt = S.spielSek;
+        if (fn) fn.blase = { text: fe.text, rest: 3.5 };
       }
     }
     // Starship-Meldungen (auch drinnen)

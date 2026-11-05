@@ -141,6 +141,9 @@
         list.push({ y: 33 * K + 4, x: 20 * K, w: 12, art: 'starshipModell' });
         list.push({ y: 37 * K + 2, x: 18 * K - 10, w: 40, art: 'bauschild', zeile1: 'Stuttgart 21', zeile2: 'Fertigstellung: irgendwann in der Zukunft' });
       }
+      karte.stationen.forEach(function (st) {
+        if (st.typ === 'bierkasten') list.push({ y: (st.y + 1) * K, x: st.x * K, w: K, art: 'kasten' });
+      });
     }
     list.sort(function (a, b) { return a.y - b.y; });
     p = R.props[karte.id] = list; return p;
@@ -217,12 +220,30 @@
     if (extra === 'gel') {
       for (var i = -1; i <= 1; i++) poly(c, [[hx + i * 2.4 - 1.4, hy - 3.8], [hx + i * 2.4 + 0.4, hy - 7.4 + Math.abs(i)], [hx + i * 2.4 + 1.8, hy - 3.8]], col);
     }
-    if (extra === 'rosa') {
-      var sw = dir === 'oben' ? 5.4 : 5.2;
-      rr(c, hx - sw, hy - 1.4, 2.8, 9.4, col, 1.4); rr(c, hx + sw - 2.8, hy - 1.4, 2.8, 9.4, col, 1.4);
-      if (dir === 'oben') rr(c, hx - sw, hy - 2, sw * 2, 11, col, 3);
-      kreis(c, hx + 4.2, hy - 3, 1.2, '#ffffff');
+    if (extra === 'kurz') {
+      // Kurze Haare, Seitenscheitel, keine Zöpfe
+      var dk2 = dunkler(col, 0.35);
+      if (dir === 'oben') {
+        rr(c, hx - 4.6, hy - 1.2, 9.2, 3.2, col, 1.6);
+        rr(c, hx - 4.8, hy - 0.2, 2.2, 3.6, dk2, 0.8);
+      } else if (seiteKurz(dir)) {
+        var sgk = dir === 'links' ? -1 : 1;
+        rr(c, hx + sgk * 2.8 - 1.2, hy - 2.4, 3.6, 4.2, col, 1.2);
+        rr(c, hx - sgk * 4.2, hy - 0.8, 2.4, 3.8, dk2, 0.9);
+      } else {
+        rr(c, hx - 4.8, hy - 2.6, 9.6, 2.8, col, 1.4);
+        rr(c, hx - 4.9, hy - 0.4, 2.6, 4.2, dk2, 1);
+        rr(c, hx + 2.2, hy - 0.2, 2.4, 3.2, col, 0.8);
+      }
     }
+  }
+  function seiteKurz(dir) { return dir === 'links' || dir === 'rechts'; }
+  // Stilisiertes Tesla-T auf Tobis Shirt (kein Logo-Nachbau)
+  function teslaT(c, x, y, s) {
+    s = s || 1;
+    rr(c, x - 3 * s, y, 6 * s, 1.1 * s, '#fff');
+    rr(c, x - 0.7 * s, y + 1.0 * s, 1.4 * s, 5.2 * s, '#fff');
+    rr(c, x - 1.4 * s, y + 5.6 * s, 2.8 * s, 1.0 * s, '#fff');
   }
   function mund(c, hx, hy, schwips, tanzt) {
     if (tanzt) { c.beginPath(); c.arc(hx, hy + 2.2, 1.4, 0, Math.PI); c.fillStyle = '#7a2a3a'; c.fill(); return; }
@@ -242,6 +263,7 @@
     if (o.liegt) {
       rr(c, x - 4, y - 6.6, 15, 6.4, ch.hose, 2.6, KONT, 0.85);
       rr(c, x - 8.6, y - 8.6, 12.4, 8, ch.shirt, 3, KONT, 0.85);
+      if (ch.id === 'tobi') teslaT(c, x - 2.4, y - 7.2, 0.7);
       kreis(c, x - 10.6, y - 5.6, 4.4, P.haut, KONT, 0.85);
       c.beginPath(); c.arc(x - 10.6, y - 5.6, 4.6, Math.PI * 0.95, Math.PI * 1.9); c.fillStyle = ch.haar || P.haut; c.fill();
       if (extra === 'kaeppi') { rr(c, x - 15.4, y - 9.6, 4.2, 8, '#ff4fa0', 1.6, KONT, 0.6); rr(c, x - 16.6, y - 4.2, 2, 4, '#d8327f', 0.8); }   // Kaeppi seitlich am Kopf
@@ -282,6 +304,10 @@
     var tw = seite ? 6.8 : 9, tx = x - tw / 2 + schulter;
     rr(c, tx + wipp * 0.15, by - 16.6 + bob, tw, 9.4, shirt, 3.2, KONT, 0.85);
     vlauf(c, tx + 1, by - 15.8 + bob, tw - 2, 3.4, heller(shirt, 0.32), shirt);
+    if (ch.id === 'tobi' && dir !== 'oben') {
+      if (!seite) teslaT(c, x + wipp * 0.15, by - 14.6 + bob, 1);
+      else rr(c, x - 1.2 + sg * 0.4, by - 14.2 + bob, 2.4, 1.0, '#fff');
+    }
     if (extra === 'weste' && !seite) { rr(c, tx + 1.2, by - 15.4 + bob, 2.8, 8, '#7a7a88', 1.2); rr(c, tx + tw - 4, by - 15.4 + bob, 2.8, 8, '#7a7a88', 1.2); }
     else if (extra === 'weste') rr(c, tx + 0.8, by - 15.4 + bob, tw - 1.6, 8, '#7a7a88', 1.2);
     if (extra === 'tracht') { rr(c, tx + 1, by - 15.6 + bob, tw - 2, 8.2, '#1f4a2a', 1.6); for (var k = 0; k < 3; k++) kreis(c, x, by - 14 + bob + k * 2.4, 0.5, '#d8c070'); }
@@ -487,6 +513,7 @@
       else if (d.art === 'busch') Sz.zeichneSprite(R, c, 'busch' + (d.hs % 2), 24, 16, 12, 14, px + 8, fy - 1, function (hc) { Sz.buschBild(hc, d.hs % 2); });
       else if (d.art === 'laterne') { if (SH.a > 0.02) ellipse(c, px + 8 + SH.dx * 6, fy - 1, 5, 1.2, 'rgba(50,30,80,' + SH.a + ')'); Sz.zeichneSprite(R, c, 'laterne', 14, 28, 7, 26, px + 8, fy - 0.5, function (hc) { Sz.laterneBild(hc); }); }
       else if (d.art === 'bank') Sz.zeichneSprite(R, c, 'bank', 22, 18, 11, 16, px + 8, fy - 1, function (hc) { Sz.bankBild(hc); });
+      else if (d.art === 'kasten') Sz.zeichneSprite(R, c, 'kasten', 14, 12, 7, 11, px + 8, fy - 1, function (hc) { Sz.kastenBild(hc); });
       else if (d.art === 'brunnen') { Sz.zeichneSprite(R, c, 'brunnen', 40, 42, 20, 36, px + 16, fy - 3, function (hc) { Sz.brunnenBild(hc); }); Sz.brunnenWasser(c, px + 16, fy - 3, t); }
       else if (d.art === 'tribuene') {
         for (var ti = 0; ti < 3; ti++) rr(c, px + 1, fy - 4 - ti * 6, d.w - 2, 5, ti % 2 ? '#8a6a4a' : '#a07850', 1.2, '#4a3560', 0.55);

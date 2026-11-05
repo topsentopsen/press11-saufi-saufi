@@ -66,6 +66,8 @@
     k.rect(10, 8, 10, 6, T.PFLASTER);
     k.rect(14, 10, 2, 2, T.BRUNNEN);
     k.setze(11, 9, T.BANK); k.setze(18, 9, T.BANK);
+    k.station('bank_markt_a', 'bank', 11, 9, 1, 1, 'Bank am Markt');
+    k.station('bank_markt_b', 'bank', 18, 9, 1, 1, 'Bank am Markt');
     [[10, 8], [19, 8], [10, 13], [19, 13]].forEach(function (p) { k.setze(p[0], p[1], T.LATERNE); });
     // Hauptstrasse
     k.rect(0, 14, 40, 2, T.STRASSE);
@@ -126,8 +128,8 @@
     k.rect(10, 50, 7, 5, T.PFLASTER);
     k.setze(12, 51, T.BANK); k.setze(15, 53, T.BANK); k.setze(13, 52, T.LATERNE);
     k.rect(17, 51, 9, 1, T.WEG);
-    k.station('bank_sued_a', 'bank', 11, 52, 1, 1, 'Bank im Südhain');
-    k.station('bank_sued_b', 'bank', 16, 52, 1, 1, 'Bank am Südweg');
+    k.station('bank_sued_a', 'bank', 12, 51, 1, 1, 'Bank im Südhain');
+    k.station('bank_sued_b', 'bank', 15, 53, 1, 1, 'Bank am Südweg');
     k.rect(0, 48, 40, 1, T.REBEN);
     k.setze(25, 48, T.WEG);                                         // Hauptweg durch Rebenzeile
     for (x = 0; x < 40; x++) {
@@ -152,8 +154,32 @@
     // Motocross-Park (Ostseite y 31..44, x 27..38) nach streue, damit Seeds oben stabil bleiben
     baueMotocross(k);
     baueS21(k);
+    // Bierkaesten an jede Bank (Prop, begehbar)
+    k.stationen.filter(function (st) { return st.typ === 'bank'; }).forEach(function (st) {
+      bierkasten(k, st.x, st.y, st.id);
+    });
     k.spawn = { x: 25, y: 13 };
     return k;
+  }
+
+  // Freie Nachbarkachel Ost/West/Sued: Bierkasten als begehbare Station (kein BLOCK)
+  function bierkasten(k, bx, by, bankId) {
+    var dirs = [[1, 0], [-1, 0], [0, 1]], i, x, y, id = (bankId || (bx + '_' + by)).replace(/^bank_/, '');
+    for (i = 0; i < dirs.length; i++) {
+      x = bx + dirs[i][0]; y = by + dirs[i][1];
+      if (x < 0 || y < 0 || x >= k.w || y >= k.h) continue;
+      if (k.blockiert(x, y)) continue;
+      if (k.tile(x, y) === T.BANK) continue;
+      var belegt = false;
+      k.stationen.forEach(function (st) {
+        if (st.typ === 'bierkasten' && st.x === x && st.y === y) belegt = true;
+        if (st.typ === 'bank' && st.x === x && st.y === y) belegt = true;
+      });
+      if (belegt) continue;
+      k.station('kasten_' + id, 'bierkasten', x, y, 1, 1, 'Bierkasten');
+      return true;
+    }
+    return false;
   }
 
   function baueS21(k) {

@@ -663,6 +663,18 @@
     rr(c, -7, -6.6, 14, 2.6, '#c98b5e', 0.8, '#7a4a3a', 0.5); rr(c, -7, -11.2, 14, 3.2, '#b87a50', 1, '#7a4a3a', 0.5); r(c, -6.5, -10.4, 13, 0.5, 'rgba(255,230,200,0.5)');
     r(c, -6, -9, 1, 3, '#4a3560'); r(c, 5, -9, 1, 3, '#4a3560');
   }
+  function kastenBild(c) {
+    ellipse(c, 0, -0.4, 5.5, 1.3, 'rgba(60,40,40,0.22)');
+    rr(c, -5.5, -7.2, 11, 6.4, '#8a5a32', 1.2, '#4a3020', 0.7);
+    r(c, -5, -6.4, 10, 1.1, '#a07040');
+    rr(c, -3.6, -5.2, 7.2, 2.6, '#d8c070', 0.6, '#6a4a20', 0.5);
+    r(c, -2.8, -4.6, 5.6, 0.7, '#fff8ee');
+    for (var i = 0; i < 4; i++) {
+      var bx = -4.2 + i * 2.2;
+      rr(c, bx, -10.4, 1.6, 3.4, '#2f6a3f', 0.5, '#1a4028', 0.4);
+      kreis(c, bx + 0.8, -10.6, 0.7, '#1a4028');
+    }
+  }
   function brunnenBild(c) {
     ellipse(c, 0, -1, 17, 5, 'rgba(60,40,60,0.22)');
     rr(c, -15, -13, 30, 14, '#d8cfe2', 5, '#8a7c9c', 0.8);
@@ -718,7 +730,7 @@
     K: K, HIMMEL: HIMMEL, himmelFarben: himmelFarben, nachtGrad: nachtGrad, sterneAlpha: sterneAlpha, himmelZeichnen: himmelZeichnen, himmelIcon: himmelIcon, kesselSzene: kesselSzene,
     sonnenPos: sonnenPos, mondPos: mondPos, mondSichel: mondSichel,
     schattenFuer: schattenFuer, bauplan: bauplan, gebaeudeBild: gebaeudeBild, zeichneAussenKachel: zeichneAussenKachel, hangKulisse: hangKulisse, blumen: blumen,
-    baumBild: baumBild, buschBild: buschBild, laterneBild: laterneBild, bankBild: bankBild, brunnenBild: brunnenBild, brunnenWasser: brunnenWasser, strassenbahn: strassenbahn,
+    baumBild: baumBild, buschBild: buschBild, laterneBild: laterneBild, bankBild: bankBild, kastenBild: kastenBild, brunnenBild: brunnenBild, brunnenWasser: brunnenWasser, strassenbahn: strassenbahn,
     sprite: sprite, zeichneSprite: zeichneSprite, turm: turm, haeuschen: haeuschen
   };
 })(globalThis);

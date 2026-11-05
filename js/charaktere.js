@@ -5,12 +5,12 @@
   var Saufi = g.Saufi = g.Saufi || {};
 
   var LISTE = [
-    { id: 'tobi', name: 'Tobi', rolle: 'stamm', spielbar: true, trink: 1.00, leben: 1, shirt: '#e0504a', hose: '#3f4f7a', haar: '#5a3a28', extra: 'muetze', spruch: 'Wer hat Durst?' },
+    { id: 'tobi', name: 'Tobi', rolle: 'stamm', spielbar: true, trink: 1.00, leben: 1, shirt: '#d8222a', hose: '#3f4f7a', haar: '#5a3a28', extra: 'muetze', spruch: 'Wer hat Durst?' },
     { id: 'raphael', name: 'Raphael', alias: 'Raffi', rolle: 'anwaerter', fortschritt: 10, fortschrittProRunde: 4, trink: 1.30, leben: 2, shirt: '#ff4fa0', hose: '#4a5a8a', haar: null, extra: 'kaeppi', spruch: 'Ich pack das!' },
     { id: 'tobias', name: 'Tobias', rolle: 'anwaerter', fortschritt: 80, fortschrittProRunde: 5, trink: 1.10, leben: 1, shirt: '#4a7ad8', hose: '#3a3a4a', haar: '#d8b86a', extra: 'gel', spruch: 'Fast drin.' },
     { id: 'schwickendorf', name: 'Schwickendorf', rolle: 'stamm', trink: 0.95, leben: 1, shirt: '#8a5a38', hose: '#5a4a3a', haar: '#8a8a8a', extra: 'schnurrbart', spruch: 'Also, früher...' },
     { id: 'buntschuh', name: 'Buntschuh', rolle: 'stamm', trink: 1.00, leben: 1, shirt: '#f0c828', hose: '#6a4a9a', haar: '#4a3020', extra: 'schuhe', spruch: 'Tanzen!' },
-    { id: 'ritzi', name: 'Ritzi', rolle: 'stamm', trink: 0.90, leben: 1, shirt: '#8a5cc8', hose: '#4a4a6a', haar: '#c89cff', extra: 'rosa', spruch: 'Noch eine!' },
+    { id: 'ritzi', name: 'Ritzi', rolle: 'stamm', trink: 0.90, leben: 1, shirt: '#8a5cc8', hose: '#4a4a6a', haar: '#4a2a6a', extra: 'kurz', spruch: 'Noch eine!' },
     { id: 'siebold', name: 'Siebold', rolle: 'stamm', trink: 0.85, leben: 1, shirt: '#9a9aa8', hose: '#3a3a4a', haar: '#6a6a6a', extra: 'weste', spruch: 'Ich rechne nach...' },
     { id: 'kevin', name: 'Kevin', rolle: 'stamm', trink: 1.20, leben: 1, shirt: '#2a2a32', hose: '#2a2a32', haar: '#5a3a28', extra: 'cap', spruch: 'Hunger!' },
     { id: 'stoeckle', name: 'Stöckle', rolle: 'stamm', trink: 0.80, leben: 1, shirt: '#2f6a3f', hose: '#5a4a3a', haar: '#7a5a38', extra: 'tracht', spruch: 'Des koschd extra!' },
