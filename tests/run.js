@@ -758,7 +758,7 @@ test('39 Teamstimmung 0: eigener Titel statt Umgefallen/Press F', function () {
   gleich(t.S.zustand, 'ende'); gleich(t.S.ende.wertung.titel, 'Abgehängt');
   wahr(/abgehängt/.test(t.S.ende.wertung.kopf)); wahr(/Teamstimmung 0/.test(t.S.ende.grund));
   wahr(t.S.ende.wertung.kopf.indexOf('Press F') < 0);
-  gleich(D.Spiel.VERSION, '0.6');
+  gleich(D.Spiel.VERSION, '0.7');
   wahr(D.Gfx.MIN_SCHRIFT <= 7);
 });
 
@@ -813,9 +813,9 @@ test('42 DPR-Begrenzung: MAX_DPR = 2, setzeAufloesung und begrenzDpr kappen', fu
   wahr(sk === R.canvas.width / R.W, 'Skala konsistent');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
   wahr(/begrenzDpr|MAX_DPR/.test(main), 'main nutzt DPR-Begrenzung');
-  wahr(/VERSION\s*=\s*['"]0\.6['"]/.test(main), 'VERSION 0.6');
+  wahr(/VERSION\s*=\s*['"]0\.7['"]/.test(main), 'VERSION 0.7');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  wahr(/main\.js\?v=0\.6/.test(html), 'Cache-Buster v=0.6');
+  wahr(/main\.js\?v=0\.7/.test(html), 'Cache-Buster v=0.7');
 });
 
 test('43 Hochformat-Layout: Playlist und Menues passen in PORT_H', function () {
@@ -1325,16 +1325,16 @@ test('72 Quer BASE 320x176: VH == H/zoom, Flaeche >= 3', function () {
   wahr(R.VW * R.VH / (D.Render.BASE_W * D.Render.BASE_H) >= 3 - 0.02, 'Quer Flaeche >= 3');
 });
 
-test('73 Versionen: VERSION 0.6, ?v=0.6, README v06, Bau-Bericht v06', function () {
+test('73 Versionen: VERSION 0.7, ?v=0.7, README v07, Bau-Bericht v07', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.6');
+  gleich(D.Spiel.VERSION, '0.7');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster vorhanden');
-  vs.forEach(function (v) { gleich(v, '?v=0.6', 'Cache-Buster ' + v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.7', 'Cache-Buster ' + v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
-  wahr(/Neu in v06/.test(readme), 'README Neu in v06');
-  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v06.md')), 'bau-bericht-v06.md');
+  wahr(/Neu in v07/.test(readme), 'README Neu in v07');
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v07.md')), 'bau-bericht-v07.md');
 });
 
 // ---------- v06: Menues/Ende/Touch Hochformat ----------
@@ -1628,16 +1628,16 @@ test('82 Stick: Totzone, cancel=0, zweiter Finger ignoriert, E gleichzeitig', fu
   gleich(api.E.stick.y, 0);
 });
 
-test('83 Versionen: VERSION 0.6, ?v=0.6, README v06, Bau-Bericht v06', function () {
+test('83 Versionen: VERSION 0.7, ?v=0.7, README v07, Bau-Bericht v07', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.6');
+  gleich(D.Spiel.VERSION, '0.7');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.6', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.7', v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
-  wahr(/Neu in v06/.test(readme), 'README Neu in v06');
-  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v06.md')), 'bau-bericht-v06.md');
+  wahr(/Neu in v07/.test(readme), 'README Neu in v07');
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v07.md')), 'bau-bericht-v07.md');
 });
 
 test('84 StummHinweis: Flag erst im Timeout, mind. 4 s sichtbar', function () {
@@ -1687,6 +1687,322 @@ test('86 Zuruf RUNDE! Abstand ≥ 4 px zur Scooter-Leiste', function () {
   D.Render.zeichne(R, S);
   var resTop = R.weltH + 2, scooterH = 15, bannerY = resTop + 40;
   wahr(bannerY - (resTop + scooterH) >= 4 - 0.01, 'Abstand ≥ 4 px');
+});
+
+// ---------- v07 ----------
+test('87 Himmel-Farben: hex(rgb), himmelFarben ohne NaN, mischeHex nicht schwarz', function () {
+  var D = lade(), G = D.Gfx, Sz = D.Szene;
+  var h = G.hex('rgb(10,20,30)');
+  gleich(h.r, 10); gleich(h.g, 20); gleich(h.b, 30);
+  wahr(G.hex('#abc').r === 170, '#rgb');
+  [8, 12, 19, 20.5, 22.5, 26, 27, 28].forEach(function (st) {
+    var f = Sz.himmelFarben(st);
+    var a = G.hex(f.oben), b = G.hex(f.unten);
+    wahr(isFinite(a.r) && isFinite(a.g) && isFinite(a.b), 'oben h=' + st);
+    wahr(isFinite(b.r) && isFinite(b.g) && isFinite(b.b), 'unten h=' + st);
+  });
+  var f26 = Sz.himmelFarben(26);
+  var mix = G.mischeHex(f26.oben, f26.unten, 0.3);
+  wahr(mix !== 'rgb(0,0,0)', 'mischeHex nicht schwarz: ' + mix);
+});
+
+test('88 Mond/Ende: keine schwarze Mondscheibe; Sieg zeigt Sonne', function () {
+  var D = lade(), fills = [];
+  function trackCtx() {
+    var store = { fillStyle: '#000', globalAlpha: 1, globalCompositeOperation: 'source-over', font: '10px sans-serif' };
+    return new Proxy(store, {
+      get: function (t, k) {
+        if (k === 'measureText') return function () { return { width: 10 }; };
+        if (k === 'createRadialGradient' || k === 'createLinearGradient') return function () { return { addColorStop: function () {} }; };
+        if (CTX_EIGENSCHAFTEN.indexOf(k) >= 0) return t[k];
+        if (CTX_METHODEN.indexOf(k) >= 0) return function () {};
+        return undefined;
+      },
+      set: function (t, k, v) {
+        if (k === 'fillStyle' && typeof v === 'string') fills.push(v);
+        if (CTX_EIGENSCHAFTEN.indexOf(k) >= 0) t[k] = v;
+        return true;
+      },
+      has: function (t, k) { return CTX_EIGENSCHAFTEN.indexOf(k) >= 0; }
+    });
+  }
+  var c = trackCtx();
+  fills = [];
+  D.Szene.himmelZeichnen(c, 0, 0, 200, 100, 22, 0);
+  wahr(fills.every(function (f) { return f !== 'rgb(0,0,0)' && f !== '#000' && f !== '#000000'; }), 'Nacht-Himmel ohne schwarze Mondscheibe');
+  fills = [];
+  D.Szene.kesselSzene(c, 320, 176, 28, 0);
+  var warm = fills.some(function (f) { return /#ff|#fff2|#ffe|#ff9|rgb\(25[0-9]|rgb\(255/.test(f); });
+  wahr(warm, 'Daemmerung/Sieg: warme Sonnenfarbe');
+  wahr(D.Szene.sonnenPos(28) != null, 'sonnenPos(28) nicht null');
+});
+
+test('89 Ton: Hinweis, bestaetige einmal, visibility/pageshow, Start-Tipp', function () {
+  var D = lade();
+  var FakeCtx = function () {
+    this.state = 'suspended'; this.sampleRate = 22050; this.currentTime = 0;
+    this.destination = {}; this._l = {};
+    this.createGain = function () { return { gain: { value: 0, setValueAtTime: function () {}, setTargetAtTime: function () {}, exponentialRampToValueAtTime: function () {} }, connect: function () {} }; };
+    this.createOscillator = function () { return { type: '', frequency: { setValueAtTime: function () {}, exponentialRampToValueAtTime: function () {} }, connect: function () {}, start: function () {}, stop: function () {} }; };
+    this.createDynamicsCompressor = function () { return { connect: function () {} }; };
+    this.createBiquadFilter = function () { return { type: '', frequency: { value: 0, setTargetAtTime: function () {} }, connect: function () {} }; };
+    this.createBuffer = function (ch, len, rate) { return { getChannelData: function () { return new Float32Array(len); } }; };
+    this.createBufferSource = function () { return { buffer: null, connect: function () {}, start: function () {} }; };
+    this.resume = function () { var self = this; return { then: function (ok) { self.state = 'running'; if (ok) ok(); return { catch: function () {} }; }, catch: function () {} }; };
+    this.addEventListener = function (t, f) { (this._l[t] = this._l[t] || []).push(f); };
+  };
+  var T = D.Ton.erstelle({ AudioContext: FakeCtx, setInterval: function () { return 1; } });
+  gleich(T.hinweis(), D.Ton.HINWEIS_TIPPEN, 'vor Geste Tippen');
+  T.entsperre();
+  wahr(T.entsperrt, 'entsperrt');
+  wahr(T.bestaetigt, 'bestaetige nach Entsperren');
+  var once = T.bestaetigt;
+  T.bestaetige();
+  gleich(T.bestaetigt, once, 'bestaetige nur einmal');
+  T.stummHinweisGezeigt = false;
+  wahr(T.hinweis() === '' || T.hinweis() === D.Ton.HINWEIS_STUMMSCHALTER, 'nach Entsperren Hinweis leer oder Stumm');
+  T.ctx.state = 'suspended';
+  T.markiereUnterbrochen();
+  gleich(T.entsperrt, false, 'visibility suspended → entsperrt=false');
+  T.entsperre();
+  wahr(T.entsperrt, 'pointerup entsperrt erneut');
+
+  // Startbild-Tipp → starteSpiel + ctx
+  var listeners = {}, rafs = [], els = {}, log = [];
+  function el(id) {
+    if (els[id]) return els[id];
+    var cv = mockCanvas(log), e = cv; e.id = id;
+    e.classList = { _c: {}, add: function (c) { this._c[c] = true; }, toggle: function (c, v) { if (v === false) delete this._c[c]; else this._c[c] = true; }, remove: function (c) { delete this._c[c]; }, contains: function (c) { return !!this._c[c]; } };
+    e.style = { setProperty: function (k, v) { this[k] = v; }, display: '' };
+    e.hidden = id === 'ton-hinweis'; e.listeners = {};
+    e.addEventListener = function (t, f) { (e.listeners[t] = e.listeners[t] || []).push(f); };
+    e.setPointerCapture = function () {}; e.textContent = '';
+    e.getBoundingClientRect = function () { return { left: 0, top: 0, width: 320, height: 176 }; };
+    return (els[id] = e);
+  }
+  var doc = { getElementById: el, createElement: function (t) { return t === 'audio' ? { addEventListener: function () {}, play: function () { return { catch: function () {} }; } } : mockCanvas(log); }, addEventListener: function (t, f) { (listeners['doc:' + t] = listeners['doc:' + t] || []).push(f); }, hidden: false, head: { appendChild: function () {} }, body: {} };
+  var win = ladeKontext({ __SAUFI_OHNE_START: true, document: doc, location: { search: '', protocol: 'file:' }, navigator: { onLine: true },
+    AudioContext: FakeCtx, webkitAudioContext: FakeCtx,
+    addEventListener: function (t, f) { (listeners[t] = listeners[t] || []).push(f); }, requestAnimationFrame: function (f) { rafs.push(f); return 1; },
+    setInterval: function () { return 1; }, setTimeout: function (f) { return 1; }, clearTimeout: function () {},
+    innerWidth: 800, innerHeight: 600, devicePixelRatio: 1,
+    getComputedStyle: function () { return { paddingLeft: '0', paddingRight: '0', paddingTop: '0', paddingBottom: '0' }; },
+    matchMedia: function () { return { matches: false }; } });
+  var api = win.Saufi.Main.starte(win, doc);
+  gleich(api.S().zustand, 'start');
+  (listeners.pointerup || []).forEach(function (f) { f({}); });
+  api.E.klicke(160, 90);
+  rafs[0](16);
+  gleich(api.S().zustand, 'spiel', 'Start-Tipp startet Spiel');
+  wahr(!!api.T.ctx, 'AudioContext erzeugt');
+});
+
+test('90 CSS Layout ton-hinweis / yt-fenster Hoch+Touch', function () {
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  wahr(/#rahmen\.touch\.hoch\s*~\s*#ton-hinweis/.test(html), 'Hoch-Touch Hinweis-Selektor');
+  wahr(/bottom:\s*calc\(\s*var\(--bedien/.test(html), 'Hinweis bottom mit --bedien');
+  wahr(/font-size:\s*1[0-2]px/.test(html), 'Schrift ≤ 12 px');
+  wahr(/#rahmen\.touch\.hoch\s*~\s*#yt-fenster/.test(html), 'YT Hoch-Touch');
+  wahr(/width:\s*160px/.test(html) && /max-width:\s*160px/.test(html), 'YT Breite ≤ 160');
+  wahr(/#rahmen\.touch\.hoch\s*~\s*#yt-fenster[\s\S]*?bottom:\s*calc\(\s*var\(--bedien/.test(html), 'YT bottom über --bedien');
+  // Rechteck-Überlappung: Hinweis-Band vs Stick/E/Wasser bei 390×844 und 375×667
+  function overlap(a, b) { return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y); }
+  function pruefe(W, H) {
+    var bedien = Math.max(96, Math.min(140, Math.round(H * 0.14)));
+    var hinweis = { x: 120, y: H - bedien - 30, w: W - 120 - 150, h: 24 };
+    var stick = { x: 0, y: H - bedien, w: W * 0.5, h: bedien };
+    var eZone = { x: W - 120, y: H - bedien, w: 120, h: bedien };
+    wahr(!overlap(hinweis, stick), W + ' Hinweis∩Stick=0');
+    wahr(!overlap(hinweis, eZone), W + ' Hinweis∩E=0');
+  }
+  pruefe(390, 844); pruefe(375, 667);
+});
+
+test('91 Schilder/HUD: kein Fenster/NPC-Overlap; HUD kleiner; Uhr/Banner frei', function () {
+  var D = lade(), welt = D.Karte.erstelleWelt(D.RNG.erstelle(1));
+  function overlap(a, b) { return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y); }
+  welt.stadt.gebaeude.forEach(function (b) {
+    var p = D.Szene.bauplan(b);
+    if (b.id === 'hotel' && p.schildNeben) {
+      p.fenster.forEach(function (f, i) { wahr(!overlap(p.schildNeben, f), 'Hotel-Schild∩Fenster ' + i); });
+    }
+    if (b.id === 'kneipe' && p.schildNeben && p.npcZone) {
+      wahr(!overlap(p.schildNeben, p.npcZone), 'Kneipe-Schild nicht in NPC-Zone');
+    }
+  });
+  var cv = mockCanvas(), c = cv.getContext('2d');
+  ['Kehrwoche ok', 'Feinstaub drin'].forEach(function (txt) {
+    var info = D.Gfx.textInBox(c, txt, 0, 0, 60, 16, 7, { ausr: 'center', mess: true, min: 5, maxZeilen: 2 });
+    wahr(info.lines.every(function (z) { return z.indexOf('…') < 0; }), txt + ' ohne …');
+  });
+  function hudMass(cssW, cssH) {
+    var R = D.Render.erstelle(mockCanvas(), mockCanvas().ownerDocument);
+    var h = D.Render.berechnePortH(cssW, cssH);
+    D.Render.setzeBildschirm(R, true, { h: h, touch: true });
+    R.touch = true; R.cssW = cssW; R.cssH = cssH;
+    var t = neuesSpielTest(D); t.S.zustand = 'spiel';
+    var nr = t.S.runden.runden[0]; nr.status = 'aktiv';
+    D.Render.zeichne(R, t.S);
+    var v06W = Math.round(96 * (54 / 62));
+    wahr(R.hudLinks.w <= v06W * 0.85 + 1, 'HUD ≤ 85% v06 (' + R.hudLinks.w + ' vs ' + v06W + ')');
+    var uhr = R.hudUhr, rund = R.hudRunde, oben = { x: R.W - (uhr.btnBand || 40), y: 0, w: uhr.btnBand || 40, h: 44 };
+    wahr(!overlap(R.hudLinks, uhr), 'HUD∩Uhr=0');
+    wahr(!overlap(R.hudLinks, oben), 'HUD∩#oben=0');
+    if (rund) {
+      wahr(rund.y >= uhr.y + uhr.h + 4 - 0.5, 'Banner ≥4 unter Uhr');
+      wahr(!overlap(uhr, rund), 'Uhr∩Banner=0');
+    }
+  }
+  hudMass(375, 667); hudMass(390, 844);
+});
+
+test('92 Zoom Quer 4.0 / mass / Clamp / Roundtrip; Hoch weltH/H', function () {
+  var D = lade();
+  gleich(D.Render.WELT_FLAECHE_QUER, 4.0);
+  var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
+  D.Render.setzeBildschirm(R, false);
+  nah(R.VW, 640, 0.5, 'VW≈640');
+  nah(R.weltZoom, 0.5, 1e-9, 'weltZoom=0.5');
+  var t = neuesSpielTest(D); t.S.kamera.viewW = R.VW; t.S.kamera.viewH = R.VH;
+  D.Kamera.sofort(t.S.kamera, t.S.spieler.x, t.S.spieler.y);
+  wahr(t.S.kamera.x >= 0 && t.S.kamera.y >= 0, 'Clamp min');
+  wahr(t.S.kamera.x + R.VW <= t.S.karte.pxW + 0.5, 'Clamp max x');
+  wahr(t.S.kamera.y + R.VH <= t.S.karte.pxH + 0.5, 'Clamp max y');
+  // Welt↔Bildschirm Roundtrip via Mass
+  var sx = 100, sy = 50, wx = t.S.kamera.x + sx / R.weltZoom, wy = t.S.kamera.y + sy / R.weltZoom;
+  var sx2 = (wx - t.S.kamera.x) * R.weltZoom, sy2 = (wy - t.S.kamera.y) * R.weltZoom;
+  nah(sx2, sx, 1, 'roundtrip x'); nah(sy2, sy, 1, 'roundtrip y');
+  var h390 = D.Render.berechnePortH(390, 844);
+  D.Render.setzeBildschirm(R, true, { h: h390, touch: true });
+  wahr(R.weltH / R.H >= 0.85, 'Hoch weltH/H ≥ v06');
+});
+
+test('93 Nachtgrafik: Fenster warm, Laterne kleiner, kein heller Rahmen', function () {
+  var D = lade();
+  wahr(D.Render.LATERNE_RADIUS <= 0.7 * D.Render.LATERNE_RADIUS_V06 + 0.01, 'Laterne ≤ 0.7×v06');
+  var src = fs.readFileSync(path.join(ROOT, 'js', 'render.js'), 'utf8');
+  wahr(/#ffd77a/.test(src) && /#ffb85a/.test(src), 'warme Fensterfarben');
+  wahr(!/rr\(c, fx, fy, f\.w, f\.h, P\.fensterNacht/.test(src), 'kein reinweisses fensterNacht-Fill');
+  wahr(/rgba\(10,8,30/.test(src) || /Fassade nur/.test(src), 'kein heller Rechteckrahmen');
+  wahr(!/#8f8fff/.test(src), 'kein helles #8f8fff mehr');
+});
+
+test('94 Eine Dunkelfläche: #bedien == Gfx.P.uiDunkel', function () {
+  var D = lade(), html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  wahr(D.Gfx.P.uiDunkel === '#1b1530', 'P.uiDunkel');
+  wahr(/#rahmen\.touch\.hoch #bedien[^}]*background:\s*#1b1530/.test(html), 'bedien == Reserve');
+  wahr(!/border-radius:\s*0\s+0\s+6px/.test(html.match(/#rahmen\.touch\.hoch #bedien[^}]+/)[0]), 'keine Rundung Oberkante');
+  wahr(/bottom:\s*max\(\s*8px\s*,\s*env\(safe-area-inset-bottom/.test(html), 'Knöpfe ≥ Safe-Area');
+});
+
+test('95 Drehen: orientationchange → groesse sofort+Timer; Zustand bleibt; DPR≤2; Cache', function () {
+  var listeners = {}, rafs = [], els = {}, log = [], timeouts = [];
+  function el(id) {
+    if (els[id]) return els[id];
+    var cv = mockCanvas(log), e = cv; e.id = id;
+    e.classList = { _c: {}, add: function (c) { this._c[c] = true; }, toggle: function (c, v) { if (v === false) delete this._c[c]; else this._c[c] = true; }, remove: function (c) { delete this._c[c]; }, contains: function (c) { return !!this._c[c]; } };
+    e.style = { setProperty: function (k, v) { this[k] = v; }, display: '' };
+    e.hidden = false; e.listeners = {};
+    e.addEventListener = function (t, f) { (e.listeners[t] = e.listeners[t] || []).push(f); };
+    e.setPointerCapture = function () {}; e.textContent = '';
+    e.getBoundingClientRect = function () { return { left: 0, top: 0, width: 320, height: 400 }; };
+    return (els[id] = e);
+  }
+  var doc = { getElementById: el, createElement: function (t) { return t === 'audio' ? { addEventListener: function () {} } : mockCanvas(log); }, addEventListener: function () {}, hidden: false, head: { appendChild: function () {} }, body: {} };
+  var win = ladeKontext({ __SAUFI_OHNE_START: true, document: doc, location: { search: '?start=1', protocol: 'file:' }, navigator: { onLine: true },
+    addEventListener: function (t, f) { (listeners[t] = listeners[t] || []).push(f); }, requestAnimationFrame: function (f) { rafs.push(f); return 1; },
+    setInterval: function () { return 1; },
+    setTimeout: function (f, ms) { timeouts.push({ f: f, ms: ms || 0 }); return timeouts.length; },
+    clearTimeout: function () {},
+    innerWidth: 390, innerHeight: 844, devicePixelRatio: 3,
+    getComputedStyle: function () { return { paddingLeft: '0', paddingRight: '0', paddingTop: '0', paddingBottom: '0' }; },
+    matchMedia: function () { return { matches: true }; } });
+  var api = win.Saufi.Main.starte(win, doc);
+  wahr(api.R.dpr <= 2, 'DPR ≤ 2 bei Hoch-Touch');
+  var S0 = api.S(), seed0 = S0.seed, pos0 = { x: S0.spieler.x, y: S0.spieler.y }, zustand0 = S0.zustand;
+  api.R.cacheInvalidierungen = api.R.cacheInvalidierungen || 0;
+  var inv0 = api.R.cacheInvalidierungen;
+  // gleiche Aufloesung erneut → kein Cache-Reset
+  win.Saufi.Render.setzeAufloesung(api.R, api.R.cssW, api.R.cssH, api.R.dpr);
+  gleich(api.R.cacheInvalidierungen, inv0, 'Cache nur bei Aenderung');
+  wahr(listeners.orientationchange && listeners.orientationchange.length, 'orientationchange Listener');
+  var hochVorher = api.R.hochkant;
+  win.innerWidth = 844; win.innerHeight = 390;
+  listeners.orientationchange.forEach(function (f) { f({}); });
+  wahr(api.R.hochkant !== hochVorher || !api.R.hochkant, 'hochkant wechselt nach Quer');
+  // Timer-Nachzug (120 und 400)
+  var nTimer = timeouts.length;
+  wahr(nTimer >= 1, 'Timer nach orientationchange');
+  timeouts.slice().forEach(function (t) { if (t.f) t.f(); });
+  var S1 = api.S();
+  gleich(S1.seed, seed0); gleich(S1.zustand, zustand0);
+  nah(S1.spieler.x, pos0.x, 0.01); nah(S1.spieler.y, pos0.y, 0.01);
+});
+
+test('96 Durchspiel-Bot Seeds 1/7/42 Hoch-Touch und Quer', function () {
+  function durch(seed, hoch, cssW, cssH) {
+    var D = lade(), log = [], cv = mockCanvas(log), R = D.Render.erstelle(cv, cv.ownerDocument);
+    if (hoch) {
+      var h = D.Render.berechnePortH(cssW, cssH);
+      D.Render.setzeBildschirm(R, true, { h: h, touch: true });
+      R.touch = true; R.cssW = cssW; R.cssH = cssH;
+    } else {
+      D.Render.setzeBildschirm(R, false);
+      R.cssW = cssW; R.cssH = cssH;
+    }
+    var E = fakeE(), X = { E: E };
+    var S = D.Spiel.neu({ seed: seed, start: true, tempo: 8 });
+    S.kamera.viewW = R.VW; S.kamera.viewH = R.VH;
+    var behandelt = {}, frames = 0, maxFrames = 8000, lastSnap = '', soft = 0;
+    var dt = 1 / 15;
+    while (S.zustand !== 'ende' && frames < maxFrames) {
+      var a = D.Runden.aktive(S.runden);
+      if (a && !behandelt[a.zeit] && S.zustand === 'spiel' && !S.overlay && !S.uebergang) {
+        behandelt[a.zeit] = true;
+        try {
+          if (S.ort !== a.ort) D.Spiel.geheZuStation(S, a.ort, 'stammtisch', X);
+          D.Spiel.aktion(S, X);
+          if (S.overlay && S.overlay.eintraege && S.overlay.eintraege[0]) D.Spiel.waehle(S, S.overlay.eintraege[0], X);
+        } catch (e) { throw new Error('Seed ' + seed + ' Aktion: ' + e.message); }
+      }
+      if (S.fig.pegel > 2.3) { S.flaschen = 3; try { D.Spiel.wasserTrinken(S, X); } catch (e2) { /* egal */ } }
+      if (S.overlay) {
+        // Overlay schliessbar: Esc
+        E.druecke('pause');
+      }
+      try { D.Spiel.update(S, dt, X); } catch (e3) { throw new Error('Seed ' + seed + ' update: ' + e3.message); }
+      E.ende();
+      if (frames % 30 === 0) {
+        try { D.Render.zeichne(R, S); } catch (e4) { throw new Error('Seed ' + seed + ' render: ' + e4.message); }
+        var snap = S.zustand + '|' + S.ort + '|' + Math.round(S.uhr.minute) + '|' + (S.overlay && S.overlay.art);
+        if (snap === lastSnap) soft++; else soft = 0;
+        lastSnap = snap;
+        wahr(soft < 120 / (dt * 30) + 5, 'kein Soft-Lock seed=' + seed + ' ' + snap);
+      }
+      frames++;
+    }
+    gleich(S.zustand, 'ende', 'Seed ' + seed + ' ' + (hoch ? 'hoch' : 'quer') + ' erreicht ende');
+    // nach ende: Tipp → neustart
+    S.ende.t = 1;
+    E.klicke(160, 90);
+    D.Spiel.update(S, 0.05, X);
+    wahr(S.neustart, 'nach ende Tipp → neustart flag');
+  }
+  [1, 7, 42].forEach(function (s) {
+    durch(s, true, 390, 844);
+    durch(s, false, 667, 375);
+  });
+});
+
+test('97 Versionen: VERSION 0.7, ?v=0.7, README v07, bau-bericht-v07', function () {
+  var D = lade();
+  gleich(D.Spiel.VERSION, '0.7');
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  var vs = html.match(/\?v=([0-9.]+)/g) || [];
+  vs.forEach(function (v) { gleich(v, '?v=0.7', v); });
+  var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+  wahr(/Neu in v07/.test(readme), 'README Neu in v07');
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v07.md')), 'bau-bericht-v07.md');
 });
 
 // ---------- Ausfuehren ----------

@@ -33,8 +33,26 @@
   function nachtGrad(h) { return h >= 27.4 ? 0.65 : klemme((h - 18.8) / 3.4); }
   function sterneAlpha(h) { return klemme((h - 20.4) / 2.2) * (h > 27.5 ? 0.5 : 1); }
   // Sonne und Mond als Bogen ueber dem Himmel (u 0..1). Rueckgabe in 0..1 relativ zur Flaeche
-  function sonnenPos(h) { var u = (h - 6) / 14.8; return u < -0.02 || u > 1.02 ? null : { x: lerp(0.08, 0.92, u), y: 0.78 - Math.sin(Math.PI * klemme(u)) * 0.62 }; }
+  // Daemmerung ~28: eigener Bogen am Horizont (Tagesbogen endet sonst bei u>1.02 → null)
+  function sonnenPos(h) {
+    if (h >= 27.2) {
+      var ud = (h - 27.2) / 1.6;
+      if (ud > 1.05) return null;
+      return { x: lerp(0.06, 0.22, klemme(ud)), y: 0.82 - Math.sin(Math.PI * Math.min(1, ud * 0.4)) * 0.18, daemmer: true };
+    }
+    var u = (h - 6) / 14.8;
+    return u < -0.02 || u > 1.02 ? null : { x: lerp(0.08, 0.92, u), y: 0.78 - Math.sin(Math.PI * klemme(u)) * 0.62 };
+  }
   function mondPos(h) { var u = (h - 19.5) / 10.5; return u < -0.02 || u > 1.02 ? null : { x: lerp(0.1, 0.9, u), y: 0.8 - Math.sin(Math.PI * klemme(u)) * 0.6 }; }
+  // Echte Sichel als Zwei-Boegen-Pfad (keine himmelfarbene Scheibe → kein Schwarz / keine Sterne durch den Mond)
+  function mondSichel(c, mx, my, mr) {
+    var ox = mx + mr * 0.38, oy = my - mr * 0.12, or = mr * 0.88;
+    c.beginPath();
+    c.arc(mx, my, mr, -0.65 * Math.PI, 0.65 * Math.PI, false);
+    c.arc(ox, oy, or, 0.55 * Math.PI, -0.55 * Math.PI, true);
+    c.closePath();
+    c.fillStyle = '#f4f1de'; c.fill();
+  }
 
   function himmelZeichnen(c, x, y, w, h, stunde, t) {
     var f = himmelFarben(stunde); vlauf(c, x, y, w, h, f.oben, f.unten);
@@ -48,16 +66,17 @@
     }
     var sp = sonnenPos(stunde);
     if (sp) {
-      var nah = klemme(1 - Math.abs(sp.y - 0.78) / 0.3), sxp = x + sp.x * w, syp = y + sp.y * h, rad = Math.max(3, h * 0.07);
+      var nah = sp.daemmer ? 0.85 : klemme(1 - Math.abs(sp.y - 0.78) / 0.3), sxp = x + sp.x * w, syp = y + sp.y * h, rad = Math.max(3, h * (sp.daemmer ? 0.055 : 0.07));
       var col = G.mischeHex('#fff2a8', '#ff9a50', nah * 0.9);
       G.glanz(c, sxp, syp, rad * 4, 'rgba(255,230,160,0.55)', 'rgba(255,230,160,0)');
       kreis(c, sxp, syp, rad, col);
     }
+    // Mond nur nachts, nicht in der Sieges-Daemmerung (Sonne uebernimmt ab ~27.2)
     var mp = mondPos(stunde);
-    if (mp && stunde > 19.5) {
+    if (mp && stunde > 19.5 && stunde < 27.2) {
       var mx = x + mp.x * w, my = y + mp.y * h, mr = Math.max(3, h * 0.06), ma = klemme((stunde - 19.5) / 2);
       c.globalAlpha = ma; G.glanz(c, mx, my, mr * 3.5, 'rgba(220,230,255,0.4)', 'rgba(220,230,255,0)');
-      kreis(c, mx, my, mr, '#f4f1de'); kreis(c, mx + mr * 0.35, my - mr * 0.15, mr * 0.9, G.mischeHex(f.oben, f.unten, 0.3));
+      mondSichel(c, mx, my, mr);
       c.globalAlpha = 1;
     }
   }
@@ -80,7 +99,7 @@
     var n = Math.max(1, Math.floor(w / 6));
     for (var i = 0; i < n; i++) {
       var fx = x + (i + 0.5) * (w / n) - 1.2, an = lit > 0.1;
-      r(c, fx, y + h * 0.35, 2.4, h * 0.4, an ? G.mischeHex('#8aa4c4', '#ffd77a', lit) : '#8aa4c4');
+      r(c, fx, y + h * 0.35, 2.4, h * 0.4, an ? G.mischeHex('#8aa4c4', '#ffb85a', lit) : '#8aa4c4');
     }
     if (treppe) r(c, x - 1, y + h, w + 2, 1.5, 'rgba(60,40,70,0.25)');
   }
@@ -105,7 +124,7 @@
       }
     }
     huegel(H * 0.52, 7, 0, m('#a9c8d8', '#27315a'), null);
-    turm(c, W * 0.8, H * 0.5, H * 0.3, m('#9aa8be', '#1b2342'), n * 0.9);
+    turm(c, W * 0.86, H * 0.5, H * 0.3, m('#9aa8be', '#1b2342'), n * 0.9);
     huegel(H * 0.58, 8, 90, m('#8cc27a', '#233a46'), m('#79b068', '#1d3340'));
     huegel(H * 0.67, 6, 40, m('#6fae6a', '#1b2d3a'), null);
     // Haeuser im Kessel
@@ -282,16 +301,21 @@
   // Plan in Weltpixeln: Fenster (leuchten nachts), Neon, Tuer
   function bauplan(b) {
     var x0 = b.x * K, y0 = b.y * K, w = b.w * K, h = b.h * K, tx = b.tuer.x * K, ty = b.tuer.y * K;
-    var plan = { x0: x0, y0: y0, w: w, h: h, tuer: { x: tx, y: ty, w: K, h: K }, fenster: [], neon: [], schild: { x: x0 + w / 2, y: y0 + 21 } };
+    var plan = { x0: x0, y0: y0, w: w, h: h, tuer: { x: tx, y: ty, w: K, h: K }, fenster: [], neon: [], schild: { x: x0 + w / 2, y: y0 + 21 }, schildNeben: null, npcZone: null };
     var i;
     if (b.id === 'hotel') {
       for (i = 0; i < 4; i++) { plan.fenster.push({ x: x0 + 10 + i * 28 + (i > 1 ? 16 : 0), y: y0 + 28, w: 12, h: 13 }); plan.fenster.push({ x: x0 + 10 + i * 28 + (i > 1 ? 16 : 0), y: y0 + 50, w: 12, h: 13 }); }
+      // Kehrwoche zwischen Fensterreihen, in der Tuer-Luecke (kein Fenster, nicht „→ HIER“)
+      plan.schildNeben = { x: x0 + 51, y: y0 + 40, w: 30, h: 10, text: 'Kehrwoche ok' };
     } else if (b.id === 'restaurant') {
       for (i = 0; i < 3; i++) plan.fenster.push({ x: x0 + 8 + i * 34 + (i > 0 ? 10 : 0), y: y0 + 30, w: 14, h: 14 });
       plan.fenster.push({ x: x0 + 8, y: y0 + 54, w: 14, h: 14 }); plan.fenster.push({ x: x0 + w - 24, y: y0 + 54, w: 14, h: 14 });
     } else if (b.id === 'kneipe') {
       plan.fenster.push({ x: x0 + 8, y: y0 + 28, w: 22, h: 18 }); plan.fenster.push({ x: x0 + w - 30, y: y0 + 28, w: 22, h: 18 });
       plan.neon.push({ x: x0 + w / 2 - 18, y: y0 + 16, w: 36, h: 4, farbe: P.neonGelb });
+      // Feinstaub auf Markisen-Band (oben); NPC-Schlange vor der Tuer (unter Markise) — kein Overlap
+      plan.schildNeben = { x: x0 + w / 2 - 30, y: y0 + 38, w: 60, h: 10, text: 'Feinstaub drin' };
+      plan.npcZone = { x: tx - 24, y: ty + 2, w: K + 48, h: K + 14 };
     } else if (b.id === 'disko') {
       plan.neon.push({ x: x0 + 8, y: y0 + 18, w: w - 16, h: 3, farbe: P.neonPink });
       plan.neon.push({ x: x0 + 8, y: y0 + 24, w: w - 16, h: 2, farbe: P.neonCyan });
@@ -358,9 +382,11 @@
     for (i = 0; i < 6; i++) r(c, d.x - 8 + i * 4.0 + 1, d.y - 10, 2, 7, 'rgba(255,255,255,0.18)');
     for (i = 0; i < 9; i++) kreis(c, d.x - 6 + i * 3.5, d.y - 3, 1.6, '#2e3f7a');
     schildGeb(c, x0 + w / 2, y0 + 14, Math.min(w - 8, 112), 14, '#2e3f7a', '#ffe9a8', 'HOTEL KESSELBLICK', 11, '#d9b86a');
-    // 52×10 / Größe 7: „Kehrwoche ok“ ohne … (Fassade w=128); sonst kürzer „Kehrwoche“
-    var hotelSchild = Math.min(52, w - 8), hotelTxt = hotelSchild >= 52 ? 'Kehrwoche ok' : 'Kehrwoche';
-    schild(c, x0 + 4 + hotelSchild / 2, y0 + 48, hotelSchild, 10, '#fff8ee', '#6a3f2a', hotelTxt, 7);
+    // Zwischen Fensterreihen in der Tuer-Luecke (x0+51..81); zwei Zeilen → kein …
+    var hotelSchild = 30, hotelTxt = 'Kehrwoche ok';
+    rr(c, x0 + 51, y0 + 40, hotelSchild, 10, '#fff8ee', 2.5, 'rgba(30,20,40,0.7)', 0.7);
+    textInBox(c, hotelTxt.split(' ')[0], x0 + 52, y0 + 40.2, hotelSchild - 2, 5, 5, { col: '#6a3f2a', ausr: 'center', min: 5, maxZeilen: 1 });
+    textInBox(c, hotelTxt.split(' ')[1], x0 + 52, y0 + 45, hotelSchild - 2, 4.5, 5, { col: '#6a3f2a', ausr: 'center', min: 5, maxZeilen: 1 });
   }
   function restaurantFassade(c, p) {
     var x0 = p.x0, y0 = p.y0, w = p.w, h = p.h, i;
@@ -421,9 +447,11 @@
     // Kreidetafel
     rr(c, d.x + d.w + 4, d.y + 3, 9, 12, '#3a3a40', 1, '#8a5a3a', 0.9); linie(c, d.x + d.w + 6, d.y + 7, d.x + d.w + 11, d.y + 7, '#fff8ee', 0.5); linie(c, d.x + d.w + 6, d.y + 10, d.x + d.w + 10, d.y + 10, '#fff8ee', 0.5);
     schildGeb(c, x0 + w / 2, y0 + 8, Math.min(w - 8, 108), 14, '#2f6a3f', '#ffe9a8', 'ZUM DURSTIGEN DACHS', 11, '#d9b86a');
-    // 60×10 / Größe 7: „Feinstaub drin“ ohne … (Fassade w=112); sonst kürzer „Feinstaub“
+    // Bandstreifen oben an der Markise — ausserhalb der NPC-Schlange vor der Tuer
     var kneipeSchild = Math.min(60, w - 8), kneipeTxt = kneipeSchild >= 60 ? 'Feinstaub drin' : 'Feinstaub';
-    schild(c, x0 + 4 + kneipeSchild / 2, y0 + 52, kneipeSchild, 10, '#3a3a40', '#fff8ee', kneipeTxt, 7);
+    var kneipeSchildY = my - 9; // y0+38; endet y0+48, npcZone ab ty+2 = y0+50
+    // Dunkler Grund, helle Schrift (Kontrast ≥ 4:1) — auch nachts lesbar
+    schild(c, x0 + w / 2, kneipeSchildY, kneipeSchild, 10, '#2a2a30', '#fff8ee', kneipeTxt, 7);
   }
   function diskoFassade(c, p) {
     var x0 = p.x0, y0 = p.y0, w = p.w, h = p.h, i;
@@ -551,6 +579,7 @@
 
   Saufi.Szene = {
     K: K, HIMMEL: HIMMEL, himmelFarben: himmelFarben, nachtGrad: nachtGrad, sterneAlpha: sterneAlpha, himmelZeichnen: himmelZeichnen, himmelIcon: himmelIcon, kesselSzene: kesselSzene,
+    sonnenPos: sonnenPos, mondPos: mondPos, mondSichel: mondSichel,
     schattenFuer: schattenFuer, bauplan: bauplan, gebaeudeBild: gebaeudeBild, zeichneAussenKachel: zeichneAussenKachel, hangKulisse: hangKulisse, blumen: blumen,
     baumBild: baumBild, buschBild: buschBild, laterneBild: laterneBild, bankBild: bankBild, brunnenBild: brunnenBild, brunnenWasser: brunnenWasser, strassenbahn: strassenbahn,
     sprite: sprite, zeichneSprite: zeichneSprite, turm: turm, haeuschen: haeuschen

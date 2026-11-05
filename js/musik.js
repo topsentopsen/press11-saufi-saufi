@@ -140,8 +140,12 @@
     }
     function spieleYoutube(anlass) {
       m.videoIndex = anlass === 'disko' || anlass === 'boost' || anlass === 'playlist' ? 0 : m.videoIndex;
-      m.aktiv = 'youtube'; m.spielt = true; m.zu = false;
-      var f = el('yt-fenster'); if (f) { f.hidden = false; f.className = ''; }
+      m.aktiv = 'youtube'; m.spielt = true;
+      // Touch: standardmaessig eingeklappt (E/Wasser/Stick bleiben erreichbar)
+      var touchAn = !!(env.touch || (doc && doc.getElementById && doc.getElementById('rahmen') && doc.getElementById('rahmen').classList && doc.getElementById('rahmen').classList.contains('touch')));
+      m.zu = !!touchAn;
+      var f = el('yt-fenster'); if (f) { f.hidden = false; f.className = m.zu ? 'zu' : ''; }
+      var kl = el('yt-klapp'); if (kl && m.zu) kl.textContent = '▶ Scooter';
       if (env.ton) env.ton.setzeMusik(false);
       ladeApi(function (ok) {
         if (m.aktiv !== 'youtube') return;

@@ -59,7 +59,7 @@
   function erstelle(win) {
     var Ctor = win && (win.AudioContext || win.webkitAudioContext);
     var t = { ctx: null, gestartet: false, entsperrt: false, stummHinweisGezeigt: false, stumm: false, musikAn: false, ebene: 0, tief: false, boost: false, verfuegbar: !!Ctor,
-      step: 0, takt: 0, naechste: 0, timer: null, beatStart: 0 };
+      step: 0, takt: 0, naechste: 0, timer: null, beatStart: 0, bestaetigt: false };
     var master, musikBus, filter, rausch;
 
     function init() {
@@ -97,14 +97,36 @@
         try {
           var pr = c.resume();
           // v05: resume() ist asynchron, Flag erst nach Erfolg setzen und Listener informieren
-          if (pr && typeof pr.then === 'function') pr.then(function () { t.entsperrt = !zustandGesperrt(c.state); if (t.beiEntsperrt) t.beiEntsperrt(); }, function () {});
+          if (pr && typeof pr.then === 'function') pr.then(function () {
+            t.entsperrt = !zustandGesperrt(c.state);
+            if (t.entsperrt) t.bestaetige();
+            if (t.beiEntsperrt) t.beiEntsperrt();
+          }, function () {});
         } catch (e) { /* egal */ }
       }
       spieleStumm(c);
       t.gestartet = true;
       t.entsperrt = !zustandGesperrt(c.state);
+      if (t.entsperrt) t.bestaetige();
       if (!t.timer && win && win.setInterval) t.timer = win.setInterval(tick, 50);
       return t.entsperrt;
+    };
+    // Kurzer Dur-Zweiklang nach erstem erfolgreichen Entsperren (einmal pro Sitzung; auch bei stumm)
+    t.bestaetige = function () {
+      if (t.bestaetigt || !t.ctx || t.ctx.state !== 'running') return false;
+      t.bestaetigt = true;
+      try {
+        if (!master) return true;
+        var z = now() + 0.01, dauer = 0.09;
+        function ton(freq, vol) {
+          var o = t.ctx.createOscillator(), gn = t.ctx.createGain();
+          o.type = 'sine'; o.frequency.setValueAtTime(freq, z);
+          gn.gain.setValueAtTime(Math.min(0.15, vol), z); gn.gain.exponentialRampToValueAtTime(0.0001, z + dauer);
+          o.connect(gn); gn.connect(master); o.start(z); o.stop(z + dauer + 0.02);
+        }
+        ton(523.25, 0.12); ton(659.25, 0.1); // C5 + E5
+        return true;
+      } catch (e) { return false; }
     };
 
     function osz(typ, freq, start, dauer, vol, ziel, bis) {

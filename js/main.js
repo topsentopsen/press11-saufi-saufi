@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.6', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.7', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function neuesSpiel(opt) {
@@ -786,8 +786,36 @@
       rahmen.classList.toggle('touch', isTouch);
       rahmen.classList.toggle('hoch', !!hoch);
     }
-    win.addEventListener('resize', groesse); win.addEventListener('orientationchange', groesse);
-    if (win.visualViewport && win.visualViewport.addEventListener) win.visualViewport.addEventListener('resize', groesse);
+    // iOS meldet innerHeight verspaetet — groesse sofort und nach 120/400 ms; Debounce gegen Doppel-Rechnung
+    var groesseTimer = null, groesseDebounce = null, groesseAufrufe = 0;
+    function groesseDebounced() {
+      if (groesseDebounce) return;
+      groesseDebounce = win.setTimeout(function () { groesseDebounce = null; }, 40);
+      groesse();
+    }
+    function groesseMitNachzug() {
+      groesseDebounced();
+      if (groesseTimer) { try { win.clearTimeout(groesseTimer); } catch (e) { /* egal */ } }
+      groesseTimer = win.setTimeout(function () {
+        groesseDebounced();
+        groesseTimer = win.setTimeout(function () { groesseDebounced(); groesseTimer = null; }, 280);
+      }, 120);
+    }
+    var _groesse = groesse;
+    groesse = function () {
+      groesseAufrufe++;
+      var vorher = { zustand: S && S.zustand, overlay: S && S.overlay, x: S && S.spieler && S.spieler.x, y: S && S.spieler && S.spieler.y };
+      _groesse();
+      // Kamera nach Orientierungswechsel neu clampen / zentrieren
+      if (S && S.kamera && S.spieler) {
+        S.kamera.viewW = R.VW || R.W; S.kamera.viewH = R.VH || R.H;
+        Saufi.Kamera.sofort(S.kamera, S.spieler.x, S.spieler.y - 8);
+      }
+      return vorher;
+    };
+    win.addEventListener('resize', groesseDebounced);
+    win.addEventListener('orientationchange', groesseMitNachzug);
+    if (win.visualViewport && win.visualViewport.addEventListener) win.visualViewport.addEventListener('resize', groesseDebounced);
     groesse();
 
     // Audio erst bei touchend/pointerup/click entsperren (iOS: nicht nur pointerdown/keydown)
@@ -949,14 +977,24 @@
     }
 
     // Tab im Hintergrund: Pause; Stick zuruecksetzen; Audio nach Unterbrechung bei naechster Geste resume
+    function tonNachRueckkehr() {
+      if (T.markiereUnterbrochen) T.markiereUnterbrochen();
+      // still resume() versuchen (ohne Geste nicht ueberall erlaubt; Fehler ignorieren)
+      if (T.ctx && Saufi.Ton.zustandGesperrt(T.ctx.state)) {
+        try { var pr = T.ctx.resume(); if (pr && pr.catch) pr.catch(function () {}); } catch (e) { /* egal */ }
+      }
+      tonHinweisAktualisieren();
+    }
     doc.addEventListener('visibilitychange', function () {
       if (doc.hidden) {
         stickEnde();
         if (S.zustand === 'spiel' && !S.overlay) pauseMenue(S, X);
-      }
-      if (T.markiereUnterbrochen) T.markiereUnterbrochen();
-      tonHinweisAktualisieren();
+        if (T.markiereUnterbrochen) T.markiereUnterbrochen();
+        tonHinweisAktualisieren();
+      } else tonNachRueckkehr();
     });
+    win.addEventListener('pageshow', function () { tonNachRueckkehr(); });
+    win.addEventListener('focus', function () { tonNachRueckkehr(); });
 
     var letzte = null;
     function frame(ms) {

@@ -4,6 +4,14 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v07
+
+- **Mond-Bug:** `Gfx.hex` parst auch `rgb(…)`; Mond als echte Sichel (kein schwarzer Fleck); Sieg-Daemmerung mit Sonne; Turm verschoben.
+- **Ton:** Bestätigungston nach erstem Entsperren; Hinweis klein über der Bedienleiste (Hoch+Touch); YT-Player ≤ 160 px, Touch eingeklappt; Resume nach App-Wechsel.
+- **Zoom:** Quer `WELT_FLAECHE_QUER = 4.0` (Welt ≈ 640×352); Hoch unverändert voll.
+- **Grafik:** warme Nachtfenster, weichere/kleinere Laternen, kein heller Gebäuderahmen; eine Dunkelfläche Canvas+#bedien.
+- **Safe-Area/Drehen:** `orientationchange` mit Nachzug 120/400 ms ohne Zustandsverlust; DPR Hoch-Touch ≤ 2.
+
 ## Neu in v06
 
 - **Ende-Bild Hoch:** kompaktes Panel unter den Oben-Knöpfen, Kesselszene sichtbar; Neustart ≥ 44 CSS-px, Tippen irgendwo nach 0,8 s; Ton-Hinweis ausgeblendet.

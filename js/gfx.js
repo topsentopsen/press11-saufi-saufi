@@ -16,16 +16,36 @@
     stein: '#ece4f0', stein2: '#cfc2da', schatten: 'rgba(74,52,120,0.26)', box: '#fff8ee',
     boden: '#eab48c', boden2: '#d39470', kneipeBoden: '#a8754f', kneipeBoden2: '#8f5f3f', fliese1: '#f7efe2', fliese2: '#cfe3ee',
     disko: '#2a2342', disko2: '#383056', ziegel: '#c4694e', ziegel2: '#a85840', neonPink: '#ff4fa0', neonCyan: '#4fe6ff', neonGelb: '#ffe84f', neonLila: '#a86bff',
-    uiFlaeche: '#fff8ee', uiFlaeche2: '#fbe9d4', uiTinte: '#4a3560', uiTinteWeich: '#7d6899',
+    uiFlaeche: '#fff8ee', uiFlaeche2: '#fbe9d4', uiTinte: '#4a3560', uiTinteWeich: '#7d6899', uiDunkel: '#1b1530',
     herzVoll: '#ff5f8a', herzLicht: '#ffc2d3', herzLeer: '#f3e3ec', gold: '#ffd75e', haut: '#f2c9a0', laterne: '#ffd77a',
     bier: '#ffc233', bierRot: '#e0504a', bierOrange: '#ff8f2e'
   };
 
   function hash(x, y) { var h = (x * 374761393 + y * 668265263) >>> 0; h = ((h ^ (h >>> 13)) * 1274126177) >>> 0; return (h ^ (h >>> 16)) >>> 0; }
-  function rgb(l) { return 'rgb(' + l.r + ',' + l.g + ',' + l.b + ')'; }
+  function rgb(l) { return 'rgb(' + (l.r | 0) + ',' + (l.g | 0) + ',' + (l.b | 0) + ')'; }
   function mix(a, b, t) { return { r: Math.round(a.r + (b.r - a.r) * t), g: Math.round(a.g + (b.g - a.g) * t), b: Math.round(a.b + (b.b - a.b) * t) }; }
-  function hex(s) { var n = parseInt(s.slice(1), 16); return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 }; }
+  // Akzeptiert #rgb, #rrggbb und rgb(r,g,b); nie NaN
+  function hex(s) {
+    if (typeof s !== 'string') return { r: 0, g: 0, b: 0 };
+    s = s.trim();
+    var m = /^rgba?\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)/i.exec(s);
+    if (m) return { r: Math.max(0, Math.min(255, +m[1] || 0)), g: Math.max(0, Math.min(255, +m[2] || 0)), b: Math.max(0, Math.min(255, +m[3] || 0)) };
+    if (s.charAt(0) === '#') {
+      var h = s.slice(1);
+      if (h.length === 3) h = h.charAt(0) + h.charAt(0) + h.charAt(1) + h.charAt(1) + h.charAt(2) + h.charAt(2);
+      if (h.length === 6 && /^[0-9a-fA-F]{6}$/.test(h)) {
+        var n = parseInt(h, 16);
+        if (isFinite(n)) return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+      }
+    }
+    return { r: 0, g: 0, b: 0 };
+  }
+  function hexVon(l) {
+    function z(n) { n = Math.max(0, Math.min(255, n | 0)); var s = n.toString(16); return s.length < 2 ? '0' + s : s; }
+    return '#' + z(l.r) + z(l.g) + z(l.b);
+  }
   function mischeHex(a, b, t) { return rgb(mix(hex(a), hex(b), t)); }
+  function mischeHexStr(a, b, t) { return hexVon(mix(hex(a), hex(b), t)); }
 
   // Rechteck (ohne Rundung)
   function r(c, x, y, w, h, col) { c.fillStyle = col; c.fillRect(x, y, w, h); }
@@ -198,7 +218,7 @@
   }
 
   Saufi.Gfx = {
-    SCHRIFT: SCHRIFT, MIN_SCHRIFT: MIN_SCHRIFT, P: P, hash: hash, rgb: rgb, mix: mix, hex: hex, mischeHex: mischeHex, r: r, rundPfad: rundPfad, rr: rr, box: box, kreis: kreis, ellipse: ellipse,
+    SCHRIFT: SCHRIFT, MIN_SCHRIFT: MIN_SCHRIFT, P: P, hash: hash, rgb: rgb, mix: mix, hex: hex, hexVon: hexVon, mischeHex: mischeHex, mischeHexStr: mischeHexStr, r: r, rundPfad: rundPfad, rr: rr, box: box, kreis: kreis, ellipse: ellipse,
     poly: poly, linie: linie, vlauf: vlauf, glanz: glanz, herz: herz, text: text, breite: breite, umbruch: umbruch, kuerze: kuerze, textInBox: textInBox, panel: panel, schriftGroesse: schriftGroesse
   };
 })(globalThis);

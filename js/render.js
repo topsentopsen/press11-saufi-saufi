@@ -10,9 +10,11 @@
   var BASE_W = 320, BASE_H = 176, PORT_H = 400, PORT_H_MIN = 280, PORT_H_MAX = 720, K = 16;
   // Kamera rausgezoomt; Querformat staerker (niedrigeres VH). HUD bleibt in Bildschirmkoordinaten (W×H)
   // UI_RESERVE_HOCH: Dunkelfeld unten ohne Touch; UI_RESERVE_HOCH_TOUCH schmaler (DOM-Leiste darunter); STADT_PX_H = 40×48
-  var WELT_FLAECHE_HOCH = 1.5, WELT_FLAECHE_QUER = 3.0, MIN_WELT_ZOOM = 0.5, UI_RESERVE_HOCH = 80, UI_RESERVE_HOCH_TOUCH = 48, STADT_PX_H = 768;
+  var WELT_FLAECHE_HOCH = 1.5, WELT_FLAECHE_QUER = 4.0, MIN_WELT_ZOOM = 0.5, UI_RESERVE_HOCH = 80, UI_RESERVE_HOCH_TOUCH = 48, STADT_PX_H = 768;
   var WELT_FLAECHE = WELT_FLAECHE_QUER, WELT_ZOOM = 1 / Math.sqrt(WELT_FLAECHE);
   var MAX_BREITE = 4096, MAX_BG_SKALA = 6, MAX_DPR = 2;
+  // Laternenkegel-Radius (Weltpixel); v06 war 44 → v07 ≈ 70 %
+  var LATERNE_RADIUS = 30;
   var W = BASE_W, H = BASE_H, VW = BASE_W / WELT_ZOOM, VH = BASE_H / WELT_ZOOM;
   var SH = { dx: 0, lang: 0.6, a: 0 };           // Schatten der aktuellen Uhrzeit
   function weltView() { return { w: VW, h: VH, zoom: WELT_ZOOM, flaeche: WELT_FLAECHE }; }
@@ -38,20 +40,26 @@
     if ('imageSmoothingEnabled' in c) c.imageSmoothingEnabled = true;
     if ('imageSmoothingQuality' in c) c.imageSmoothingQuality = 'high';
   }
-  // devicePixelRatio auf MAX_DPR begrenzen (Performance auf Retina-Handys)
-  function begrenzDpr(dpr) { dpr = dpr > 0 ? dpr : 1; return Math.min(MAX_DPR, dpr); }
+  // devicePixelRatio auf MAX_DPR begrenzen (Hoch-Touch max 2; nie 3)
+  function begrenzDpr(dpr, hochTouch) {
+    dpr = dpr > 0 ? dpr : 1;
+    var max = hochTouch ? Math.min(2, MAX_DPR) : MAX_DPR;
+    return Math.min(max, dpr);
+  }
   // Backing-Store = CSS-Groesse * begrenztes DPR (hoechstens MAX_BREITE breit). Rueckgabe: Skala (Geraete-Pixel je logischem Pixel)
   function setzeAufloesung(R, cssW, cssH, dpr) {
-    dpr = begrenzDpr(dpr);
+    dpr = begrenzDpr(dpr, R.hochkant && R.touch);
     var bw = Math.round((cssW > 0 ? cssW : W) * dpr);
     bw = Math.max(W, Math.min(MAX_BREITE, bw));
     var sk = bw / W, bh = Math.max(1, Math.round(H * sk));
+    var altCssW = R.cssW, altCssH = R.cssH, altDpr = R.dpr, altSk = R.sk;
     R.cssW = cssW; R.cssH = cssH; R.dpr = dpr;
     if (R.canvas) { if (R.canvas.width !== bw) R.canvas.width = bw; if (R.canvas.height !== bh) R.canvas.height = bh; glaettung(R); }
     R.sk = sk;
-    // Hintergrund und Sprites: gleiche Skala, in Halbschritten, nur bei Wechsel neu bauen (keine unnoetigen Neuzeichnungen)
+    // Hintergrund und Sprites: gleiche Skala, in Halbschritten, nur bei Wechsel neu bauen
     var bg = Math.min(MAX_BG_SKALA, Math.max(1, Math.ceil(sk * 2) / 2));
-    if (bg !== R.spSk) { R.spSk = bg; R.hg = {}; R.spr = {}; }
+    if (bg !== R.spSk) { R.spSk = bg; R.hg = {}; R.spr = {}; R.cacheInvalidierungen = (R.cacheInvalidierungen || 0) + 1; }
+    else if (altCssW === cssW && altCssH === cssH && altDpr === dpr && altSk === sk) { /* unveraendert: kein Cache-Reset */ }
     return sk;
   }
   function setzeBildschirm(R, hoch, opt) {
@@ -60,6 +68,7 @@
       var wunsch = opt && opt.h != null ? opt.h : PORT_H;
       H = Math.max(PORT_H_MIN, Math.min(PORT_H_MAX, Math.round(wunsch)));
     } else H = BASE_H;
+    var altZoom = R.weltZoom, altFlaeche = R.weltFlaeche;
     WELT_FLAECHE = hoch ? WELT_FLAECHE_HOCH : WELT_FLAECHE_QUER;
     WELT_ZOOM = Math.max(MIN_WELT_ZOOM, 1 / Math.sqrt(WELT_FLAECHE));
     R.W = W; R.H = H; R.weltFlaeche = WELT_FLAECHE;
@@ -83,6 +92,8 @@
       R.weltH = H;
     }
     R.VW = VW; R.VH = VH; R.weltZoom = WELT_ZOOM;
+    // Zoom-/Flaechenwechsel: Sprite-/HG-Caches neu (nicht bei jedem resize ohne Aenderung)
+    if (altZoom !== WELT_ZOOM || altFlaeche !== WELT_FLAECHE) { R.hg = {}; R.spr = {}; R.cacheInvalidierungen = (R.cacheInvalidierungen || 0) + 1; }
     setzeAufloesung(R, R.cssW, R.cssH, R.dpr);
     return { w: W, h: H, vw: VW, vh: VH };
   }
@@ -387,10 +398,15 @@
         if (glut > 0.02) plan.fenster.forEach(function (f) {
           if (!offen && b.id !== 'hotel') return;
           var gg = glut * glut, fx = f.x - cx, fy = f.y - cy;
-          c.globalAlpha = 0.55 * gg; G.glanz(c, fx + f.w / 2, plan.y0 + plan.h - cy + 5, 26, 'rgba(255,170,70,0.6)', 'rgba(255,170,70,0)');
-          c.globalAlpha = 0.5 * gg; rr(c, fx - 2.5, fy - 2.5, f.w + 5, f.h + 5, 'rgba(255,159,58,0.7)', 3);
-          c.globalAlpha = 0.9 * gg; rr(c, fx, fy, f.w, f.h, P.fensterNacht, 1.4);
-          c.globalAlpha = 0.25 * gg; rr(c, fx + 2, fy + 2, Math.max(0, f.w - 4), Math.max(0, f.h - 4), P.fensterKern, 1);
+          var halo = Math.min(K * 1.5, Math.max(f.w, f.h) * 1.2);
+          c.globalAlpha = Math.min(0.45, 0.4 * gg); G.glanz(c, fx + f.w / 2, fy + f.h / 2, halo, 'rgba(255,180,80,0.45)', 'rgba(255,180,80,0)');
+          // Warmer Verlauf statt Reinweiss; Rahmen/Sprossen dunkel
+          c.globalAlpha = Math.min(0.9, 0.85 * gg);
+          vlauf(c, fx, fy, f.w, f.h, '#ffd77a', '#ffb85a');
+          c.globalAlpha = Math.min(0.9, 0.7 * gg);
+          r(c, fx, fy, f.w, 0.7, 'rgba(40,30,50,0.55)'); r(c, fx, fy + f.h - 0.7, f.w, 0.7, 'rgba(40,30,50,0.55)');
+          r(c, fx, fy, 0.7, f.h, 'rgba(40,30,50,0.55)'); r(c, fx + f.w - 0.7, fy, 0.7, f.h, 'rgba(40,30,50,0.55)');
+          r(c, fx + f.w / 2 - 0.35, fy, 0.7, f.h, 'rgba(40,30,50,0.4)'); r(c, fx, fy + f.h * 0.45, f.w, 0.7, 'rgba(40,30,50,0.4)');
         });
         var an = offen || b.id === 'hotel';
         if (an) plan.neon.forEach(function (n) {
@@ -410,16 +426,21 @@
           if (p.art !== 'laterne') return;
           var lx = p.x - cx + 8, kopf = p.ly * K - cy - 1, boden = p.ly * K - cy + 14;
           if (lx < -50 || lx > VW + 50 || boden < -50 || boden > VH + 60) return;
-          var cone = c.createLinearGradient(0, kopf, 0, boden + 8); cone.addColorStop(0, 'rgba(255,225,150,0.55)'); cone.addColorStop(0.55, 'rgba(255,210,120,0.22)'); cone.addColorStop(1, 'rgba(255,200,110,0)');
-          c.globalAlpha = lampen; c.fillStyle = cone;
-          c.beginPath(); c.moveTo(lx - 1.6, kopf); c.lineTo(lx + 1.6, kopf); c.lineTo(lx + 18, boden + 8); c.lineTo(lx - 18, boden + 8); c.closePath(); c.fill();
-          G.glanz(c, lx, boden + 1, 44, 'rgba(255,214,130,0.55)', 'rgba(255,190,100,0)');
-          G.glanz(c, lx, kopf + 2, 10, 'rgba(255,240,190,0.9)', 'rgba(255,220,140,0)');
+          // Weicher Kegel ohne hartes Dreieck; Radius ~70 % von v06 (44 → LATERNE_RADIUS)
+          c.globalAlpha = lampen;
+          G.glanz(c, lx, boden + 1, LATERNE_RADIUS, 'rgba(255,214,130,0.35)', 'rgba(255,190,100,0)');
+          G.glanz(c, lx, kopf + 2, 7, 'rgba(255,240,190,0.55)', 'rgba(255,220,140,0)');
         });
       }
-      if (glut > 0.4) {                                            // schwache Gebaeudekanten, damit man nachts navigieren kann
-        c.globalAlpha = 0.16 * glut;
-        karte.gebaeude.forEach(function (b) { var pl = bauplan(b); c.fillStyle = '#8f8fff'; c.fillRect(pl.x0 - cx, pl.y0 - cy + 14, pl.w, 1); c.fillRect(pl.x0 - cx, pl.y0 + pl.h - cy, pl.w, 1); c.fillRect(pl.x0 - cx, pl.y0 - cy + 14, 1, pl.h - 14); c.fillRect(pl.x0 + pl.w - 1 - cx, pl.y0 - cy + 14, 1, pl.h - 14); });
+      if (glut > 0.4) {
+        // Fassade nur leicht dunkler andeuten — kein heller Rechteckrahmen
+        c.globalAlpha = 0.08 * glut;
+        karte.gebaeude.forEach(function (b) {
+          var pl = bauplan(b);
+          c.fillStyle = 'rgba(10,8,30,0.5)';
+          c.fillRect(pl.x0 - cx, pl.y0 - cy + 14, 2, pl.h - 14);
+          c.fillRect(pl.x0 + pl.w - 2 - cx, pl.y0 - cy + 14, 2, pl.h - 14);
+        });
       }
     } else if (karte.id === 'disko') In.diskoLichter(c, S, cx, cy);
     else In.raumLichter(c, S, cx, cy);
@@ -437,8 +458,8 @@
   }
   function hud(R, S) {
     var c = R.ctx, fig = S.fig, uhr = S.uhr, i;
-    // Querformat: kompaktes Status-Panel; Hochformat: etwas kleiner (~84×54)
-    var kompakt = !R.hochkant, sk = kompakt ? 0.72 : (54 / 62);
+    // Querformat: kompaktes Status-Panel; Hoch+Touch: ~15 % kleiner als v06-Hoch
+    var kompakt = !R.hochkant, sk = kompakt ? 0.72 : (R.touch ? (54 / 62) * 0.85 : 54 / 62);
     var lpW = Math.round(96 * sk), lpH = Math.round(62 * sk), lx = 3, ly = 3;
     panel(c, lx, ly, lpW, lpH, 'rgba(255,248,238,0.94)', kompakt ? 4 : 5);
     c.save(); c.translate(lx, ly); c.scale(sk, sk);
@@ -483,7 +504,8 @@
       var aktiv = nr.status === 'aktiv', rest = aktiv ? nr.zeit + Saufi.Runden.FRIST_MIN - uhr.minute : nr.zeit - uhr.minute;
       var rw = Math.min(kompakt ? 170 : 196, W - 24), rx = Math.round(W / 2 - rw / 2) + 2;
       rundenH = kompakt ? 18 : 20;
-      ry = Math.max(kompakt ? 36 : 48, py + ph + 12);
+      // ≥ 4 px unter Uhr-Stern-Zeile (Stern bei py+ph .. py+ph+10)
+      ry = Math.max(kompakt ? 36 : 48, py + ph + 14);
       var blink = aktiv && Math.floor(S.t * 3) % 2 === 0;
       panel(c, rx, ry, rw, rundenH, aktiv ? (blink ? '#ff9fb0' : '#ffd1da') : '#fff0c8', 6);
       textInBox(c, (aktiv ? 'RUNDE! ' : 'Runde ' + Saufi.Uhr.zeitText(nr.zeit) + ': ') + Saufi.Karte.NAMEN[nr.ort], rx + 6, ry + 1, rw - 12, kompakt ? 10 : 11, 7, { col: P.uiTinte, ausr: 'center' });
@@ -846,7 +868,7 @@
     var weltH = (R.hochkant && R.weltH != null) ? R.weltH : H;
     var zoom = weltZoomFuer(R, S, weltH);
     // Hoch: dunkles UI-Feld unter der Welt (Hinweise/Hilfe, kein Karten-Schwarz)
-    if (R.hochkant && weltH < H) r(c, 0, weltH, W, H - weltH, '#1b1530');
+    if (R.hochkant && weltH < H) r(c, 0, weltH, W, H - weltH, P.uiDunkel || '#1b1530');
     c.save();
     if (wackel) c.translate(Math.sin(S.t * 2.1) * amp, Math.cos(S.t * 1.7) * amp);
     // Welt in Kamerakoordinaten, dann auf Bildschirm zoomen (HUD unskaliert); Hoch: Clip auf weltH
@@ -885,6 +907,7 @@
     W: BASE_W, H: BASE_H, BASE_W: BASE_W, BASE_H: BASE_H, PORT_H: PORT_H, PORT_H_MIN: PORT_H_MIN, PORT_H_MAX: PORT_H_MAX,
     MAX_BREITE: MAX_BREITE, MAX_BG_SKALA: MAX_BG_SKALA, MAX_DPR: MAX_DPR,
     UI_RESERVE_HOCH: UI_RESERVE_HOCH, UI_RESERVE_HOCH_TOUCH: UI_RESERVE_HOCH_TOUCH, STADT_PX_H: STADT_PX_H,
+    LATERNE_RADIUS: LATERNE_RADIUS, LATERNE_RADIUS_V06: 44, UI_DUNKEL: '#1b1530',
     get WELT_FLAECHE() { return WELT_FLAECHE; }, get WELT_ZOOM() { return WELT_ZOOM; },
     WELT_FLAECHE_HOCH: WELT_FLAECHE_HOCH, WELT_FLAECHE_QUER: WELT_FLAECHE_QUER
   };
