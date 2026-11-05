@@ -432,13 +432,21 @@
     var rect = { x: bx, y: by, w: bw, h: bh };
     function schiebe(block) {
       if (!block || !blaseSchneidet(rect, block)) return;
+      // Rechts (Daumen, Jukebox-Seite) lieber nach links ausweichen als über den Knopf.
+      if (block.x > VW * 0.5) {
+        var linksZuerst = Math.round(block.x - bw - 4);
+        if (linksZuerst >= minX) {
+          rect.x = linksZuerst;
+          if (!blaseSchneidet(rect, block)) return;
+        }
+      }
       var oben = Math.round(block.y - bh - 4);
       if (oben >= minY) { rect.y = oben; return; }
       var links = Math.round(block.x - bw - 4);
       if (links >= minX) { rect.x = links; return; }
       rect.x = Math.round(block.x + block.w + 4);
     }
-    // Schild zuerst, dann HUD/Zoom/Bedienleiste (safe.rects), dann Stapel.
+    // Schild zuerst, dann HUD/Zoom/Bedienleiste (safe.rects), dann Stapel, dann noch einmal die Leisten.
     schiebe(vermeide);
     if (safe && safe.rects) safe.rects.forEach(schiebe);
     if (belegt) {
@@ -448,6 +456,7 @@
         rect.y = Math.round(hit.y - bh - 3);
       }
     }
+    if (safe && safe.rects) safe.rects.forEach(schiebe);
     if (rect.x < minX) rect.x = minX;
     if (rect.y < minY) rect.y = minY;
     if (rect.x + rect.w > maxX) rect.x = Math.max(minX, maxX - rect.w);
@@ -467,12 +476,12 @@
     if (R.hochkant && R.touch) {
       rects.push(v({ x: 0, y: 0, w: Math.min(W, 210), h: 40 }));
       rects.push(v({ x: 0, y: 44, w: 112, h: 72 }));
-      var band = Math.round(Math.min(130, Math.max(78, H * 0.18))) + 36;
-      rects.push(v({ x: 0, y: Math.max(0, H - band), w: W, h: band }));
+      rects.push(v({ x: Math.max(0, W - 176), y: Math.max(0, H - 168), w: 176, h: 168 }));
+      rects.push(v({ x: 0, y: Math.max(0, H - 140), w: 128, h: 140 }));
       var sCss = (R.cssW > 0 && W > 0) ? (R.cssW / W) : 1;
-      rects.push(v({ x: 4 / sCss, y: 148 / sCss, w: 72 / sCss, h: 140 / sCss }));
-      minY = 8 / z;
-      maxY = Math.max(minY + 20, (H - band) / z);
+      rects.push(v({ x: 2 / sCss, y: 148 / sCss, w: 70 / sCss, h: 140 / sCss }));
+      minY = 4;
+      maxY = VH - 2;
     } else rects.push(v({ x: 0, y: 0, w: 108, h: 68 }));
     return { rects: rects, minX: 2, minY: minY, maxX: VW - 2, maxY: Math.min(VH - 2, maxY) };
   }
@@ -1062,9 +1071,9 @@
       Sz.himmelIcon(c, px + 8, py + ph / 2, 5, uhr.minute / 60, S.t);
       var uhrTxtT = Saufi.Uhr.text(uhr);
       var sternWT = Math.min(36, Math.max(16, Math.ceil(breite(c, sternTxt, 8) + 2)));
-      textInBox(c, uhrTxtT, px + 16, py + 1, 52, 14, 9, { col: P.uiTinte, ausr: 'left', maxZeilen: 1 });
-      textInBox(c, phaseTxt, px + 70, py + 1, Math.max(20, pw - 70 - sternWT - 6), 14, 8, { col: P.uiTinteWeich, ausr: 'left', maxZeilen: 1 });
-      textInBox(c, sternTxt, px + pw - sternWT - 2, py + 1, sternWT, 14, 8, { col: P.uiTinte, ausr: 'right', maxZeilen: 1 });
+      textInBox(c, uhrTxtT, px + 16, py + 1, 52, 14, 10, { col: P.uiTinte, ausr: 'left', maxZeilen: 1 });
+      textInBox(c, phaseTxt, px + 70, py + 1, Math.max(20, pw - 70 - sternWT - 6), 14, 9, { col: P.uiTinteWeich, ausr: 'left', maxZeilen: 1 });
+      textInBox(c, sternTxt, px + pw - sternWT - 2, py + 1, sternWT, 14, 9, { col: P.uiTinte, ausr: 'right', maxZeilen: 1 });
       R.hudUhr = { x: px, y: py, w: pw, h: ph, btnBand: btnBand };
     } else if (R.hochkant && resTop != null) {
       // Hoch: Uhr ganz oben in der Reserve (nicht im Weltbereich)
@@ -1367,7 +1376,7 @@
   function zeichneSheet(R, titel, kopf, eintraege, index) {
     var c = R.ctx, sCss = Math.max(0.5, cssSkala(R));
     var kachelH = Math.max(48, Math.ceil(64 / sCss));
-    var gap = 6, rand = 8, bw = W - 8, bx = 4;
+    var gap = 8, rand = 10, bw = W - 8, bx = 4;
     eintraege = eintraege || [];
     var kopfZeilen = (kopf || []).filter(function (z) { return !!z; }).slice(0, 3);
     var titelH = Math.max(26, touchZeile(R));
