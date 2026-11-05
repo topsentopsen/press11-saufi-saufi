@@ -18,6 +18,9 @@
   var HINWEIS_KEINE_SPRACHE = 'Spracherkennung geht in diesem Browser nicht. Bitte tippe den Text. Chrome und Safari können das oft, Firefox oft nicht.';
   var HINWEIS_SPRACHE_FEHLER = 'Die Erkennung hat nicht geklappt. Bitte noch einmal oder tippe den Text.';
   var HINWEIS_TRANSKRIPT = 'Transkript steht im Textfeld. Es wird nur der Text abgeschickt, keine Aufnahme.';
+  /* Oeffentliche Worker-Adresse, kein Geheimnis. Letzter Ausweg, wenn ziel.json keine URL hat. */
+  var FALLBACK_EINGANG = 'https://press11-feedback-eingang.zengel-tobias.workers.dev';
+  var ZIEL_RAW = 'https://raw.githubusercontent.com/topsentopsen/press11-saufi-saufi/main/feedback/ziel.json';
 
   function eineZeile(s) {
     return String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
@@ -140,16 +143,43 @@
     if (el) el.checked = true;
   }
 
+  function urlAusDaten(data) {
+    return data && typeof data.url === 'string' ? data.url.trim() : '';
+  }
+
+  function liesZiel(hole, adresse, accept) {
+    return Promise.resolve().then(function () {
+      return hole(adresse, { headers: { 'Accept': accept } });
+    }).then(function (res) {
+      if (!res || !res.ok) return '';
+      if (typeof res.json === 'function') {
+        try {
+          return Promise.resolve(res.json()).then(function (data) {
+            return urlAusDaten(data);
+          }, function () { return ''; });
+        } catch (e) { return ''; }
+      }
+      if (typeof res.text === 'function') {
+        try {
+          return Promise.resolve(res.text()).then(function (t) {
+            try { return urlAusDaten(JSON.parse(t)); } catch (e2) { return ''; }
+          }, function () { return ''; });
+        } catch (e) { return ''; }
+      }
+      return '';
+    }, function () { return ''; });
+  }
+
   function ladeZiel(netz) {
     if (netz && typeof netz.eingang === 'string') return Promise.resolve(netz.eingang);
     var hole = (netz && netz.hole) || (typeof fetch === 'function' ? function (url, opt) { return fetch(url, opt); } : null);
-    if (!hole) return Promise.resolve('');
-    return Promise.resolve(hole('ziel.json', { headers: { 'Accept': 'application/json' } })).then(function (res) {
-      if (!res || !res.ok || typeof res.json !== 'function') return '';
-      return res.json().then(function (data) {
-        return data && typeof data.url === 'string' ? data.url.trim() : '';
-      }, function () { return ''; });
-    }, function () { return ''; });
+    if (!hole) return Promise.resolve(FALLBACK_EINGANG);
+    return liesZiel(hole, 'ziel.json', 'application/json').then(function (url) {
+      if (url) return url;
+      return liesZiel(hole, ZIEL_RAW, 'application/json, text/plain').then(function (raw) {
+        return raw || FALLBACK_EINGANG;
+      }, function () { return FALLBACK_EINGANG; });
+    }).then(null, function () { return FALLBACK_EINGANG; });
   }
 
   function sende(name, text, art, netz) {

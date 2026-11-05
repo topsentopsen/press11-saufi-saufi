@@ -5227,7 +5227,7 @@ test('233 v25 Feedback-Seite: Formular, Entwurf, keine Schlüssel', function () 
   wahr(/<textarea id="text" name="text" required/.test(html), 'Feedback Pflicht');
   wahr(/<button type="submit">/.test(html), 'Submit');
   wahr(/id="bestaetigung"/.test(html) && /data-meldung/.test(html) && /data-issue-link/.test(html), 'Bestaetigung');
-  wahr(/src="feedback\.js\?v=0\.26"/.test(html), 'Skript eingebunden');
+  wahr(/src="feedback\.js\?v=0\.26\.1"/.test(html), 'Skript eingebunden');
   wahr(/Press11Feedback\.bind\(/.test(html), 'Submit haengt an bind');
   wahr(/Press11 0\.26/.test(html), 'Versionszeile');
   wahr(!/<canvas/.test(html), 'keine Spielflaeche');
@@ -5411,6 +5411,132 @@ test('235 v26 Auswahl-Musik: eigener Hardstyle-Loop, kein Track-File', function 
   wahr(!music.some(function (n) { return /\.mp3$/i.test(n); }), 'kein MP3 in music/');
   var bericht = fs.readFileSync(path.join(ROOT, 'docs', 'bau-bericht-v26.md'), 'utf8');
   wahr(/WebAudio/.test(bericht) && /kein Scooter-MP3|kein kommerzielles Track/i.test(bericht), 'Bau-Bericht');
+});
+
+test('236 Feedback: leeres ziel.json faellt auf Raw und Worker zurueck', function () {
+  var F = ladeFeedback();
+  var FALLBACK = 'https://press11-feedback-eingang.zengel-tobias.workers.dev';
+  var RAW = 'https://raw.githubusercontent.com/topsentopsen/press11-saufi-saufi/main/feedback/ziel.json';
+  var js = fs.readFileSync(path.join(ROOT, 'feedback', 'feedback.js'), 'utf8');
+  wahr(js.indexOf("var FALLBACK_EINGANG = '" + FALLBACK + "'") >= 0, 'Fallback-Konstante');
+  wahr(js.indexOf(RAW) >= 0, 'Raw-URL');
+  wahr(!/ghp_|github_pat_|gho_|access_token|PRIVATE KEY/.test(js), 'kein Geheimnis im Fallback');
+
+  function antwort(statusOk, data, alsText) {
+    return {
+      ok: statusOk,
+      json: alsText ? undefined : function () { return Promise.resolve(data); },
+      text: function () { return Promise.resolve(typeof data === 'string' ? data : JSON.stringify(data)); }
+    };
+  }
+
+  return F.sende('A', 'Spam', 'feedback', {
+    website: 'http://bot.example',
+    hole: function () { throw new Error('Honig darf nicht senden'); }
+  }).then(function (honig) {
+    gleich(honig.ok, true);
+    wahr(honig.still === true, 'Honig bleibt still');
+    var festN = 0;
+    return F.sende('Ada', 'Hi', 'feedback', {
+      eingang: 'https://fest.test/ein',
+      hole: function (url, opt) {
+        festN++;
+        gleich(url, 'https://fest.test/ein');
+        gleich(opt.method, 'POST');
+        return Promise.resolve(antwort(true, { ok: true }));
+      }
+    }).then(function (fest) {
+      gleich(fest.ok, true);
+      gleich(festN, 1, 'eingang ueberschreibt ziel.json');
+      var leerN = 0;
+      return F.sende('Ada', 'Hi', 'feedback', {
+        eingang: '',
+        hole: function () { leerN++; return Promise.resolve(antwort(true, { ok: true })); }
+      }).then(function (leerEingang) {
+        gleich(leerEingang.ok, false);
+        gleich(leerN, 0, 'leerer eingang bleibt ein Abbruch');
+        var lokalCalls = [];
+        return F.sende('Ada', 'Lokal', 'feedback', {
+          hole: function (url, opt) {
+            lokalCalls.push({ url: url, method: opt && opt.method, accept: opt && opt.headers && opt.headers.Accept });
+            if (url === 'ziel.json') return Promise.resolve(antwort(true, { url: '  https://lokal.test/ein  ' }));
+            if (opt && opt.method === 'POST') return Promise.resolve(antwort(true, { ok: true }));
+            throw new Error('unerwartet ' + url);
+          }
+        }).then(function (lokal) {
+          gleich(lokal.ok, true);
+          gleich(lokalCalls.length, 2, 'lokale URL ohne Raw');
+          gleich(lokalCalls[0].url, 'ziel.json');
+          gleich(lokalCalls[0].accept, 'application/json');
+          gleich(lokalCalls[1].url, 'https://lokal.test/ein');
+          gleich(lokalCalls[1].method, 'POST');
+          var rawCalls = [];
+          return F.sende('Ada', 'Roh', 'idee', {
+            hole: function (url, opt) {
+              rawCalls.push({ url: url, method: opt && opt.method, accept: opt && opt.headers && opt.headers.Accept, body: opt && opt.body });
+              if (url === 'ziel.json') return Promise.resolve(antwort(true, { url: '' }));
+              if (url === RAW) return Promise.resolve(antwort(true, { url: 'https://raw.test/ein' }));
+              if (opt && opt.method === 'POST') return Promise.resolve(antwort(true, { ok: true }));
+              throw new Error('unerwartet ' + url);
+            }
+          }).then(function (raw) {
+            gleich(raw.ok, true);
+            gleich(rawCalls.length, 3);
+            gleich(rawCalls[1].url, RAW);
+            wahr(rawCalls[1].accept.indexOf('application/json') >= 0 && rawCalls[1].accept.indexOf('text/plain') >= 0, 'Raw akzeptiert JSON und Text');
+            gleich(rawCalls[2].url, 'https://raw.test/ein');
+            gleich(JSON.parse(rawCalls[2].body).art, 'idee');
+            gleich(JSON.parse(rawCalls[2].body).website, '');
+            var textCalls = [];
+            return F.sende('Ada', 'Text', 'feedback', {
+              hole: function (url, opt) {
+                textCalls.push(url);
+                if (url === 'ziel.json') return Promise.resolve({ ok: false });
+                if (url === RAW) return Promise.resolve(antwort(true, '{"url":"https://text.test/ein"}', true));
+                if (opt && opt.method === 'POST') return Promise.resolve(antwort(true, { ok: true }));
+                throw new Error('unerwartet ' + url);
+              }
+            }).then(function (alsText) {
+              gleich(alsText.ok, true);
+              gleich(textCalls[2], 'https://text.test/ein');
+              var fallCalls = [];
+              return F.sende('Ada', 'Fallback', 'sprache', {
+                hole: function (url, opt) {
+                  fallCalls.push({ url: url, method: opt && opt.method, body: opt && opt.body });
+                  if (url === 'ziel.json') return Promise.reject(new Error('pages'));
+                  if (url === RAW) return Promise.resolve(antwort(true, { url: '   ' }));
+                  if (opt && opt.method === 'POST') return Promise.resolve(antwort(true, { ok: true }));
+                  throw new Error('unerwartet ' + url);
+                }
+              }).then(function (fall) {
+                gleich(fall.ok, true);
+                gleich(fallCalls[2].url, FALLBACK);
+                gleich(fallCalls[2].method, 'POST');
+                var body = JSON.parse(fallCalls[2].body);
+                gleich(body.art, 'sprache');
+                gleich(body.text, 'Fallback');
+                gleich(body.website, '');
+                var wegCalls = [];
+                return F.sende('Ada', 'Weg', 'feedback', {
+                  hole: function (url, opt) {
+                    wegCalls.push(url);
+                    if (url === 'ziel.json') return Promise.resolve(antwort(true, {}));
+                    if (url === RAW) return Promise.reject(new Error('raw'));
+                    if (opt && opt.method === 'POST') return Promise.resolve(antwort(true, { ok: true }));
+                    throw new Error('unerwartet ' + url);
+                  }
+                }).then(function (weg) {
+                  gleich(weg.ok, true);
+                  gleich(wegCalls.length, 3);
+                  gleich(wegCalls[2], FALLBACK);
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+  });
 });
 
 (async function () {
