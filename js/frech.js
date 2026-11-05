@@ -1,17 +1,17 @@
-/* v15: Running Gag (Raphi ist noch kein richtiges Press11-Mitglied) und freche Zufallsblasen. Eigener Zaehler, kein rng. */
+/* v15/v20: Running Gag nur als Anwärter-Neckerei (noch kein Press11, mehr Gas). Voller Name nur in dieser Neckerei. Eigener Zaehler, kein rng. */
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
 
   var RAPHI = [
+    'Raphi, noch Anwärter. Gib mehr Gas!',
+    'Raphi, kein Press11. Noch Anwärter.',
     'Raphi, streng dich an, dann klappts mit Press11.',
-    'Raphi, noch Anwärter. Mehr Einsatz!',
-    'Press11? Raphi, noch ein paar Runden.',
+    'Raphi, Aufnahmeprüfung. Mehr Einsatz!',
+    'Press11? Raphi, du bist nur Anwärter.',
     'Raphi, ohne Fleiß kein Press11-Ausweis.',
-    'Noch ein Pils, Raphi, dann reden wir.',
-    'Raphi, Aufnahmeprüfung läuft. Gib Gas!',
-    'Fast Press11, Raphi. Fast.',
-    'Raphael, Käppi allein reicht nicht.'
+    'Raphi, noch kein Mitglied. Schieb mehr!',
+    'Raphael bleibt Anwärter, bis er Gas gibt.'
   ];
   var FRECH = [
     'Probst, du Arschloch!',
@@ -41,6 +41,7 @@
     if (npcs.filter(function (n) { return n.blase; }).length >= 2) return null;   // Zwei-Blasen-Limit wie NPCs.sprechen
     var kand = npcs.filter(function (n) {
       if (!n.aktiv || n.liegt || n.karteId !== ort || n.blase) return false;
+      if (n.id === 'tobi') return false;   // Tobi redet nur Elon, nie Gag oder Frech
       if (eintrag.art === 'raphi' && n.id === 'raphael') return false;
       if (eintrag.art === 'frech' && n.char && n.char.name && eintrag.text.indexOf(n.char.name) === 0) return false;
       return true;

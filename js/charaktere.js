@@ -23,9 +23,9 @@
     { id: 'siebold', name: 'Siebold', rolle: 'stamm', trink: 0.85, leben: 1, shirt: '#9a9aa8', hose: '#3a3a4a', haar: '#6a6a6a', extra: 'weste', spruch: 'Ich rechne nach...', motivator: true, gameMaster: true,
       tempo: 1, heil: 1, punkteFaktor: 1, abbauMul: 0.8,
       auswahl: { rolle: 'Game Master, Motivator', plus: 'initiiert Trinkspiele', minus: 'selten nüchtern' } },
-    { id: 'schwinki', name: 'Schwinki', rolle: 'stamm', gehtAb: 25 * 60, trink: 1.20, leben: 1, shirt: '#2a2a32', hose: '#2a2a32', haar: '#5a3a28', extra: 'cap', spruch: 'Hunger!',
+    { id: 'schwinki', name: 'Schwinki', rolle: 'stamm', trink: 1.20, leben: 1, shirt: '#2a2a32', hose: '#2a2a32', haar: '#5a3a28', extra: 'cap', spruch: 'Hunger!',
       tempo: 1, heil: 1, punkteFaktor: 1, abbauMul: 1, nachschub: true,
-      auswahl: { rolle: 'Der Vernünftige', plus: 'hat immer Nachschub dabei', minus: 'geht immer früher nach Hause' } },
+      auswahl: { rolle: 'Immer Nachschub', plus: 'hat immer Nachschub dabei' } },
     { id: 'stoeckle', name: 'Stöckle', rolle: 'stamm', trink: 0.80, leben: 1, shirt: '#2f6a3f', hose: '#5a4a3a', haar: '#7a5a38', extra: 'tracht', spruch: 'Des koschd extra!', motivator: true,
       tempo: 1, heil: 1, punkteFaktor: 1, abbauMul: 0.75,
       auswahl: { rolle: 'Motivator, nächste Runde', plus: 'findet Runden', minus: 'kaum Ausnüchtern' } },
@@ -33,9 +33,9 @@
     { id: 'himmelsbach', name: 'Himmelsbach', rolle: 'stamm', kommtAb: 14 * 60, trink: 1.00, leben: 2, shirt: '#3a6ea8', hose: '#2f3a52', haar: '#4a3a2a', extra: 'pfeife', spruch: 'Auf geht\'s, nächste Runde!', motivator: true,
       tempo: 1.04, heil: 0.85, punkteFaktor: 1, abbauMul: 1,
       auswahl: { rolle: 'Motivator, nächste Runde', plus: 'zieht zur Runde', minus: 'wenig Pause' } },
-    { id: 'zeise', name: 'Zeise', rolle: 'stamm', kommtAb: 16 * 60, trink: 1.10, leben: 1, shirt: '#e8872a', hose: '#2e6e6e', haar: '#c8a050', extra: 'brille', spruch: 'Neu hier, aber bereit!',
+    { id: 'zeise', name: 'Zeise', rolle: 'stamm', kommtAb: 16 * 60, gehtAb: 25 * 60, trink: 1.10, leben: 1, shirt: '#e8872a', hose: '#2e6e6e', haar: '#c8a050', extra: 'brille', spruch: 'Kennt jedes Bier.',
       tempo: 1, heil: 1, punkteFaktor: 1, abbauMul: 1,
-      auswahl: { rolle: 'Neu dabei', plus: 'noch unbekannt, überrascht alle', minus: 'kennt die Runden noch nicht' } }
+      auswahl: { rolle: 'Der Vernünftige', plus: 'Gründungsmitglied, alle Biere', minus: 'geht immer früher nach Hause' } }
   ];
 
   // Reihenfolge der Startkarten (erweiterbar)
