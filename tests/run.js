@@ -2148,7 +2148,7 @@ test('102 Nacht-Helligkeit: Tint 02:30 ≥ 0.10; 20 Uhr warm; Monotonie', functi
   }
 });
 
-test('103 Hoch-Zoom/Karte: 60/960, Fläche ≥1.15×v07, Schrift ≥8 CSS', function () {
+test('103 Hoch-Zoom/Karte: 60/960, VW 350–420, Schrift ≥8 CSS', function () {
   var D = lade(), st = D.Karte.erstelleWelt(D.RNG.erstelle(1)).stadt;
   gleich(st.h, 60); gleich(st.pxH, 960); gleich(D.Render.STADT_PX_H, 960);
   var geb = { hotel: [22, 7, 8, 5], restaurant: [2, 8, 7, 5], kneipe: [30, 17, 7, 4], disko: [27, 25, 9, 4] };
