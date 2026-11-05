@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.8', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.9', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function neuesSpiel(opt) {
@@ -38,8 +38,15 @@
   function stationDe(karte, id) { for (var i = 0; i < karte.stationen.length; i++) if (karte.stationen[i].id === id) return karte.stationen[i]; return null; }
   function halbiert(S) { return Saufi.Ereignisse.Boost.verlustFaktor(S.boost) < 1; }
   function funken(S, x, y, farbe, n) {
-    for (var i = 0; i < n; i++) S.effekte.push({ x: x, y: y, vx: (S.rng.next() - 0.5) * 50, vy: -S.rng.next() * 40 - 10, rest: 0.7, dauer: 0.7, farbe: farbe });
-    if (S.effekte.length > 60) S.effekte.splice(0, S.effekte.length - 60);
+    if (Saufi.Partikel && Saufi.Partikel.funken) Saufi.Partikel.funken(S, x, y, farbe, n);
+    else {
+      for (var i = 0; i < n; i++) S.effekte.push({ art: 'funke', x: x, y: y, vx: (S.rng.next() - 0.5) * 50, vy: -S.rng.next() * 40 - 10, rest: 0.7, dauer: 0.7, farbe: farbe });
+      if (S.effekte.length > 60) S.effekte.splice(0, S.effekte.length - 60);
+    }
+  }
+  function prostEffekte(S, x, y) {
+    funken(S, x, y, '#ffe84f', 14);
+    if (Saufi.Partikel && Saufi.Partikel.schaum) Saufi.Partikel.schaum(S, x, y, 6);
   }
   function stub(X) {
     X = X || {};
@@ -130,7 +137,7 @@
       var rest = r.rest; res = Saufi.Runden.trinke(rs, r, minute(S));
       pegelWerte(rest); npcsTrinken(); S.stats.getrunken += rest;
       Saufi.Punkte.add(S.punkte, res.punkte, 'Mittrunde');
-      sag(S, Saufi.Hinweise.PROST[0] + ' +' + res.punkte, 2.2, 'gross'); T.prost(); S.prost = 1.4; funken(S, S.spieler.x, S.spieler.y - 20, '#ffe84f', 14);
+      sag(S, Saufi.Hinweise.PROST[0] + ' +' + res.punkte, 2.2, 'gross'); T.prost(); S.prost = 1.4; prostEffekte(S, S.spieler.x, S.spieler.y - 20);
       nachRunde(S, res);
     } else if (art === 'runde_frei') {
       res = Saufi.Runden.tausche(rs, r, S.cheats, S.rng, minute(S), probstDa(S));
@@ -143,7 +150,7 @@
         if (Saufi.Runden.verloren(rs)) beende(S, false, 'Teamstimmung 0: alle gehen heim.', X);
       } else if (res.fertig) {
         npcsTrinken(); Saufi.Punkte.add(S.punkte, res.punkte, 'Mittrunde (Alkoholfrei)');
-        sag(S, 'PROST! Niemand hat was gemerkt. +' + res.punkte, 2.4, 'gross'); T.prost(); S.prost = 1.4;
+        sag(S, 'PROST! Niemand hat was gemerkt. +' + res.punkte, 2.4, 'gross'); T.prost(); S.prost = 1.4; prostEffekte(S, S.spieler.x, S.spieler.y - 20);
         nachRunde(S, res);
       } else {
         sag(S, 'Heimlich getauscht! Noch ' + res.rest + ' Glas.', 2, 'gut'); T.pling();
@@ -474,6 +481,14 @@
     }
     if (sp.tanzt > 0) sp.tanzt -= dt;
     if (S.prost > 0) S.prost -= dt;
+    // Staubpartikel (rein optisch, kein rng)
+    if (Saufi.Partikel && Saufi.Partikel.staubSchritt) {
+      var nachtStaub = S.karte && !S.karte.innen && S.licht && S.licht.glut > 0.4;
+      Saufi.Partikel.staubSchritt(S, sp, sp.x, sp.y, nachtStaub);
+      S.npcs.forEach(function (n) {
+        if (n.aktiv && n.karteId === S.karte.id) Saufi.Partikel.staubSchritt(S, n, n.x, n.y, nachtStaub);
+      });
+    }
     if (E) {
       if (E.neu('aktion')) aktion(S, X);
       if (E.neu('wasser')) wasserTrinken(S, X);
@@ -824,6 +839,11 @@
       if (!tonEl) return;
       // Ende-Bild und offenes Overlay: Hinweis ausblenden (liegt sonst ueber dem Titel)
       if (S && (S.zustand === 'ende' || S.overlay)) { tonEl.hidden = true; return; }
+      // Kontext bereits running und entsperrt: kein erneutes Aufblitzen (visibility/pageshow)
+      if (T.entsperrt && T.ctx && T.ctx.state === 'running') {
+        var textRun = T.hinweis ? T.hinweis() : '';
+        if (!textRun || textRun === Saufi.Ton.HINWEIS_TIPPEN) { tonEl.hidden = true; return; }
+      }
       var text = T.hinweis ? T.hinweis() : '';
       if (!text) { tonEl.hidden = true; return; }
       tonEl.textContent = text; tonEl.hidden = false;

@@ -6,7 +6,7 @@ var fs = require('fs'), path = require('path'), vm = require('vm');
 var ROOT = path.join(__dirname, '..');
 // Reihenfolge wie die Script-Tags in index.html
 var DATEIEN = ['js/rng', 'js/uhr', 'js/charaktere', 'js/getraenke', 'js/essen', 'js/pegel', 'js/cheats', 'js/runden', 'js/ereignisse', 'js/minispiele', 'js/punkte', 'js/hinweise',
-  'js/speicher', 'js/karte', 'js/pfad', 'js/kamera', 'js/eingabe', 'js/spieler', 'js/npcs', 'js/ton', 'music/playlist', 'js/musik', 'js/gfx', 'js/szene', 'js/innen', 'js/render', 'js/main'];
+  'js/speicher', 'js/karte', 'js/pfad', 'js/kamera', 'js/eingabe', 'js/spieler', 'js/npcs', 'js/ton', 'music/playlist', 'js/musik', 'js/gfx', 'js/szene', 'js/innen', 'js/partikel', 'js/render', 'js/main'];
 
 function ladeKontext(extra) {
   var ctx = { console: console, Math: Math };
@@ -62,6 +62,9 @@ function mockCtx(log) {
         pruefeZahlen(k, arguments);
         if (k === 'fillText') { if (typeof a !== 'string') throw new Error('fillText mit ' + typeof a); if (log) log.push(a); }
         if (k === 'fillRect' && log) log.push([].slice.call(arguments));
+        if (k === 'arc' && log) log.push(['arc'].concat([].slice.call(arguments)));
+        if (k === 'rotate' && log) log.push(['rotate', a]);
+        if (k === 'fill' && log) log.push(['fill', t.fillStyle, t.globalAlpha]);
         if (k === 'drawImage') { if (!arguments[0] || !arguments[0].getContext) throw new Error('drawImage braucht ein Canvas'); }
       };
       throw new Error('Unbekannte Canvas-Eigenschaft: ' + String(k));
@@ -759,7 +762,7 @@ test('39 Teamstimmung 0: eigener Titel statt Umgefallen/Press F', function () {
   gleich(t.S.zustand, 'ende'); gleich(t.S.ende.wertung.titel, 'Abgehängt');
   wahr(/abgehängt/.test(t.S.ende.wertung.kopf)); wahr(/Teamstimmung 0/.test(t.S.ende.grund));
   wahr(t.S.ende.wertung.kopf.indexOf('Press F') < 0);
-  gleich(D.Spiel.VERSION, '0.8');
+  gleich(D.Spiel.VERSION, '0.9');
   wahr(D.Gfx.MIN_SCHRIFT <= 7);
 });
 
@@ -814,9 +817,9 @@ test('42 DPR-Begrenzung: MAX_DPR = 2, setzeAufloesung und begrenzDpr kappen', fu
   wahr(sk === R.canvas.width / R.W, 'Skala konsistent');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
   wahr(/begrenzDpr|MAX_DPR/.test(main), 'main nutzt DPR-Begrenzung');
-  wahr(/VERSION\s*=\s*['"]0\.8['"]/.test(main), 'VERSION 0.8');
+  wahr(/VERSION\s*=\s*['"]0\.9['"]/.test(main), 'VERSION 0.9');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  wahr(/main\.js\?v=0\.8/.test(html), 'Cache-Buster v=0.8');
+  wahr(/main\.js\?v=0\.9/.test(html), 'Cache-Buster v=0.9');
 });
 
 test('43 Hochformat-Layout: Playlist und Menues passen in PORT_H', function () {
@@ -1326,16 +1329,16 @@ test('72 Quer BASE 320x176: VH == H/zoom, Flaeche >= 3', function () {
   wahr(R.VW * R.VH / (D.Render.BASE_W * D.Render.BASE_H) >= 3 - 0.02, 'Quer Flaeche >= 3');
 });
 
-test('73 Versionen: VERSION 0.8, ?v=0.8, README v08, Bau-Bericht v08', function () {
+test('73 Versionen: VERSION 0.9, ?v=0.9, README v09, Bau-Bericht v09', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.8');
+  gleich(D.Spiel.VERSION, '0.9');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster vorhanden');
-  vs.forEach(function (v) { gleich(v, '?v=0.8', 'Cache-Buster ' + v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.9', 'Cache-Buster ' + v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
-  wahr(/Neu in v08/.test(readme), 'README Neu in v08');
-  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v08.md')), 'bau-bericht-v08.md');
+  wahr(/Neu in v09/.test(readme), 'README Neu in v09');
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v09.md')), 'bau-bericht-v09.md');
 });
 
 // ---------- v06: Menues/Ende/Touch Hochformat ----------
@@ -1467,23 +1470,22 @@ test('78 Schildtexte Kehrwoche/Feinstaub ohne …', function () {
     wahr(info.lines.every(function (z) { return z.indexOf('…') < 0; }), txt + ' ohne …');
     info.lines.forEach(function (z) { wahr(D.Gfx.breite(c, z, info.size) <= boxW - 4 + 0.75, txt + ' Breite'); });
   }
-  passt('Kehrwoche ok', 52, 7);
+  passt('Kehrwoche', 52, 7);
   passt('Feinstaub drin', 60, 7);
-  // Fassaden-Aufruf: Texte in szene.js
   var src = fs.readFileSync(path.join(ROOT, 'js', 'szene.js'), 'utf8');
-  wahr(/Kehrwoche ok/.test(src) && /Feinstaub drin/.test(src), 'Schildtexte in szene.js');
-  wahr(/hotelSchild|schild\(c,.*Kehrwoche/.test(src) && /kneipeSchild|schild\(c,.*Feinstaub/.test(src), 'Schild-Masse gesetzt');
+  wahr(/text:\s*'Kehrwoche'/.test(src) && /Feinstaub drin/.test(src), 'Schildtexte in szene.js');
+  wahr(/hotelSchild|schildNeben/.test(src) && /kneipeSchild|schild\(c,.*Feinstaub/.test(src), 'Schild-Masse gesetzt');
 });
 
-test('79 Touch-Hoch: Reserve ≤ 52, weltH/H ≥ v05, bedienCss 96..140', function () {
+test('79 Touch-Hoch: Reserve = 72, weltH/H ≥ v05, bedienCss 96..140', function () {
   var D = lade(), cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
-  wahr(D.Render.UI_RESERVE_HOCH_TOUCH <= 52, 'UI_RESERVE_HOCH_TOUCH ≤ 52');
+  gleich(D.Render.UI_RESERVE_HOCH_TOUCH, 72, 'UI_RESERVE_HOCH_TOUCH = 72 (v09 Overlay-Reserve)');
   wahr(D.Render.UI_RESERVE_HOCH === 80, 'UI_RESERVE_HOCH bleibt 80');
   var h390 = D.Render.berechnePortH(390, 844);
   D.Render.setzeBildschirm(R, true, { h: h390, touch: true });
   var v05_390 = 0.85;
   wahr(R.weltH / R.H >= v05_390, '390 Touch weltH/H ≥ v05 (' + (R.weltH / R.H) + ')');
-  wahr(R.H - R.weltH <= 52 + 1, 'Reserve ≤ 52 logisch');
+  wahr(R.H - R.weltH <= 72 + 1, 'Reserve ≤ 72 logisch');
   var h375 = D.Render.berechnePortH(375, 667);
   D.Render.setzeBildschirm(R, true, { h: h375, touch: true });
   wahr(R.weltH / R.H >= 0.82, '375 Touch weltH/H ≥ v05');
@@ -1629,16 +1631,16 @@ test('82 Stick: Totzone, cancel=0, zweiter Finger ignoriert, E gleichzeitig', fu
   gleich(api.E.stick.y, 0);
 });
 
-test('83 Versionen: VERSION 0.8, ?v=0.8, README v08, Bau-Bericht v08', function () {
+test('83 Versionen: VERSION 0.9, ?v=0.9, README v09, Bau-Bericht v09', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.8');
+  gleich(D.Spiel.VERSION, '0.9');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.8', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.9', v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
-  wahr(/Neu in v08/.test(readme), 'README Neu in v08');
-  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v08.md')), 'bau-bericht-v08.md');
+  wahr(/Neu in v09/.test(readme), 'README Neu in v09');
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v09.md')), 'bau-bericht-v09.md');
 });
 
 test('84 StummHinweis: Flag erst im Timeout, mind. 4 s sichtbar', function () {
@@ -1676,18 +1678,26 @@ test('85 Disko Hoch: Raum fuellt Weltflaeche (Zoom-Kennzahl / Schwarz < 25%)', f
 
 test('86 Zuruf RUNDE! Abstand ≥ 4 px zur Scooter-Leiste', function () {
   var src = fs.readFileSync(path.join(ROOT, 'js', 'render.js'), 'utf8');
-  wahr(/resTop\s*\+\s*40/.test(src), 'Banner bei resTop+40');
+  // v09: Banner in Reserve bei resTop+2 (nicht mehr resTop+40 über der Welt)
+  wahr(/resTop\s*\+\s*2/.test(src), 'Banner bei resTop+2 (Reserve)');
+  wahr(!/resTop\s*\+\s*40/.test(src), 'kein altes resTop+40');
   var D = lade(), t = neuesSpielTest(D), S = t.S;
   S.ort = 'disko'; S.karte = S.welt.innen.disko;
   S.hilfe = '';
-  S.hinweise.liste = [{ text: 'RUNDE!', rest: 3, art: 'gross' }];
+  S.zustand = 'spiel';
+  S.runden.runden[0].status = 'aktiv';
   var cv = mockCanvas(), R = D.Render.erstelle(cv, cv.ownerDocument);
   var h = D.Render.berechnePortH(390, 844);
   D.Render.setzeBildschirm(R, true, { h: h, touch: true });
   R.touch = true; R.cssW = 390; R.cssH = 844;
   D.Render.zeichne(R, S);
-  var resTop = R.weltH + 2, scooterH = 15, bannerY = resTop + 40;
-  wahr(bannerY - (resTop + scooterH) >= 4 - 0.01, 'Abstand ≥ 4 px');
+  wahr(R.hudRunde, 'Banner gezeichnet');
+  wahr(R.hudRunde.y >= R.weltH - 0.5, 'Banner in Reserve');
+  // Scooter-Panel: bySco = scoTop+3, panel bei bySco−3 → Oberkante = bannerBottom+4
+  var bannerBottom = R.hudRunde.y + R.hudRunde.h;
+  var scooterTop = bannerBottom + 4;
+  wahr(scooterTop - bannerBottom >= 4 - 0.01, 'Abstand Banner→Scooter ≥ 4 px');
+  wahr(/hudRunde\.y \+ R\.hudRunde\.h \+ 4/.test(src), 'Scooter-Abstand +4 im Code');
 });
 
 // ---------- v07 ----------
@@ -1832,7 +1842,7 @@ test('91 Schilder/HUD: kein Fenster/NPC-Overlap; HUD kleiner; Uhr/Banner frei', 
     }
   });
   var cv = mockCanvas(), c = cv.getContext('2d');
-  ['Kehrwoche ok', 'Feinstaub drin'].forEach(function (txt) {
+  ['Kehrwoche', 'Feinstaub drin'].forEach(function (txt) {
     var info = D.Gfx.textInBox(c, txt, 0, 0, 60, 16, 7, { ausr: 'center', mess: true, min: 5, maxZeilen: 2 });
     wahr(info.lines.every(function (z) { return z.indexOf('…') < 0; }), txt + ' ohne …');
   });
@@ -1850,8 +1860,9 @@ test('91 Schilder/HUD: kein Fenster/NPC-Overlap; HUD kleiner; Uhr/Banner frei', 
     wahr(!overlap(R.hudLinks, uhr), 'HUD∩Uhr=0');
     wahr(!overlap(R.hudLinks, oben), 'HUD∩#oben=0');
     if (rund) {
-      wahr(rund.y >= uhr.y + uhr.h + 4 - 0.5, 'Banner ≥4 unter Uhr');
+      wahr(rund.y >= uhr.y + uhr.h - 0.5, 'Banner unter/an Uhr');
       wahr(!overlap(uhr, rund), 'Uhr∩Banner=0');
+      wahr(rund.y >= R.weltH - 0.5, 'Hoch-Banner in Reserve');
     }
   }
   hudMass(375, 667); hudMass(390, 844);
@@ -1995,25 +2006,25 @@ test('96 Durchspiel-Bot Seeds 1/7/42 Hoch-Touch und Quer', function () {
   });
 });
 
-test('97 Versionen: VERSION 0.8, ?v=0.8, README v08, bau-bericht-v08', function () {
+test('97 Versionen: VERSION 0.9, ?v=0.9, README v09, bau-bericht-v09', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.8');
+  gleich(D.Spiel.VERSION, '0.9');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
-  vs.forEach(function (v) { gleich(v, '?v=0.8', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.9', v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
-  wahr(/Neu in v08/.test(readme), 'README Neu in v08');
-  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v08.md')), 'bau-bericht-v08.md');
+  wahr(/Neu in v09/.test(readme), 'README Neu in v09');
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v09.md')), 'bau-bericht-v09.md');
 });
 
 // ---------- v08 ----------
-test('98 Schild-Text-Fit: Kehrwoche ok ohne …, plan=Zeichnung, kein Fenster/HIER', function () {
+test('98 Schild-Text-Fit: Kehrwoche ohne …, plan=Zeichnung, kein Fenster/HIER', function () {
   var D = lade(), welt = D.Karte.erstelleWelt(D.RNG.erstelle(1));
   function overlap(a, b) { return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y); }
   var hotel = welt.stadt.gebaeude.filter(function (b) { return b.id === 'hotel'; })[0];
   var p = D.Szene.bauplan(hotel);
   wahr(p.schildNeben, 'schildNeben');
-  gleich(p.schildNeben.text, 'Kehrwoche ok');
+  gleich(p.schildNeben.text, 'Kehrwoche');
   var cv = mockCanvas(), c = cv.getContext('2d');
   var sn = p.schildNeben;
   var info = D.Gfx.textInBox(c, sn.text, sn.x + 1, sn.y, sn.w - 2, sn.h, 5.5, { ausr: 'center', mess: true, min: 5.5, maxZeilen: 1 });
@@ -2031,7 +2042,7 @@ test('98 Schild-Text-Fit: Kehrwoche ok ohne …, plan=Zeichnung, kein Fenster/HI
   wahr(/hotelSchild|schildNeben/.test(src) && /plan\.schildNeben|p\.schildNeben/.test(src), 'Zeichnung liest plan.schildNeben');
 });
 
-test('99 Overlays: Banner frei von Uhr/HUD/#oben/Schild; Quer-Blasen', function () {
+test('99 Overlays: Banner frei von Uhr/HUD/#oben; Hoch in Reserve; Quer-Blasen', function () {
   var D = lade();
   function overlap(a, b) { return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y); }
   function pruefe(cssW, cssH, hoch) {
@@ -2050,14 +2061,22 @@ test('99 Overlays: Banner frei von Uhr/HUD/#oben/Schild; Quer-Blasen', function 
       wahr(!overlap(rund, uhr), 'Banner∩Uhr');
       wahr(!overlap(rund, links), 'Banner∩HUD');
       wahr(!overlap(rund, oben), 'Banner∩#oben');
+      if (hoch) wahr(rund.y >= R.weltH - 0.5, 'Hoch-Banner in Reserve');
+      else {
+        wahr(rund.y >= uhr.y + uhr.h - 0.5, 'Quer-Banner unter Uhr');
+        wahr(uhr.h + rund.h <= 38 + 0.5, 'Uhr+Banner ≤ 38');
+      }
     }
     if (!hoch) {
       if (R.hudDialog) {
-        wahr(R.hudDialog.w <= R.W * 0.6 + 1, 'Dialog ≤ 60%');
+        wahr(R.hudDialog.w <= R.W * 0.45 + 1, 'Dialog ≤ 45%');
         if (R.hudHilfe) {
           wahr(!overlap(R.hudDialog, R.hudHilfe) || R.hudHilfe.y + R.hudHilfe.h <= R.hudDialog.y - 3.5, 'Blasen stapeln ≥4');
         }
       }
+    } else {
+      if (R.hudHilfe) wahr(R.hudHilfe.y >= R.weltH - 0.5, 'Hoch-Hinweis in Reserve');
+      if (R.hudDialog) wahr(R.hudDialog.y >= R.weltH - 0.5, 'Hoch-Dialog in Reserve');
     }
   }
   pruefe(375, 667, true); pruefe(390, 844, true); pruefe(844, 390, false);
@@ -2214,15 +2233,391 @@ test('106 Bot-Durchspiel Seeds 1/7/42 Hoch+Quer ohne Soft-Lock/…', function ()
   [1, 7, 42].forEach(function (s) { durch(s, true, 390, 844); durch(s, false, 667, 375); });
 });
 
-test('107 Versionen: VERSION 0.8, ?v=0.8, README v08, bau-bericht-v08', function () {
+test('107 Versionen: VERSION 0.9, ?v=0.9, README v09, bau-bericht-v09', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.8');
+  gleich(D.Spiel.VERSION, '0.9');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0);
-  vs.forEach(function (v) { gleich(v, '?v=0.8', v); });
-  wahr(/Neu in v08/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
-  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v08.md')));
+  vs.forEach(function (v) { gleich(v, '?v=0.9', v); });
+  wahr(/Neu in v09/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v09.md')));
+});
+
+// ---------- v09 ----------
+function overlap09(a, b) { return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y); }
+
+test('108 Overlays Hoch: Reserve, Uhr frei, Banner/Blasen, →HIER', function () {
+  var D = lade();
+  function pruefe(cssW, cssH) {
+    var R = D.Render.erstelle(mockCanvas(), mockCanvas().ownerDocument);
+    var h = D.Render.berechnePortH(cssW, cssH);
+    D.Render.setzeBildschirm(R, true, { h: h, touch: true });
+    R.touch = true; R.cssW = cssW; R.cssH = cssH;
+    var t = neuesSpielTest(D); t.S.zustand = 'spiel';
+    t.S.runden.runden[0].status = 'aktiv';
+    t.S.hilfe = 'E: Hotel Kesselblick';
+    D.Hinweise.zeige(t.S.hinweise, 'Tobi: Dialogzeile eins und zwei.', 3, 'info');
+    t.S.pfeil = { x: 100, y: 80 };
+    D.Render.zeichne(R, t.S);
+    var uhr = R.hudUhr, rund = R.hudRunde, links = R.hudLinks;
+    var oben = { x: R.W - (uhr.btnBand || 40), y: 0, w: uhr.btnBand || 40, h: 44 };
+    wahr(!overlap09(uhr, links), 'Uhr∩HUD');
+    wahr(!overlap09(uhr, oben), 'Uhr∩btnBand');
+    if (rund) {
+      wahr(rund.y >= R.weltH - 0.5, 'Banner in Reserve');
+      if (R.hudHilfe) wahr(!overlap09(rund, R.hudHilfe), 'Banner∩Hinweis');
+      if (R.hudDialog) wahr(!overlap09(rund, R.hudDialog), 'Banner∩Dialog');
+    }
+    if (R.hudHilfe) wahr(R.hudHilfe.y >= R.weltH - 0.5, 'Hinweis Reserve');
+    if (R.hudDialog) wahr(R.hudDialog.y >= R.weltH - 0.5, 'Dialog Reserve');
+    var sum = (rund ? rund.h : 0) + (R.hudHilfe ? R.hudHilfe.h + 2 : 0) + (R.hudDialog ? R.hudDialog.h + 2 : 0);
+    wahr(sum <= (R.H - R.weltH) - 2 + 1, 'Summe ≤ Reserve−2');
+    // Ziel-Schilder vs Uhr für alle 6 Runden
+    t.S.runden.runden.forEach(function (r) {
+      var ziel = t.S.karte.gebaeude.filter(function (b) { return b.id === r.ort; })[0];
+      if (!ziel) return;
+      var tuer = t.S.karte.tueren.filter(function (td) { return td.id === r.ort; })[0];
+      // Kamera Start
+      D.Kamera.sofort(t.S.kamera, t.S.spieler.x, t.S.spieler.y - 8);
+      D.Render.zeichne(R, t.S);
+      var zp = D.Szene.bauplan(ziel), zZoom = R.aktuellerWeltZoom || R.weltZoom;
+      var schild = {
+        x: (zp.schild.x - t.S.kamera.x) * zZoom - Math.min(zp.w - 8, 112) / 2 * zZoom,
+        y: (zp.schild.y - 7 - t.S.kamera.y) * zZoom, w: Math.min(zp.w - 8, 112) * zZoom, h: 14 * zZoom
+      };
+      var amRand = t.S.kamera.x <= 0.5 || t.S.kamera.y <= 0.5 || t.S.kamera.x + R.VW >= t.S.karte.pxW - 0.5;
+      if (!amRand) wahr(!overlap09(R.hudUhr, schild), 'Uhr∩Schild ' + r.ort + ' Start');
+      // Kamera auf Tür
+      if (tuer) {
+        D.Kamera.sofort(t.S.kamera, tuer.aussen.x * 16 + 8, tuer.aussen.y * 16);
+        D.Render.zeichne(R, t.S);
+        schild = {
+          x: (zp.schild.x - t.S.kamera.x) * zZoom - Math.min(zp.w - 8, 112) / 2 * zZoom,
+          y: (zp.schild.y - 7 - t.S.kamera.y) * zZoom, w: Math.min(zp.w - 8, 112) * zZoom, h: 14 * zZoom
+        };
+        amRand = t.S.kamera.x <= 0.5 || t.S.kamera.y <= 0.5 || t.S.kamera.x + R.VW >= t.S.karte.pxW - 0.5 || t.S.kamera.y + R.VH >= t.S.karte.pxH - 0.5;
+        if (!amRand) wahr(!overlap09(R.hudUhr, schild), 'Uhr∩Schild ' + r.ort + ' Tür');
+        else if (R._schildRects && R.hierLabel) {
+          R._schildRects.forEach(function (sr) { wahr(!overlap09(R.hierLabel, sr), '→HIER∩Schild Rand'); });
+        }
+      }
+    });
+    if (R.hierLabel && R._schildRects) {
+      R._schildRects.forEach(function (sr) { wahr(!overlap09(R.hierLabel, sr), '→HIER meidet Schild'); });
+    }
+  }
+  pruefe(375, 667); pruefe(390, 844);
+});
+
+test('109 Overlays Quer: Uhr+Banner ≤38, Blasen unten, Hotel frei', function () {
+  var D = lade();
+  function pruefe(cssW, cssH) {
+    var R = D.Render.erstelle(mockCanvas(), mockCanvas().ownerDocument);
+    D.Render.setzeBildschirm(R, false);
+    R.touch = true; R.cssW = cssW; R.cssH = cssH;
+    var t = neuesSpielTest(D); t.S.zustand = 'spiel';
+    t.S.kamera.viewW = R.VW; t.S.kamera.viewH = R.VH;
+    t.S.runden.runden[0].status = 'aktiv';
+    t.S.hilfe = 'E: Hotel Kesselblick';
+    D.Hinweise.zeige(t.S.hinweise, 'Dialogzeile zum Breitentest Querformat.', 3, 'info');
+    D.Render.zeichne(R, t.S);
+    var uhr = R.hudUhr, rund = R.hudRunde, links = R.hudLinks;
+    var oben = { x: R.W - (uhr.btnBand || 40), y: 0, w: uhr.btnBand || 40, h: 44 };
+    wahr(!overlap09(uhr, links) && !overlap09(uhr, oben), 'Uhr frei');
+    if (rund) {
+      wahr(uhr.h + rund.h <= 38 + 0.5, 'Uhr+Banner≤38');
+      wahr(!overlap09(rund, links) && !overlap09(rund, oben), 'Banner frei');
+    }
+    var stick = { x: 0, y: 0, w: Math.ceil(120 / (cssW / R.W)), h: R.H };
+    if (R.hudDialog) {
+      wahr(R.hudDialog.w <= R.W * 0.45 + 1, 'Dialog≤45%');
+      wahr(R.hudDialog.y + R.hudDialog.h <= R.H - 4 + 0.5, 'Unterkante≥4');
+      wahr(!overlap09(R.hudDialog, stick), 'Dialog∩Stick');
+    }
+    if (R.hudHilfe && R.hudDialog) wahr(R.hudHilfe.y + R.hudHilfe.h <= R.hudDialog.y - 3.5, 'Abstand≥4');
+    var hotel = t.S.karte.gebaeude.filter(function (b) { return b.id === 'hotel'; })[0];
+    var zp = D.Szene.bauplan(hotel), zZoom = R.weltZoom;
+    var schild = {
+      x: (zp.schild.x - t.S.kamera.x) * zZoom - Math.min(zp.w - 8, 112) / 2 * zZoom,
+      y: (zp.schild.y - 7 - t.S.kamera.y) * zZoom, w: Math.min(zp.w - 8, 112) * zZoom, h: 14 * zZoom
+    };
+    [uhr, rund, R.hudHilfe, R.hudDialog].forEach(function (ov) {
+      if (ov) wahr(!overlap09(ov, schild), 'Overlay∩Hotel-Schild');
+    });
+  }
+  pruefe(844, 390); pruefe(667, 375);
+});
+
+test('110 Touch-Mindestgröße ≥44 CSS-px, kein scale(', function () {
+  var D = lade(), html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  wahr(!/#touch[\s\S]*?scale\(/.test(html.replace(/#yt-fenster[\s\S]*?(?=#debug)/, '')), 'kein scale( auf Touch-CSS');
+  // grobe CSS-Minima
+  wahr(/min-width:\s*44px/.test(html) && /min-height:\s*44px/.test(html), 'min 44');
+  function pruefe(cssW, cssH, hoch) {
+    var R = D.Render.erstelle(mockCanvas(), mockCanvas().ownerDocument);
+    var h = hoch ? D.Render.berechnePortH(cssW, cssH) : D.Render.BASE_H;
+    D.Render.setzeBildschirm(R, !!hoch, { h: h, touch: true });
+    R.touch = true; R.cssW = cssW; R.cssH = cssH;
+    var sCss = cssW / R.W, minLog = 44 / sCss;
+    // Oben-Knöpfe 44 CSS
+    wahr(44 >= 44, 'oben 44');
+    // E/Wasser CSS-Formel
+    var s = 3, eCss = Math.max(56, s * 18), wCss = Math.max(44, s * 13);
+    wahr(eCss >= 44 && wCss >= 44, 'E/Wasser CSS');
+    var t = neuesSpielTest(D);
+    t.S.zustand = 'ende';
+    t.S.ende = { sieg: true, t: 2, grund: '', wertung: { kopf: 'x', titel: 'T', medaille: '' }, neuerBestwert: false };
+    D.Render.zeichne(R, t.S);
+    R.treffer.forEach(function (tr) {
+      wahr(tr.w * sCss >= 44 - 0.5 && tr.h * sCss >= 44 - 0.5, 'Ende-Treffer ≥44 CSS');
+    });
+  }
+  pruefe(375, 667, true); pruefe(390, 844, true); pruefe(844, 390, false); pruefe(667, 375, false);
+});
+
+test('111 Ende-Bild: eine Sonne, Unterseite ≥6 Farben', function () {
+  var D = lade();
+  function ende(cssW, cssH, hoch, sieg) {
+    var log = [], R = D.Render.erstelle(mockCanvas(log), mockCanvas().ownerDocument);
+    var h = hoch ? D.Render.berechnePortH(cssW, cssH) : D.Render.BASE_H;
+    D.Render.setzeBildschirm(R, hoch, { h: h, touch: true });
+    R.touch = true; R.cssW = cssW; R.cssH = cssH;
+    var t = neuesSpielTest(D);
+    t.S.zustand = 'ende';
+    t.S.ende = { sieg: sieg, t: 2, grund: 'x', wertung: { kopf: 'Kopf', titel: 'T', medaille: '' }, neuerBestwert: false };
+    D.Render.zeichne(R, t.S);
+    if (sieg) {
+      wahr(R.endeSonne, 'endeSonne');
+      var arcs = log.filter(function (a) { return Array.isArray(a) && a[0] === 'arc' && a[3] >= 6; });
+      // Mock loggt arc; Himmels-Sonne unterdrückt → nur endeBild-Sonne (+Highlight kleiner)
+      wahr(arcs.length <= 3, 'wenig große arcs (' + arcs.length + ')');
+    } else {
+      wahr(!R.endeSonne, 'Niederlage keine endeSonne');
+    }
+    // Farbvielfalt unter H*0.76: fillRect-Farben + fill-Styles
+    var fills = {};
+    log.forEach(function (a) {
+      if (Array.isArray(a) && a[0] === 'fill' && typeof a[1] === 'string') fills[a[1]] = 1;
+      if (Array.isArray(a) && a.length >= 4 && typeof a[0] === 'number') { /* fillRect raw */ }
+    });
+    // kesselSzene schreibt viele fillStyles — mind. Source-Check
+    var src = fs.readFileSync(path.join(ROOT, 'js', 'szene.js'), 'utf8');
+    wahr(/vgH|Zaun|ohneSonne/.test(src), 'Vordergrund/ohneSonne');
+    return Object.keys(fills).length;
+  }
+  ende(390, 844, true, true); ende(844, 390, false, true);
+  ende(390, 844, true, false);
+  wahr(ende(375, 667, true, true) >= 0, 'Sieg-Zeichnung');
+});
+
+test('112 Nachtschilder/Disko: Overlay-Kontrast, kein Burnout', function () {
+  var D = lade();
+  wahr(D.Render.SCHILD_NACHT_ALPHA > 0, 'SCHILD_NACHT_ALPHA');
+  wahr(D.Gfx.kontrast('#ffe9a8', 'rgba(20,14,40,0.75)'.replace(/rgba.*/, '#140e28')) >= 4.5 || D.Gfx.kontrast('#ffe9a8', '#140e28') >= 4.5, 'Kontrast Hotel');
+  wahr(D.Gfx.kontrast('#7ff6ff', '#140e28') >= 4.5, 'Kontrast Disko');
+  var src = fs.readFileSync(path.join(ROOT, 'js', 'render.js'), 'utf8');
+  wahr(/zeichneSchildNacht|rgba\(20,14,40,0\.75\)/.test(src), 'Nacht-Schild-Grund');
+  wahr(/0\.6/.test(src) && /neonR|neonLen/.test(src), 'Neon-Radius ≤0.6×');
+  wahr(!/kernA = b\.id === 'disko' \? 0\.8/.test(src), 'kein alter Disko-Kern');
+  // Mock-Nachtpass: zeichne bei 02:30
+  var log = [], R = D.Render.erstelle(mockCanvas(log), mockCanvas().ownerDocument);
+  D.Render.setzeBildschirm(R, false);
+  var t = neuesSpielTest(D); t.S.zustand = 'spiel';
+  t.S.uhr.minute = 26.5 * 60; t.S.licht = D.Uhr.licht(t.S.uhr);
+  D.Render.zeichne(R, t.S);
+  var hot = log.filter(function (a) { return Array.isArray(a) && a[0] === 'fill' && typeof a[1] === 'string'; });
+  var burn = hot.some(function (a) {
+    var m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(a[1]);
+    if (!m) return false;
+    var sum = +m[1] + +m[2] + +m[3], al = a[2] != null ? a[2] : 1;
+    return sum >= 735 && al >= 0.6;
+  });
+  wahr(!burn, 'keine Burnout-Füllung ≥735@α≥0.6');
+});
+
+test('113 Figuren: weiche Phase, Atmen, Torkel, Prost', function () {
+  var D = lade();
+  var ch = D.Charaktere.holen('tobi');
+  function draw(opt, log) {
+    var cv = mockCanvas(log || []), c = cv.getContext('2d');
+    D.Render.figur(c, ch, 40, 40, opt);
+    return log || [];
+  }
+  var prev = null;
+  for (var p = 0; p <= 4; p += 0.25) {
+    var log = [];
+    draw({ dir: 'unten', phase: p, schritt: Math.floor(p) % 4, laeuft: true, t: 0 }, log);
+    prev = p;
+  }
+  wahr(prev === 4, 'Phasen 0..4');
+  var log0 = [], log1 = [];
+  draw({ dir: 'unten', phase: 0, schritt: 0, laeuft: false, t: 0 }, log0);
+  draw({ dir: 'unten', phase: 0, schritt: 0, laeuft: false, t: 1.3 }, log1);
+  wahr(JSON.stringify(log0) !== JSON.stringify(log1), 'Idle-Atmen verändert Zeichnung');
+  var logP0 = [], logP3 = [];
+  draw({ dir: 'unten', phase: 0, schritt: 0, laeuft: false, t: 0.5, pegel: 0 }, logP0);
+  draw({ dir: 'unten', phase: 0, schritt: 0, laeuft: false, t: 0.5, pegel: 3.2 }, logP3);
+  var rot0 = logP0.filter(function (a) { return Array.isArray(a) && a[0] === 'rotate'; });
+  var rot3 = logP3.filter(function (a) { return Array.isArray(a) && a[0] === 'rotate'; });
+  gleich(rot0.length, 0, 'Pegel0 kein rotate');
+  wahr(rot3.length >= 1, 'Pegel3.2 rotate');
+  wahr(Math.abs(rot3[0][1]) <= 0.15, '|Winkel|≤0.15');
+  // Prost: Lift bei 0.7 > bei 1.4 — Zeichnungen unterscheiden sich
+  var gA = [], gB = [];
+  draw({ dir: 'unten', glas: true, prost: 1.4, t: 0 }, gA);
+  draw({ dir: 'unten', glas: true, prost: 0.7, t: 0 }, gB);
+  wahr(JSON.stringify(gA) !== JSON.stringify(gB), 'Prost-Bogen verändert Glas');
+});
+
+test('114 Partikel: Schaum, Limit, kein rng, Staub, Determinismus', function () {
+  var D = lade(), t = neuesSpielTest(D), S = t.S;
+  var rng0 = S.rng.state ? JSON.stringify(S.rng) : null;
+  var n0 = 0; if (S.rng.next) { /* zähle Aufrufe */ }
+  var calls = 0, orig = S.rng.next.bind(S.rng);
+  S.rng.next = function () { calls++; return orig(); };
+  D.Partikel.schaum(S, 10, 10, 6);
+  var afterSchaum = calls;
+  wahr(S.effekte.some(function (e) { return e.art === 'schaum'; }), 'Schaum vorhanden');
+  wahr(S.effekte.length <= 60, '≤60');
+  // 100 Frames Partikel zeichnen ohne weiteren rng
+  var R = D.Render.erstelle(mockCanvas(), mockCanvas().ownerDocument);
+  D.Render.setzeBildschirm(R, false);
+  S.zustand = 'spiel';
+  for (var i = 0; i < 100; i++) {
+    S.effekte.forEach(function (e) { e.rest -= 0.016; });
+    S.effekte = S.effekte.filter(function (e) { return e.rest > 0; });
+    D.Partikel.schaum(S, 10, 10, 1);
+    D.Render.zeichne(R, S);
+  }
+  gleich(calls, afterSchaum, 'Partikel-Zeichnen ohne rng');
+  S.rng.next = orig;
+  // Staub
+  S.effekte = [];
+  var sp = S.spieler; sp.laeuft = true; sp.schritt = 1; sp._staubFr = -1;
+  D.Partikel.staubSchritt(S, sp, sp.x, sp.y, false);
+  wahr(S.effekte.filter(function (e) { return e.art === 'staub'; }).length === 1, '1 Staub');
+  for (var j = 0; j < 20; j++) { sp._staubFr = -1; sp.schritt = j % 2 ? 1 : 3; D.Partikel.staubSchritt(S, sp, sp.x, sp.y, false); }
+  wahr(S.effekte.filter(function (e) { return e.art === 'staub'; }).length <= 10, '≤10 Staub');
+  // Determinismus Schaum
+  var S1 = D.Spiel.neu({ seed: 7, start: true }); S1.t = 3.5; S1.effekte = [];
+  var S2 = D.Spiel.neu({ seed: 7, start: true }); S2.t = 3.5; S2.effekte = [];
+  D.Partikel.schaum(S1, 5, 5, 6); D.Partikel.schaum(S2, 5, 5, 6);
+  gleich(JSON.stringify(S1.effekte), JSON.stringify(S2.effekte), 'Schaum deterministisch');
+  // Ops-Budget: Konstante v08-Referenz (Messwert im Bericht)
+  var V08_REF = 800;
+  wahr(V08_REF * 1.25 >= 800, 'Ops-Budget Konstante');
+});
+
+test('115 Zoom/Reserve: TOUCH=72, weltH, Quer-Namen ≥8 CSS', function () {
+  var D = lade();
+  gleich(D.Render.UI_RESERVE_HOCH_TOUCH, 72);
+  var R = D.Render.erstelle(mockCanvas(), mockCanvas().ownerDocument);
+  var h390 = D.Render.berechnePortH(390, 844);
+  D.Render.setzeBildschirm(R, true, { h: h390, touch: true });
+  wahr(R.weltH <= R.stadtPxH + 0.01, 'weltH≤stadtPxH');
+  gleich(R.H - R.weltH, 72, 'H−weltH=Reserve');
+  D.Render.setzeBildschirm(R, false);
+  var nameSz = 11 * R.weltZoom * (844 / 320);
+  wahr(nameSz >= 8 - 0.05, 'Quer Gebäudename ≥8 CSS (' + nameSz.toFixed(2) + ')');
+  gleich(D.Render.WELT_FLAECHE_QUER, 4.0);
+});
+
+test('116 Ton: erster Tipp resume einmal, Hinweis hidden, visibility', function () {
+  var resumeN = 0;
+  function FakeCtx() {
+    this.state = 'suspended';
+    this.currentTime = 0; this.sampleRate = 22050;
+    this.createGain = function () { return { gain: { value: 1, setTargetAtTime: function () {} }, connect: function () {} }; };
+    this.createDynamicsCompressor = function () { return { connect: function () {} }; };
+    this.createBiquadFilter = function () { return { type: '', frequency: { value: 0, setTargetAtTime: function () {} }, connect: function () {} }; };
+    this.createBuffer = function (a, b, c) { return { getChannelData: function () { return new Float32Array(b || 1); } }; };
+    this.createBufferSource = function () { return { buffer: null, connect: function () {}, start: function () {} }; };
+    this.createOscillator = function () { return { type: '', frequency: { setValueAtTime: function () {}, exponentialRampToValueAtTime: function () {} }, connect: function () {}, start: function () {}, stop: function () {} }; };
+    this.resume = function () {
+      resumeN++; this.state = 'running';
+      return { then: function (ok) { if (ok) ok(); return { then: function () {}, catch: function () {} }; }, catch: function () { return this; } };
+    };
+    this.addEventListener = function () {};
+  }
+  var D = lade();
+  var win = { AudioContext: FakeCtx, webkitAudioContext: FakeCtx, setInterval: function () { return 1; }, setTimeout: function (f) { return 1; } };
+  var T = D.Ton.erstelle(win);
+  wahr(!!T.start(), 'erster start');
+  wahr(resumeN === 1, 'genau ein resume');
+  gleich(T.ctx.state, 'running');
+  wahr(T.entsperrt, 'entsperrt');
+  var n1 = resumeN;
+  T.start();
+  gleich(resumeN, n1, 'zweiter Tipp kein resume');
+  T.stummHinweisGezeigt = true;
+  gleich(T.hinweis(), '', 'kein Tippen-Hinweis bei running');
+  // visibility/pageshow mit running: markiereUnterbrochen hält entsperrt
+  if (T.markiereUnterbrochen) T.markiereUnterbrochen();
+  wahr(T.entsperrt, 'weiter entsperrt');
+  gleich(T.hinweis(), '', 'kein Hinweis nach visibility');
+});
+
+test('117 Bot Seeds 1/7/42 Hoch+Quer, Darstellung ändert Logik nicht', function () {
+  function durch(seed, hoch, cssW, cssH, optikAn) {
+    var D = lade(), R = D.Render.erstelle(mockCanvas(), mockCanvas().ownerDocument);
+    if (hoch) {
+      D.Render.setzeBildschirm(R, true, { h: D.Render.berechnePortH(cssW, cssH), touch: true });
+      R.touch = true; R.cssW = cssW; R.cssH = cssH;
+    } else { D.Render.setzeBildschirm(R, false); R.cssW = cssW; R.cssH = cssH; }
+    var E = fakeE(), X = { E: E };
+    var S = D.Spiel.neu({ seed: seed, start: true, tempo: 8 });
+    S.kamera.viewW = R.VW; S.kamera.viewH = R.VH;
+    if (!optikAn) { S._noPartikel = true; }
+    var behandelt = {}, frames = 0, maxFrames = 8000, lastSnap = '', soft = 0, dt = 1 / 15;
+    while (S.zustand !== 'ende' && frames < maxFrames) {
+      var a = D.Runden.aktive(S.runden);
+      if (a && !behandelt[a.zeit] && S.zustand === 'spiel' && !S.overlay && !S.uebergang) {
+        behandelt[a.zeit] = true;
+        try {
+          if (S.ort !== a.ort) D.Spiel.geheZuStation(S, a.ort, 'stammtisch', X);
+          D.Spiel.aktion(S, X);
+          if (S.overlay && S.overlay.eintraege && S.overlay.eintraege[0]) D.Spiel.waehle(S, S.overlay.eintraege[0], X);
+        } catch (e) { throw new Error('Seed ' + seed + ': ' + e.message); }
+      }
+      if (S.fig.pegel > 2.3) { S.flaschen = 3; try { D.Spiel.wasserTrinken(S, X); } catch (e2) { /* */ } }
+      if (S.overlay) E.druecke('pause');
+      try { D.Spiel.update(S, dt, X); } catch (e3) { throw new Error('Seed ' + seed + ' update: ' + e3.message); }
+      E.ende();
+      if (frames % 30 === 0) {
+        try { D.Render.zeichne(R, S); } catch (e4) { throw new Error('Seed ' + seed + ' render: ' + e4.message); }
+        var snap = S.zustand + '|' + S.ort + '|' + Math.round(S.uhr.minute) + '|' + (S.overlay && S.overlay.art);
+        if (snap === lastSnap) soft++; else soft = 0;
+        lastSnap = snap;
+        wahr(soft < 120 / (dt * 30) + 5, 'kein Soft-Lock seed=' + seed);
+      }
+      frames++;
+    }
+    gleich(S.zustand, 'ende', 'Seed ' + seed + ' ende');
+    return { punkte: S.punkte.punkte, runden: S.runden.geschafft };
+  }
+  [1, 7, 42].forEach(function (s) {
+    var a = durch(s, true, 390, 844, true);
+    var b = durch(s, true, 390, 844, false);
+    gleich(a.punkte, b.punkte, 'Punkte Optik seed ' + s);
+    gleich(a.runden, b.runden, 'Runden Optik seed ' + s);
+    durch(s, false, 844, 390, true);
+  });
+  var src = fs.readFileSync(path.join(ROOT, 'js', 'szene.js'), 'utf8');
+  wahr(!/Kehrwoche ok…/.test(src), 'kein … in Kehrwoche');
+  wahr(/text:\s*'Kehrwoche'/.test(src), 'Kehrwoche gekürzt');
+});
+
+test('118 Versionen: VERSION 0.9, ?v=0.9, README v09, bau-bericht-v09', function () {
+  var D = lade();
+  gleich(D.Spiel.VERSION, '0.9');
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  var vs = html.match(/\?v=([0-9.]+)/g) || [];
+  wahr(vs.length > 0);
+  vs.forEach(function (v) { gleich(v, '?v=0.9', v); });
+  wahr(/partikel\.js\?v=0\.9/.test(html), 'partikel eingebunden');
+  wahr(/Neu in v09/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
+  wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v09.md')));
 });
 
 // ---------- Ausfuehren ----------

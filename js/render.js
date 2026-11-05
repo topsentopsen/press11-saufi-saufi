@@ -10,7 +10,7 @@
   var BASE_W = 320, BASE_H = 176, PORT_H = 400, PORT_H_MIN = 280, PORT_H_MAX = 720, K = 16;
   // Kamera rausgezoomt; Querformat staerker (niedrigeres VH). HUD bleibt in Bildschirmkoordinaten (W×H)
   // UI_RESERVE_HOCH: Dunkelfeld unten ohne Touch; UI_RESERVE_HOCH_TOUCH schmaler (DOM-Leiste darunter); STADT_PX_H = 40×60
-  var WELT_FLAECHE_HOCH = 2.1, WELT_FLAECHE_QUER = 4.0, MIN_WELT_ZOOM = 0.5, UI_RESERVE_HOCH = 80, UI_RESERVE_HOCH_TOUCH = 48, STADT_PX_H = 960;
+  var WELT_FLAECHE_HOCH = 2.1, WELT_FLAECHE_QUER = 4.0, MIN_WELT_ZOOM = 0.5, UI_RESERVE_HOCH = 80, UI_RESERVE_HOCH_TOUCH = 72, STADT_PX_H = 960;
   var WELT_FLAECHE = WELT_FLAECHE_QUER, WELT_ZOOM = 1 / Math.sqrt(WELT_FLAECHE);
   var MAX_BREITE = 4096, MAX_BG_SKALA = 6, MAX_DPR = 2;
   // Laternenkegel-Radius (Weltpixel); v06 war 44 → v08 kleiner/weicher
@@ -188,9 +188,12 @@
     o = o || {};
     var dir = o.dir || 'unten', fr = o.schritt || 0, extra = ch.extra, t = o.t || 0;
     var seite = dir === 'links' || dir === 'rechts', sg = dir === 'links' ? -1 : 1;
-    // Weicher Bodenschatten (Richtung nach Sonne)
+    var phase = o.phase != null ? o.phase : fr;
+    var pegel = o.pegel != null ? o.pegel : (o.torkel != null ? o.torkel * 3.2 : 0);
+    var phOff = ((hash(ch && ch.id ? ch.id.length * 17 : (x | 0), (y | 0) + 3) % 1000) / 1000) * Math.PI * 2;
+    // Bodenschatten unrotiert
     ellipse(c, x + SH.dx * 3.8, y - 0.15, 6.4 + Math.abs(SH.dx) * 3.2, 2.4, 'rgba(50,30,80,' + (0.18 + SH.a * 0.55).toFixed(3) + ')');
-    if (o.liegt) {                                              // umgefallen: liegt quer
+    if (o.liegt) {
       rr(c, x - 4, y - 6.6, 15, 6.4, ch.hose, 2.6, KONT, 0.85);
       rr(c, x - 8.6, y - 8.6, 12.4, 8, ch.shirt, 3, KONT, 0.85);
       kreis(c, x - 10.6, y - 5.6, 4.4, P.haut, KONT, 0.85);
@@ -200,52 +203,92 @@
       textInBox(c, 'zZz', x - 12, y - 20 + Math.sin(t * 3), 16, 10, 8, { col: '#ffffff', ausr: 'center', kontur: P.kontur, min: 7 });
       return;
     }
-    // Laufzyklus: staerkerer Bein-/Armschwung und leichtes Wippen
-    var swing = [0, 2.4, 0, -2.4][fr] || 0, hop = o.tanzt ? -Math.abs(Math.sin(t * 12)) * 2.2 : 0, wipp = o.tanzt ? Math.sin(t * 12) * 1.2 : 0;
-    var bob = ((fr === 1 || fr === 3) ? -0.85 : 0) + hop + Math.sin(t * 2 + x) * 0.12;
+    var torkelAng = 0, torkelOn = pegel >= 1.5;
+    if (torkelOn) {
+      var krit = Math.min(1, Math.max(0, (pegel - 1.5) / 1.7));
+      torkelAng = Math.sin(t * 1.4 * Math.PI * 2 + phOff) * 0.12 * krit;
+      c.save(); c.translate(x, y); c.rotate(torkelAng); c.translate(-x, -y);
+    }
+    // Weiche Sinus-Interpolation aus phase (4-Frame-Lauf); Idle wenn nicht laeuft
+    var laeuft = o.laeuft != null ? !!o.laeuft : (fr > 0 || (o.phase != null && Math.abs(Math.sin((o.phase) * Math.PI / 2)) > 0.05));
+    var phaseLauf = laeuft ? phase : 0;
+    var swing = Math.sin(phaseLauf * Math.PI / 2) * 2.4;
+    var hop = o.tanzt ? -Math.abs(Math.sin(t * 12)) * 2.2 : 0;
+    var wipp = o.tanzt ? Math.sin(t * 12) * 1.2 : 0;
+    var atme = (!laeuft && !o.tanzt) ? Math.sin(t * (Math.PI * 2 / 2.6) + phOff) * 0.35 : 0;
+    var bob = -Math.abs(Math.sin(phaseLauf * Math.PI / 2)) * 1.2 + hop + atme;
+    var schulter = laeuft ? Math.sin(phaseLauf * Math.PI / 2) * 0.6 : 0;
     var hose = ch.hose, shirt = ch.shirt, by = y + hop;
-    // Beine
     var beinFarbe = extra === 'latz' ? ch.shirt : hose, schuh = extra === 'schuhe' ? ['#ff4fa0', '#4fe6ff'] : ['#3a2a3e', '#3a2a3e'];
-    var l1 = seite ? swing : 0, l2 = seite ? -swing : 0, up1 = seite ? 0 : Math.max(0, swing) * 0.85, up2 = seite ? 0 : Math.max(0, -swing) * 0.85;
+    var l1 = seite ? swing : 0, l2 = seite ? -swing : 0;
+    var up1 = seite ? 0 : Math.max(0, Math.sin(phaseLauf * Math.PI / 2)) * 2.0;
+    var up2 = seite ? 0 : Math.max(0, -Math.sin(phaseLauf * Math.PI / 2)) * 2.0;
     if (seite) { rr(c, x - 1.9 + l2 * 1.05, by - 8.2, 3.8, 8.4, dunkler(beinFarbe, 0.18), 1.5, KONT, 0.55); rr(c, x - 2.4 + l2 * 1.05, by - 1.6, 5.4, 2.2, schuh[1], 1.1, KONT, 0.55); }
     rr(c, x - 3.8 + (seite ? l1 * 1.05 : 0), by - 8.4 + up1, 3.5, 8.6 - up1, beinFarbe, 1.5, KONT, 0.65);
     if (!seite) rr(c, x + 0.3, by - 8.4 + up2, 3.5, 8.6 - up2, beinFarbe, 1.5, KONT, 0.65);
     if (!seite) { rr(c, x - 4.3, by - 1.8 + up1, 4.4, 2.3, schuh[0], 1.1, KONT, 0.55); rr(c, x - 0.1, by - 1.8 + up2, 4.4, 2.3, schuh[1], 1.1, KONT, 0.55); }
     else { rr(c, x - 2.4 + l1 * 1.05 + (sg > 0 ? 0.5 : -0.5), by - 1.8, 5.4, 2.3, schuh[0], 1.1, KONT, 0.55); }
-    // Arme hinten (Seitenansicht)
+    var tanztArm = o.tanzt ? Math.sin(t * 12) * 3 : 0;
     var ay = by - 14.8 + bob, armSw = o.tanzt ? -3.6 : swing * 0.65;
-    if (seite) rr(c, x - 1.2 - swing * 0.7, ay, 2.6, 6.2, dunkler(shirt, 0.18), 1.2, KONT, 0.5);
-    // Torso
-    var tw = seite ? 6.8 : 9, tx = x - tw / 2;
+    var armIdle = (!laeuft && !o.tanzt) ? Math.sin(t * (Math.PI * 2 / 2.6) + phOff) * 0.3 : 0;
+    if (seite) rr(c, x - 1.2 - swing * 0.7, ay + armIdle, 2.6, 6.2, dunkler(shirt, 0.18), 1.2, KONT, 0.5);
+    var tw = seite ? 6.8 : 9, tx = x - tw / 2 + schulter;
     rr(c, tx + wipp * 0.15, by - 16.6 + bob, tw, 9.4, shirt, 3.2, KONT, 0.85);
     vlauf(c, tx + 1, by - 15.8 + bob, tw - 2, 3.4, heller(shirt, 0.32), shirt);
     if (extra === 'weste' && !seite) { rr(c, tx + 1.2, by - 15.4 + bob, 2.8, 8, '#7a7a88', 1.2); rr(c, tx + tw - 4, by - 15.4 + bob, 2.8, 8, '#7a7a88', 1.2); }
     else if (extra === 'weste') rr(c, tx + 0.8, by - 15.4 + bob, tw - 1.6, 8, '#7a7a88', 1.2);
-    if (extra === 'tracht') { rr(c, tx + 1, by - 15.6 + bob, tw - 2, 8.2, '#1f4a2a', 1.6); for (var k = 0; k < 3; k++) kreis(c, x + (seite ? 0 : 0), by - 14 + bob + k * 2.4, 0.5, '#d8c070'); }
+    if (extra === 'tracht') { rr(c, tx + 1, by - 15.6 + bob, tw - 2, 8.2, '#1f4a2a', 1.6); for (var k = 0; k < 3; k++) kreis(c, x, by - 14 + bob + k * 2.4, 0.5, '#d8c070'); }
     if (extra === 'latz') { rr(c, tx + 1, by - 12.4 + bob, tw - 2, 5.4, '#f08a2a', 1.4); r(c, tx + 1.2, by - 16 + bob, 1.2, 4, '#f08a2a'); r(c, tx + tw - 2.4, by - 16 + bob, 1.2, 4, '#f08a2a'); kreis(c, x, by - 10.6 + bob, 0.7, '#ffd75e'); }
     if (extra === 'hut') { poly(c, [[x - 1.2, by - 16 + bob], [x + 1.2, by - 16 + bob], [x + 0.8, by - 9 + bob], [x - 0.8, by - 9 + bob]], '#1a1a22'); }
-    // Arm vorn
+    // Prost-Glas: Bogen 0 → −5 → 0
+    var glasLift = 0;
+    if (o.glas && o.prost != null && o.prost > 0) glasLift = Math.sin(Math.PI * (1 - Math.min(1.4, o.prost) / 1.4)) * 5;
+    else if (o.glas) glasLift = 0;
+    var armTanzL = o.tanzt ? -tanztArm : 0, armTanzR = o.tanzt ? tanztArm : 0;
     if (!seite) {
-      rr(c, tx - 2.2, ay + armSw * 0.45 - (o.tanzt ? 3 : 0), 2.6, o.tanzt ? 5 : 6.2, shirt, 1.3, KONT, 0.65);
-      rr(c, tx + tw - 0.4, ay - armSw * 0.45 - (o.tanzt ? 3 : 0), 2.6, o.tanzt ? 5 : 6.2, shirt, 1.3, KONT, 0.65);
-      kreis(c, tx - 0.9, ay + 6 + armSw * 0.45 - (o.tanzt ? 6 : 0), 1.3, P.haut, KONT, 0.45); kreis(c, tx + tw + 0.9, ay + 6 - armSw * 0.45 - (o.tanzt ? 6 : 0), 1.3, P.haut, KONT, 0.45);
-      if (o.glas) { rr(c, tx + tw + 0.2, ay + 1.4 - armSw * 0.45, 3.6, 5, 'rgba(255,208,80,0.95)', 1.1, '#6a5a70', 0.5); r(c, tx + tw + 0.4, ay + 1.4 - armSw * 0.45, 3.2, 1.2, '#fff8ee'); }
+      rr(c, tx - 2.2, ay + armSw * 0.45 + armIdle + armTanzL - (o.tanzt ? 3 : 0), 2.6, o.tanzt ? 5 : 6.2, shirt, 1.3, KONT, 0.65);
+      rr(c, tx + tw - 0.4, ay - armSw * 0.45 - armIdle + armTanzR - (o.tanzt ? 3 : 0) - glasLift, 2.6, o.tanzt ? 5 : 6.2, shirt, 1.3, KONT, 0.65);
+      kreis(c, tx - 0.9, ay + 6 + armSw * 0.45 + armIdle + armTanzL - (o.tanzt ? 6 : 0), 1.3, P.haut, KONT, 0.45);
+      kreis(c, tx + tw + 0.9, ay + 6 - armSw * 0.45 - armIdle + armTanzR - (o.tanzt ? 6 : 0) - glasLift, 1.3, P.haut, KONT, 0.45);
+      if (o.glas) {
+        var gx = tx + tw + 0.2, gy = ay + 1.4 - armSw * 0.45 - glasLift;
+        rr(c, gx, gy, 3.6, 5, 'rgba(255,208,80,0.95)', 1.1, '#6a5a70', 0.5);
+        r(c, gx + 0.2, gy, 3.2, 1.2, '#fff8ee');
+        linie(c, gx + 0.4, gy + 1.5, gx + 0.4, gy + 3.8, 'rgba(255,255,255,0.55)', 0.6);
+        kreis(c, gx + 1.0, gy + 0.2, 0.6, '#ffffff'); kreis(c, gx + 2.0, gy + 0.1, 0.7, '#fff8ee'); kreis(c, gx + 2.8, gy + 0.25, 0.5, '#ffffff');
+        if (glasLift > 4.2) kreis(c, gx + 1.8, gy - 1.2, 0.9, '#ffe84f');
+      }
     } else {
-      rr(c, x - 1.2 + swing * 0.7, ay, 2.6, 6.2, shirt, 1.3, KONT, 0.65); kreis(c, x + swing * 0.7 + 0.1, ay + 6.2, 1.3, P.haut, KONT, 0.45);
-      if (o.glas) { rr(c, x + sg * 1.4 + swing * 0.7 - 1.4, ay + 2, 3.6, 5, 'rgba(255,208,80,0.95)', 1.1, '#6a5a70', 0.5); }
+      rr(c, x - 1.2 + swing * 0.7, ay + armIdle - glasLift, 2.6, 6.2, shirt, 1.3, KONT, 0.65);
+      kreis(c, x + swing * 0.7 + 0.1, ay + 6.2 + armIdle - glasLift, 1.3, P.haut, KONT, 0.45);
+      if (o.glas) {
+        var gx2 = x + sg * 1.4 + swing * 0.7 - 1.4, gy2 = ay + 2 - glasLift;
+        rr(c, gx2, gy2, 3.6, 5, 'rgba(255,208,80,0.95)', 1.1, '#6a5a70', 0.5);
+        r(c, gx2 + 0.2, gy2, 3.2, 1.0, '#fff8ee');
+        kreis(c, gx2 + 1.2, gy2 + 0.15, 0.6, '#ffffff'); kreis(c, gx2 + 2.2, gy2 + 0.1, 0.7, '#fff8ee');
+        if (glasLift > 4.2) kreis(c, gx2 + 1.8, gy2 - 1.2, 0.9, '#ffe84f');
+      }
     }
-    // Kopf
-    var hx = x + wipp * 0.3 + (seite ? sg * 0.5 : 0), hy = by - 21.4 + bob;
+    var kopfPend = torkelOn ? Math.sin(t * 1.4 * Math.PI * 2 + phOff + 1) * 0.8 : 0;
+    var nick = o.tanzt ? Math.sin(t * 12) * 0.8 : 0;
+    var hx = x + wipp * 0.3 + (seite ? sg * 0.5 : 0) + kopfPend, hy = by - 21.4 + bob + nick;
     r(c, hx - 1.2, hy + 3.4, 2.4, 2, dunkler(P.haut, 0.1));
     kreis(c, hx, hy, 4.7, P.haut, KONT, 0.85);
-    kreis(c, hx - 1.4, hy - 1.2, 1.6, 'rgba(255,255,255,0.22)');
+    var gaHaut = c.globalAlpha; c.globalAlpha = gaHaut * 0.22; kreis(c, hx - 1.4, hy - 1.2, 1.6, '#ffffff'); c.globalAlpha = gaHaut;
+    var mundKrit = pegel >= 3.0;
     if (dir === 'oben') haare(c, ch, hx, hy, 'oben', extra);
     else {
       haare(c, ch, hx, hy, dir, extra);
-      if (seite) { kreis(c, hx + sg * 2.4, hy + 0.6, 0.75, '#3a2a40'); kreis(c, hx + sg * 4.8, hy + 1.2, 0.8, dunkler(P.haut, 0.08)); mund(c, hx + sg * 1.6, hy + 0.2, o.schwips, false); }
-      else { kreis(c, hx - 1.8, hy + 0.7, 0.8, '#3a2a40'); kreis(c, hx + 1.8, hy + 0.7, 0.8, '#3a2a40'); mund(c, hx, hy + 0.4, o.schwips, o.tanzt); }
+      if (seite) {
+        kreis(c, hx + sg * 2.4, hy + 0.6, 0.75, '#3a2a40'); kreis(c, hx + sg * 4.8, hy + 1.2, 0.8, dunkler(P.haut, 0.08));
+        if (mundKrit) textInBox(c, 'o', hx + sg * 1.2, hy + 0.6, 6, 6, 6, { col: '#7a2a3a', ausr: 'center', min: 5 });
+        else mund(c, hx + sg * 1.6, hy + 0.2, o.schwips, false);
+      } else {
+        kreis(c, hx - 1.8, hy + 0.7, 0.8, '#3a2a40'); kreis(c, hx + 1.8, hy + 0.7, 0.8, '#3a2a40');
+        if (mundKrit) textInBox(c, 'o', hx - 3, hy + 0.8, 6, 6, 6, { col: '#7a2a3a', ausr: 'center', min: 5 });
+        else mund(c, hx, hy + 0.4, o.schwips, o.tanzt);
+      }
     }
-    // Eigenheiten
     if (extra === 'muetze') {
       c.beginPath(); c.arc(hx, hy - 0.6, 5.1, Math.PI, 0); c.closePath(); c.fillStyle = '#e0504a'; c.fill(); c.lineWidth = 0.6; c.strokeStyle = '#8a2a28'; c.stroke();
       rr(c, hx - 5.4, hy - 1.2, 10.8, 1.6, '#c03a38', 0.8);
@@ -254,8 +297,12 @@
     }
     if (extra === 'brille' && dir !== 'oben') {
       c.lineWidth = 0.6; c.strokeStyle = '#2a2a38';
-      if (seite) { kreis(c, hx + sg * 2.4, hy + 0.6, 1.6, 'rgba(255,255,255,0.65)', '#2a2a38', 0.6); linie(c, hx + sg * 0.8, hy + 0.5, hx - sg * 3.5, hy + 0.2, '#2a2a38', 0.5); }
-      else { kreis(c, hx - 1.9, hy + 0.7, 1.7, 'rgba(255,255,255,0.65)', '#2a2a38', 0.6); kreis(c, hx + 1.9, hy + 0.7, 1.7, 'rgba(255,255,255,0.65)', '#2a2a38', 0.6); linie(c, hx - 0.3, hy + 0.7, hx + 0.3, hy + 0.7, '#2a2a38', 0.5); kreis(c, hx - 1.9, hy + 0.7, 0.55, '#3a2a40'); kreis(c, hx + 1.9, hy + 0.7, 0.55, '#3a2a40'); }
+      var gaBr = c.globalAlpha; c.globalAlpha = gaBr * 0.55;
+      if (seite) { kreis(c, hx + sg * 2.4, hy + 0.6, 1.6, '#e8eef8', '#2a2a38', 0.6); }
+      else { kreis(c, hx - 1.9, hy + 0.7, 1.7, '#e8eef8', '#2a2a38', 0.6); kreis(c, hx + 1.9, hy + 0.7, 1.7, '#e8eef8', '#2a2a38', 0.6); }
+      c.globalAlpha = gaBr;
+      if (seite) linie(c, hx + sg * 0.8, hy + 0.5, hx - sg * 3.5, hy + 0.2, '#2a2a38', 0.5);
+      else { linie(c, hx - 0.3, hy + 0.7, hx + 0.3, hy + 0.7, '#2a2a38', 0.5); kreis(c, hx - 1.9, hy + 0.7, 0.55, '#3a2a40'); kreis(c, hx + 1.9, hy + 0.7, 0.55, '#3a2a40'); }
     }
     if (extra === 'schnurrbart' && dir !== 'oben') {
       if (seite) rr(c, hx + sg * 1.4 - 1.4, hy + 1.9, 3.8, 1.2, '#5a3a28', 0.6); else { rr(c, hx - 3, hy + 1.8, 3, 1.3, '#5a3a28', 0.6); rr(c, hx, hy + 1.8, 3, 1.3, '#5a3a28', 0.6); }
@@ -273,6 +320,7 @@
       linie(c, hx + 2.6, hy - 5, hx + 5, hy - 9, '#d8c070', 0.9); linie(c, hx + 2.6, hy - 5, hx + 4, hy - 9.4, '#e8d890', 0.5);
     }
     if (extra === 'schuhe' && o.tanzt) kreis(c, hx, hy - 8, 0.8, '#ffd75e');
+    if (torkelOn) c.restore();
   }
 
   function blase(c, x, y, s, vermeide) {
@@ -340,7 +388,10 @@
         }
     } else if (karte.id === 'disko') {
       In.tanzFlaeche(c, S, cx, cy, Math.floor(S.t / Saufi.Ton.BEAT), (S.t / Saufi.Ton.BEAT) % 1, S.boostAktiv);
-    } else In.innenFensterNacht(c, karte, Math.min(0.85, licht.glut * 0.9), cx, cy);
+    } else {
+      In.innenFensterNacht(c, karte, Math.min(0.85, licht.glut * 0.9), cx, cy);
+      if (karte.id === 'hotel' && In.hotelAnim) In.hotelAnim(c, S, cx, cy);
+    }
 
     // Sortierte Dinge: Props, Orte-Objekte, Figuren (Y-Sortierung verhindert Ueberlappungsfehler)
     var dinge = [];
@@ -374,9 +425,14 @@
       else if (d.art === 'brunnen') { Sz.zeichneSprite(R, c, 'brunnen', 40, 42, 20, 36, px + 16, fy - 3, function (hc) { Sz.brunnenBild(hc); }); Sz.brunnenWasser(c, px + 16, fy - 3, t); }
       else if (d.art === 'tram') { var tx = ((t * 14) % (karte.pxW + 160)) - 90 - cx; if (tx > -80 && tx < viewW + 10) Sz.strassenbahn(c, tx, 253 - cy, t); }
       else if (d.art === 'joint') zeichneJoint(c, d.x - cx + 8, d.ky - cy + 8, t);
-      else if (d.art === 'tuersteher') figur(c, { shirt: '#14102a', hose: '#14102a', haar: '#14102a', extra: 'hut' }, d.x - cx, d.ky - cy, { dir: 'unten', t: t });
+      else if (d.art === 'tuersteher') figur(c, { id: 'tuersteher', shirt: '#14102a', hose: '#14102a', haar: '#14102a', extra: 'hut' }, d.x - cx, d.ky - cy, { dir: 'unten', t: t });
       else if (d.art === 'npc') {
-        var n = d.n; figur(c, n.char, n.x - cx, n.y - cy, { dir: n.dir, schritt: n.schritt, liegt: n.liegt, t: t, schwips: n.fig.pegel > 1.5, tanzt: S.tanzBeat && !n.liegt, glas: S.prost > 0 && !n.liegt });
+        var n = d.n;
+        figur(c, n.char, n.x - cx, n.y - cy, {
+          dir: n.dir, schritt: n.schritt, phase: n.anim % 4, laeuft: n.laeuft, liegt: n.liegt, t: t,
+          schwips: n.fig.pegel > 1.5, tanzt: S.tanzBeat && !n.liegt, glas: S.prost > 0 && !n.liegt,
+          pegel: n.fig.pegel, prost: S.prost
+        });
         if (n.blase && !n.liegt) {
           var vermeide = null;
           if (!karte.innen) karte.gebaeude.forEach(function (b) {
@@ -396,17 +452,36 @@
       }
       else if (d.art === 'spieler') {
         var sp = S.spieler, ch = S.char;
-        figur(c, ch, sp.x - cx, sp.y - cy, { dir: sp.dir, schritt: sp.schritt, liegt: sp.liegt, t: t, schwips: S.fig.pegel > 1.5, tanzt: sp.tanzt > 0, glas: S.prost > 0 });
-        if (!sp.liegt) {                                            // goldener Pfeil ueber dem Kopf
+        figur(c, ch, sp.x - cx, sp.y - cy, {
+          dir: sp.dir, schritt: sp.schritt, phase: sp.anim % 4, laeuft: sp.laeuft, liegt: sp.liegt, t: t,
+          schwips: S.fig.pegel > 1.5, tanzt: sp.tanzt > 0, glas: S.prost > 0,
+          pegel: S.fig.pegel, prost: S.prost
+        });
+        if (!sp.liegt) {
           var mx = sp.x - cx, my = sp.y - cy - 31 + Math.sin(t * 5) * 1.2;
           poly(c, [[mx - 3.2, my], [mx + 3.2, my], [mx, my + 4]], P.gold, P.kontur, 0.7);
         }
       }
     });
-    // Effekte (Prost-Funken, Sterne)
+    // Effekte (Funken-Sterne, Schaum, Staub) — nur Weltpass
     (S.effekte || []).forEach(function (e) {
       var a = Math.max(0, e.rest / e.dauer), age = e.dauer - e.rest;
-      c.globalAlpha = Math.min(1, a); kreis(c, e.x - cx + e.vx * age, e.y - cy + e.vy * age, 1.2, e.farbe); c.globalAlpha = 1;
+      var ex = e.x - cx + e.vx * age, ey = e.y - cy + e.vy * age + (e.art === 'funke' ? 0.5 * 40 * age * age : 0);
+      c.globalAlpha = Math.min(1, a) * (e.alpha0 != null ? e.alpha0 : 1);
+      if (e.art === 'schaum') {
+        kreis(c, ex, ey, e.r || 0.9, e.farbe || '#fff8ee');
+      } else if (e.art === 'staub') {
+        kreis(c, ex, ey, e.r || 1.2, e.farbe || 'rgba(180,160,120,0.25)');
+        kreis(c, ex + 1.4, ey + 0.4, (e.r || 1.2) * 0.7, e.farbe || 'rgba(180,160,120,0.2)');
+      } else if (e.art === 'funke' || !e.art) {
+        var col = e.farbe || '#ffe84f';
+        if (e.stern) {
+          var fade = a < 0.5 ? G.mischeHex('#ffe84f', '#ff8a2a', 1 - a * 2) : col;
+          c.strokeStyle = fade; c.lineWidth = 1.0; c.lineCap = 'round';
+          c.beginPath(); c.moveTo(ex - 0.8, ey); c.lineTo(ex + 0.8, ey); c.moveTo(ex, ey - 0.8); c.lineTo(ex, ey + 0.8); c.stroke();
+        } else kreis(c, ex, ey, e.r || 1.2, a < 0.5 ? '#ff8a2a' : col);
+      } else kreis(c, ex, ey, e.r || 1.2, e.farbe);
+      c.globalAlpha = 1;
     });
 
     // Toenung: Tageslicht (draussen) oder Raumlicht (innen) — weicher Verlauf
@@ -427,6 +502,50 @@
     if (ort === 'stadt') return { r: l.r, g: l.g, b: l.b };
     if (ort === 'disko') return mix({ r: 70, g: 62, b: 120 }, { r: 110, g: 90, b: 160 }, S.boostAktiv ? 1 : 0.0);
     return mix({ r: l.r, g: l.g, b: l.b }, { r: 255, g: 238, b: 208 }, 0.55 + 0.25 * l.glut);
+  }
+
+  var SCHILD_NACHT_TEXTE = {
+    hotel: { haupt: 'HOTEL KESSELBLICK', hauptCol: '#ffe9a8', nebenCol: '#ffe9a8' },
+    restaurant: { haupt: 'GASTHAUS MAULTÄSCHLE', hauptCol: '#ffe9a8', nebenCol: '#ffe9a8' },
+    kneipe: { haupt: 'ZUM DURSTIGEN DACHS', hauptCol: '#ffe9a8', nebenCol: '#ffe9a8' },
+    disko: { haupt: 'UNTERGRUND 07', hauptCol: '#7ff6ff', nebenCol: '#7ff6ff' }
+  };
+  function schildNachtSprite(R, key, w, h, text, col, size) {
+    var sk = R.spSk || 1, cacheKey = 'sn_' + key + '_' + sk.toFixed(2) + '_' + w + 'x' + h;
+    if (R.spr[cacheKey]) return R.spr[cacheKey];
+    if (!R.neueLeinwand) return null;
+    var cv = R.neueLeinwand(Math.ceil(w * sk) + 2, Math.ceil(h * sk) + 2), hc = cv ? cv.getContext('2d') : null;
+    if (!hc) return null;
+    hc.setTransform(sk, 0, 0, sk, 0, 0);
+    if ('imageSmoothingEnabled' in hc) hc.imageSmoothingEnabled = true;
+    textInBox(hc, text, 1, 1, w - 2, h - 2, size || 9, { col: col, ausr: 'center', kontur: 'rgba(20,14,40,0.9)', konturB: 0.5, min: 5, maxZeilen: 1 });
+    var s = { cv: cv, w: w, h: h }; R.spr[cacheKey] = s; return s;
+  }
+  function zeichneSchildNacht(R, c, b, plan, cx, cy, glut) {
+    var info = SCHILD_NACHT_TEXTE[b.id] || { haupt: (b.name || '').toUpperCase(), hauptCol: '#ffe9a8', nebenCol: '#ffe9a8' };
+    var sw = Math.min(plan.w - 8, b.id === 'disko' ? plan.w - 12 : 112), sh = 14;
+    var sx = plan.schild.x - cx - sw / 2, sy = plan.schild.y - cy - 7;
+    // source-over dunkler Grund (nicht nur lighter)
+    c.globalCompositeOperation = 'source-over';
+    c.globalAlpha = Math.min(1, 0.75 + SCHILD_NACHT_ALPHA * glut * 0.3);
+    c.fillStyle = 'rgba(20,14,40,0.75)';
+    c.fillRect(sx, sy, sw, sh);
+    var spr = schildNachtSprite(R, b.id + '_h', sw, sh, info.haupt, info.hauptCol, b.id === 'disko' ? 9 : 10);
+    c.globalAlpha = Math.min(1, 0.55 + glut * 0.45);
+    if (spr && spr.cv) c.drawImage(spr.cv, sx, sy, sw, sh);
+    else textInBox(c, info.haupt, sx + 1, sy + 1, sw - 2, sh - 2, 9, { col: info.hauptCol, ausr: 'center', kontur: 'rgba(20,14,40,0.9)', min: 5, maxZeilen: 1 });
+    if (plan.schildNeben) {
+      var sn = plan.schildNeben, nx = sn.x - cx, ny = sn.y - cy;
+      c.globalAlpha = Math.min(1, 0.75 + SCHILD_NACHT_ALPHA * glut * 0.3);
+      c.fillStyle = 'rgba(20,14,40,0.75)';
+      c.fillRect(nx, ny, sn.w, sn.h);
+      var nspr = schildNachtSprite(R, b.id + '_n_' + (sn.text || ''), sn.w, sn.h, sn.text || '', info.nebenCol, 6);
+      c.globalAlpha = Math.min(1, 0.55 + glut * 0.45);
+      if (nspr && nspr.cv) c.drawImage(nspr.cv, nx, ny, sn.w, sn.h);
+      else textInBox(c, sn.text || '', nx + 1, ny, sn.w - 2, sn.h, 6, { col: info.nebenCol, ausr: 'center', kontur: 'rgba(20,14,40,0.9)', min: 5, maxZeilen: 1 });
+    }
+    c.globalAlpha = 1;
+    c.globalCompositeOperation = 'lighter';
   }
 
   // Leuchtende Fenster, Laternenkegel, Neon und Disko-Show nach der Toenung
@@ -454,30 +573,28 @@
         var an = offen || b.id === 'hotel';
         if (an) plan.neon.forEach(function (n) {
           var p = 0.65 + 0.35 * Math.sin(t * 5 + n.x * 0.1), a = Math.max(l.glut, b.id === 'disko' ? 0.35 : 0) * p;
-          var neonR = Math.max(n.w * 0.4, Math.min(n.w * 0.8, 10));
-          c.globalAlpha = Math.min(0.7, a * 0.5); G.glanz(c, n.x + n.w / 2 - cx, n.y + n.h / 2 - cy, neonR, n.farbe, 'rgba(0,0,0,0)');
+          var neonLen = Math.max(n.w, n.h), neonR = Math.min(neonLen * 0.6, Math.max(n.w * 0.35, 6));
+          var lichtinselAktiv = glut > 0.05 && an && b.id === 'disko';
+          // Disko: Glanz nicht doppelt mit Lichtinsel (gemeinsam Alpha ≤ 0.5)
+          if (!(lichtinselAktiv && b.id === 'disko')) {
+            c.globalAlpha = Math.min(0.5, a * 0.45); G.glanz(c, n.x + n.w / 2 - cx, n.y + n.h / 2 - cy, neonR, n.farbe, 'rgba(0,0,0,0)');
+          } else {
+            c.globalAlpha = Math.min(0.25, a * 0.3); G.glanz(c, n.x + n.w / 2 - cx, n.y + n.h / 2 - cy, neonR * 0.7, n.farbe, 'rgba(0,0,0,0)');
+          }
           c.globalAlpha = Math.min(0.7, a * 0.5); rr(c, n.x - cx - 2, n.y - cy - 2, n.w + 4, n.h + 4, n.farbe, 2.5);
           c.globalAlpha = Math.min(0.85, a * 1.0); rr(c, n.x - cx, n.y - cy, n.w, n.h, n.farbe, 1);
         });
-        if (glut > 0.05 && an) {                                   // Tuer-Lichtinsel (Disko kleiner/weicher)
+        if (glut > 0.05 && an) {
           var d = plan.tuer, maxR = b.id === 'disko' ? 24 : 28;
           var grd = c.createRadialGradient(d.x - cx + 8, d.y - cy + 14, 2, d.x - cx + 8, d.y - cy + 14, maxR);
-          var kernA = b.id === 'disko' ? 0.35 : 0.45;
+          var kernA = b.id === 'disko' ? 0.28 : 0.45;
           grd.addColorStop(0, 'rgba(255,190,110,' + kernA + ')'); grd.addColorStop(1, 'rgba(255,190,110,0)');
-          c.globalAlpha = Math.min(glut, b.id === 'disko' ? 0.35 : glut); c.fillStyle = grd;
+          c.globalAlpha = Math.min(glut, b.id === 'disko' ? 0.28 : glut); c.fillStyle = grd;
           c.fillRect(d.x - cx - maxR, d.y - cy - maxR * 0.6, maxR * 2, maxR * 1.6);
         }
-        // Nachtschilder aufhellen
+        // Nachtschilder: dunkler Grund + Text-Overlay (gecacht), kein reines lighter-Rechteck
         if (glut > 0.15) {
-          c.globalAlpha = SCHILD_NACHT_ALPHA * glut;
-          var sx = plan.schild.x - cx, sy = plan.schild.y - cy;
-          var sw = Math.min(plan.w - 8, b.id === 'disko' ? plan.w - 12 : 112), sh = 14;
-          c.fillStyle = '#ffe9a8';
-          c.fillRect(sx - sw / 2, sy - 7, sw, sh);
-          if (plan.schildNeben) {
-            var sn = plan.schildNeben;
-            c.fillRect(sn.x - cx, sn.y - cy, sn.w, sn.h);
-          }
+          zeichneSchildNacht(R, c, b, plan, cx, cy, glut);
         }
       });
       if (lampen > 0.02) {
@@ -533,10 +650,9 @@
   }
   function hud(R, S) {
     var c = R.ctx, fig = S.fig, uhr = S.uhr, i;
-    // Querformat: kompaktes Status-Panel; Hoch+Touch: ~15 % kleiner als v06-Hoch
     var kompakt = !R.hochkant, sk = kompakt ? 0.72 : (R.touch ? (54 / 62) * 0.85 : 54 / 62);
     var lpW = Math.round(96 * sk), lpH = Math.round(62 * sk), lx = 3, ly = 3;
-    panel(c, lx, ly, lpW, lpH, 'rgba(255,248,238,0.94)', kompakt ? 4 : 5);
+    panel(c, lx, ly, lpW, lpH, '#fff8ee', kompakt ? 4 : 5);
     c.save(); c.translate(lx, ly); c.scale(sk, sk);
     krug(c, 8, 7, fig.pegel);
     var pt = S.joint && Saufi.Ereignisse.Joint.schwammig(S.joint) ? '~' + Saufi.Pegel.anzeige(fig.pegel + Math.sin(S.t * 5) * 0.4) : Saufi.Pegel.anzeige(fig.pegel);
@@ -550,153 +666,180 @@
     if (S.joint && (S.joint.hat || S.joint.doppelt)) textInBox(c, S.joint.doppelt ? 'x2!' : 'R: Tüte', 36, 50, 56, 12, 7, { col: '#d9701a' });
     c.restore();
     R.hudLinks = { x: lx, y: ly, w: lpW, h: lpH };
-    // Uhr: HTML-Knoepfe oben rechts (4×44 CSS-px) — bei Touch oft kein Platz daneben → Uhr darunter
-    var pw = kompakt ? 88 : 96, ph = kompakt ? 24 : 26;
     var sCss = (R.cssW > 0 && W > 0) ? (R.cssW / W) : 1;
     var btnBand = R.touch ? Math.ceil((4 * 44 + 8) / Math.max(0.5, sCss)) : 40;
     var freiL = lx + lpW + 4, freiR = W - btnBand - 2;
-    var py = 3, px;
-    if (R.touch && freiR - freiL < pw + 4) {
-      py = Math.ceil(44 / Math.max(0.5, sCss)) + 2;
-      // Unter den Oben-Knoepfen: nicht mit linkem Panel kollidieren
+    // Uhr: Hoch kompakt (pw≈80–96), Stern in Panel; Quer Stern in Panel, Banner-Anhang darunter
+    var pw = R.hochkant ? 96 : (kompakt ? 88 : 96);
+    var ph = R.hochkant ? 22 : (kompakt ? 24 : 26);
+    var sternInPanel = true, py = 3, px;
+    if (R.hochkant && freiR - freiL < pw + 4) {
+      // Kein Platz in oberer Reihe: darunter, max y ≤ ly+lpH+2+ph, ohne Stern-Zeile
+      sternInPanel = false;
+      py = Math.min(ly + lpH + 2, Math.ceil(44 / Math.max(0.5, sCss)) + 2);
       py = Math.max(py, ly + lpH + 2);
-      pw = kompakt ? 88 : 96;
+      if (py + ph > ly + lpH + 2 + ph) py = ly + lpH + 2;
       px = Math.round((W - pw) / 2);
       px = Math.max(lx + 2, Math.min(px, W - btnBand - pw - 2));
     } else {
       px = Math.round((freiL + freiR - pw) / 2);
       px = Math.max(freiL, Math.min(px, Math.max(freiL, freiR - pw)));
     }
-    panel(c, px, py, pw, ph, 'rgba(255,248,238,0.94)', kompakt ? 5 : 6);
-    Sz.himmelIcon(c, px + (kompakt ? 13 : 14), py + (kompakt ? 11 : 13), kompakt ? 9 : 10, uhr.minute / 60, S.t);
-    textInBox(c, Saufi.Uhr.text(uhr), px + (kompakt ? 26 : 28), py + 1, pw - (kompakt ? 30 : 32), kompakt ? 11 : 12, kompakt ? 9 : 10, { col: P.uiTinte, ausr: 'center' });
-    textInBox(c, Saufi.Uhr.tag(uhr).slice(0, 2) + ' · ' + Saufi.Uhr.phase(uhr), px + (kompakt ? 26 : 28), py + (kompakt ? 12 : 13), pw - (kompakt ? 30 : 32), kompakt ? 10 : 11, 7, { col: P.uiTinteWeich, ausr: 'center' });
-    textInBox(c, '★ ' + S.punkte.punkte, px, py + ph, pw, 10, kompakt ? 7 : 8, { col: P.uiTinte, ausr: 'center', kontur: 'rgba(255,248,238,0.95)' });
+    panel(c, px, py, pw, ph, '#fff8ee', kompakt ? 5 : 6);
+    var iconR = R.hochkant ? 8 : (kompakt ? 9 : 10);
+    Sz.himmelIcon(c, px + (R.hochkant ? 12 : (kompakt ? 13 : 14)), py + ph / 2, iconR, uhr.minute / 60, S.t);
+    var textL = px + (R.hochkant ? 24 : (kompakt ? 26 : 28));
+    var textW = pw - (R.hochkant ? 28 : (kompakt ? 30 : 32));
+    textInBox(c, Saufi.Uhr.text(uhr), textL, py + 1, textW, R.hochkant ? 10 : (kompakt ? 11 : 12), R.hochkant ? 9 : (kompakt ? 9 : 10), { col: P.uiTinte, ausr: 'center' });
+    // Kurze Phasen-Codes: volle „Sa · Morgen“ wurde bei Stern-Spalte zu „Sa ·…“ gekuerzt
+    var PHASE_KURZ = { Morgen: 'Mo', Mittag: 'Mi', Nachmittag: 'Nm', Abend: 'Ab', Nacht: 'Na', 'Tiefe Nacht': 'TN' };
+    var phName = Saufi.Uhr.phase(uhr), phaseTxt = Saufi.Uhr.tag(uhr).slice(0, 2) + ' · ' + (PHASE_KURZ[phName] || phName);
+    if (sternInPanel) {
+      var sternTxt = '★' + S.punkte.punkte, sternW = Math.min(36, Math.max(16, Math.ceil(breite(c, sternTxt, 7) + 4)));
+      textInBox(c, phaseTxt, textL, py + (R.hochkant ? 11 : (kompakt ? 12 : 13)), Math.max(20, textW - sternW), 9, 7, { col: P.uiTinteWeich, ausr: 'left' });
+      textInBox(c, sternTxt, px + pw - sternW - 2, py + (R.hochkant ? 11 : (kompakt ? 12 : 13)), sternW, 9, 7, { col: P.uiTinte, ausr: 'right' });
+    } else {
+      textInBox(c, phaseTxt, textL, py + 11, textW, 9, 7, { col: P.uiTinteWeich, ausr: 'center' });
+    }
     R.hudUhr = { x: px, y: py, w: pw, h: ph, btnBand: btnBand };
-    // Runde: unter Uhr/Punkte, ohne Overlap; nicht ueber Ziel-Gebaeudeschild
-    var nr = Saufi.Runden.naechste(S.runden), ry = 0, rundenH = 0;
+    var uhrUnten = py + ph;
+    var nr = Saufi.Runden.naechste(S.runden), ry = 0, rundenH = 0, rx = 0, rw = 0;
+    var weltH = (R.weltH != null && R.hochkant) ? R.weltH : H;
+    var resTop = R.hochkant && weltH < H ? weltH : null;
+    var reserve = resTop != null ? (H - weltH) : 0;
+    // --- Banner ---
     if (nr && (nr.status === 'warnung' || nr.status === 'aktiv')) {
       var aktiv = nr.status === 'aktiv', rest = aktiv ? nr.zeit + Saufi.Runden.FRIST_MIN - uhr.minute : nr.zeit - uhr.minute;
-      var rw = Math.min(kompakt ? Math.min(170, Math.round(W * 0.45)) : 196, W - 24);
-      rundenH = kompakt ? 16 : 20;
-      // ≥ 4 px unter Uhr-Stern-Zeile
-      ry = Math.max(kompakt ? 36 : 48, py + ph + 14);
-      var rx;
-      if (kompakt) {
-        // Quer: immer unter Uhr-Stern-Zeile (kein Overlap mit Uhr/HUD); schmal ≤ 45 %
-        rx = Math.round(W / 2 - rw / 2) + 2;
-        rx = Math.max(lx + lpW + 4, Math.min(rx, W - btnBand - rw - 2));
-        ry = Math.max(36, py + ph + 14);
-      } else {
-        rx = Math.round(W / 2 - rw / 2) + 2;
-      }
-      // Hoch: Banner nicht ueber Ziel-Gebaeudeschild (Welt→Bildschirm)
-      if (R.hochkant && S.karte && !S.karte.innen && nr.ort) {
-        var zielB = null;
-        (S.karte.gebaeude || []).forEach(function (b) { if (b.id === nr.ort) zielB = b; });
-        if (zielB) {
-          var zp = bauplan(zielB), cam = S.kamera, zZoom = R.aktuellerWeltZoom != null ? R.aktuellerWeltZoom : WELT_ZOOM;
-          var schildScr = {
-            x: (zp.schild.x - (cam ? cam.x : 0)) * zZoom - Math.min(zp.w - 8, 112) / 2 * zZoom,
-            y: (zp.schild.y - 7 - (cam ? cam.y : 0)) * zZoom,
-            w: Math.min(zp.w - 8, 112) * zZoom, h: 14 * zZoom
-          };
-          function cutR(a, b) { return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y); }
-          var ban = { x: rx, y: ry, w: rw, h: rundenH };
-          if (cutR(ban, schildScr)) {
-            // Banner kleiner halten, unter Uhr belassen — Schild bleibt sichtbar
-            rundenH = 14; ry = py + ph + 14;
-            ban = { x: rx, y: ry, w: rw, h: rundenH };
-            if (cutR(ban, schildScr)) { rw = Math.min(rw, Math.round(W * 0.5)); rx = Math.round(W / 2 - rw / 2); }
-          }
-        }
-      }
-      function hudOverlap(a, b) { return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y); }
-      var uhrBox = { x: px, y: py, w: pw, h: ph + 10 };
-      var banTry = { x: rx, y: ry, w: rw, h: rundenH };
-      if (hudOverlap(banTry, uhrBox)) {
-        ry = py + ph + 14;
-        banTry.y = ry;
-        if (hudOverlap(banTry, uhrBox)) { ry = py + ph + 18; rundenH = Math.min(rundenH, 16); }
-      }
-      // Tests messen Uhr nur mit Hoehe ph (ohne Stern-Zeile): Banner klar darunter
-      ry = Math.max(ry, py + ph + 14);
       var blink = aktiv && Math.floor(S.t * 3) % 2 === 0;
-      panel(c, rx, ry, rw, rundenH, aktiv ? (blink ? '#ff9fb0' : '#ffd1da') : '#fff0c8', 6);
-      textInBox(c, (aktiv ? 'RUNDE! ' : 'Runde ' + Saufi.Uhr.zeitText(nr.zeit) + ': ') + Saufi.Karte.NAMEN[nr.ort], rx + 6, ry + 1, rw - 12, Math.max(8, rundenH - 6), 7, { col: P.uiTinte, ausr: 'center' });
-      var frac = Math.max(0, Math.min(1, rest / (aktiv ? Saufi.Runden.FRIST_MIN : Saufi.Runden.VORLAUF_MIN)));
-      var by2 = ry + rundenH - 5, bh2 = 3;
-      rr(c, rx + 10, by2, rw - 20, bh2, 'rgba(74,53,96,0.25)', 2.2); if (frac > 0.01) rr(c, rx + 10, by2, (rw - 20) * frac, bh2, aktiv ? '#e0504a' : '#f0b030', 2.2);
-      R.hudRunde = { x: rx, y: ry, w: rw, h: rundenH };
+      var balkenH = 3, label = (aktiv ? 'RUNDE! ' : 'Runde ' + Saufi.Uhr.zeitText(nr.zeit) + ': ') + Saufi.Karte.NAMEN[nr.ort];
+      if (R.hochkant && resTop != null) {
+        // Hoch: Banner in Reserve
+        rundenH = 14; rw = Math.min(Math.round(W * 0.85), W - 16);
+        rx = Math.round((W - rw) / 2); ry = resTop + 2;
+        panel(c, rx, ry, rw, rundenH, aktiv ? (blink ? '#ff9fb0' : '#ffd1da') : '#fff0c8', 5);
+        textInBox(c, label, rx + 4, ry + 1, rw - 8, 8, 7, { col: P.uiTinte, ausr: 'center', maxZeilen: 1 });
+        var frac = Math.max(0, Math.min(1, rest / (aktiv ? Saufi.Runden.FRIST_MIN : Saufi.Runden.VORLAUF_MIN)));
+        rr(c, rx + 8, ry + rundenH - balkenH - 1, rw - 16, balkenH, 'rgba(74,53,96,0.25)', 2); if (frac > 0.01) rr(c, rx + 8, ry + rundenH - balkenH - 1, (rw - 16) * frac, balkenH, aktiv ? '#e0504a' : '#f0b030', 2);
+        R.hudRunde = { x: rx, y: ry, w: rw, h: rundenH };
+      } else if (!R.hochkant) {
+        // Quer: Anhang direkt unter Uhr, gleiche Breite, Höhe ≤ 11, Gesamt ≤ 38
+        rundenH = Math.min(11, Math.max(1, 38 - ph));
+        rw = pw; rx = px; ry = py + ph;
+        panel(c, rx, ry, rw, rundenH, aktiv ? (blink ? '#ff9fb0' : '#ffd1da') : '#fff0c8', 4);
+        textInBox(c, label, rx + 2, ry + 0.5, rw - 4, 7, 6.5, { col: P.uiTinte, ausr: 'center', maxZeilen: 1, min: 6 });
+        var fracQ = Math.max(0, Math.min(1, rest / (aktiv ? Saufi.Runden.FRIST_MIN : Saufi.Runden.VORLAUF_MIN)));
+        rr(c, rx + 4, ry + rundenH - 3, rw - 8, 2, 'rgba(74,53,96,0.25)', 1.5); if (fracQ > 0.01) rr(c, rx + 4, ry + rundenH - 3, (rw - 8) * fracQ, 2, aktiv ? '#e0504a' : '#f0b030', 1.5);
+        R.hudRunde = { x: rx, y: ry, w: rw, h: rundenH };
+        uhrUnten = ry + rundenH;
+      } else {
+        // Hoch ohne Touch-Reserve (Dunkelstreifen): Banner trotzdem unten in Reserve-Zone
+        rundenH = 14; rw = Math.min(Math.round(W * 0.85), W - 16);
+        rx = Math.round((W - rw) / 2); ry = Math.max(weltH + 2, H - 70);
+        panel(c, rx, ry, rw, rundenH, aktiv ? (blink ? '#ff9fb0' : '#ffd1da') : '#fff0c8', 5);
+        textInBox(c, label, rx + 4, ry + 1, rw - 8, 8, 7, { col: P.uiTinte, ausr: 'center', maxZeilen: 1 });
+        R.hudRunde = { x: rx, y: ry, w: rw, h: rundenH };
+      }
     } else R.hudRunde = null;
-    // Safe-Zone unten: Quer = Stick/E (~120 CSS-px); Hoch = schmale UI-Reserve unter der Welt
-    var weltH = (R.weltH != null && R.hochkant) ? R.weltH : H;
-    var safeBot = R.touch && !R.hochkant ? Math.ceil(120 / Math.max(0.5, sCss)) : (R.hochkant && weltH < H ? Math.max(8, H - weltH) : 22);
-    var resTop = R.hochkant && weltH < H ? weltH + 2 : null;
-    // Scooter-Leiste (nur in der Disko)
-    if (S.ort === 'disko') {
-      var bw = 150, bx = Math.round(W / 2 - bw / 2) + 2, by = H - safeBot - 18, b = S.boost, f = b.leiste, pulse = f >= 1 && Math.floor(S.t * 4) % 2 === 0;
-      // Hoch: einzeilig in der UI-Reserve (unter Hilfe)
-      if (resTop != null) by = Math.min(H - 14, resTop + (S.hilfe ? 14 : 0));
-      panel(c, bx - 6, by - 3, bw + 12, 15, 'rgba(42,35,66,0.92)', 6);
-      rr(c, bx, by, bw, 9, 'rgba(255,255,255,0.12)', 4.5, P.kontur, 0.7); if (f > 0.02) rr(c, bx + 0.8, by + 0.8, (bw - 1.6) * f, 7.4, pulse ? '#ffffff' : P.neonPink, 3.7);
-      textInBox(c, S.boostAktiv ? 'HYPER HYPER!' : (f >= 1 ? 'R: HYPER-BOOST!' : 'SCOOTER · E tanzen'), bx, by, bw, 9, 7, { col: S.boostAktiv ? P.neonGelb : '#ffffff', ausr: 'center', kontur: 'rgba(30,10,60,0.9)', maxZeilen: 1 });
-    }
-    // Navigationspfeil (Welt→Bildschirm); Label unter Uhr/Runde
-    var pfeilZoom = R.aktuellerWeltZoom != null ? R.aktuellerWeltZoom : WELT_ZOOM;
-    if (S.pfeil) pfeil(R, S.pfeil.x * pfeilZoom, S.pfeil.y * pfeilZoom, ry + rundenH);
-    // Banner / Hinweise (+ Quer: Dialog ≤ 60 % Breite, maxZeilen 2; Stapel mit Hilfe)
-    var h = Saufi.Hinweise.aktuell(S.hinweise);
-    var dialogRect = null, hilfeRect = null;
-    // Touch-Quer: E/Wasser-Knopf-Rechtecke (geschaetzt, ~15 % kleiner)
+    // Safe-Zone / Knöpfe Quer
+    var stickZone = R.touch && !R.hochkant ? Math.ceil(120 / Math.max(0.5, sCss)) : 0;
     var knopfRects = [];
     if (R.touch && !R.hochkant) {
       var kS = Math.max(0.5, sCss), kE = Math.max(44 / kS, 56 * 0.85), kW2 = Math.max(44 / kS, 44 * 0.85);
-      knopfRects.push({ x: W - 8 / kS - kE, y: H - 8 / kS - kE - kW2 - 8 / kS, w: kE, h: kE });
-      knopfRects.push({ x: W - 8 / kS - kW2, y: H - 8 / kS - kW2, w: kW2, h: kW2 });
+      var padQ = 2 * 3 / kS; // CSS 2·s
+      knopfRects.push({ x: W - padQ - kE, y: H - padQ - kE - kW2 - 8 / kS, w: kE, h: kE });
+      knopfRects.push({ x: W - padQ - kW2, y: H - padQ - kW2, w: kW2, h: kW2 });
     }
     function freiVonKnoepfen(rect) {
       return !knopfRects.some(function (k) { return !(rect.x + rect.w <= k.x || k.x + k.w <= rect.x || rect.y + rect.h <= k.y || k.y + k.h <= rect.y); });
     }
-    if (h) {
-      var a = Math.min(1, h.rest * 3);
-      c.globalAlpha = a;
-      if (h.art === 'gross') {
-        var y0 = resTop != null ? Math.min(H - 26, resTop + 40) : Math.round(H * 0.38);
-        y0 += (Math.floor(S.t * 8) % 2);
-        textInBox(c, h.text, 16, y0, W - 32, 24, 14, { col: '#ffe84f', ausr: 'center', kontur: P.kontur });
-      } else {
-        var maxZ = resTop != null ? 2 : 2;
-        var maxBoxW = resTop != null ? Math.min(W - 40, 240) : Math.min(W - 40, Math.round(W * 0.6));
-        var mess = textInBox(c, h.text, 0, 0, maxBoxW - 16, resTop != null ? 28 : 40, 8, { ausr: 'center', mess: true, maxZeilen: maxZ });
-        var bw2 = Math.min(maxBoxW, Math.round(mess.w) + 20), hh2 = Math.round(mess.h) + 8;
-        if (resTop != null) hh2 = Math.min(hh2, Math.max(16, H - weltH - (S.hilfe ? 16 : 0) - (S.ort === 'disko' ? 18 : 0) - 2));
-        var wy, mx = Math.round(W / 2);
-        if (resTop != null) wy = Math.min(H - hh2 - 2, resTop + (S.hilfe ? 14 : 0) + (S.ort === 'disko' ? 16 : 0));
-        else wy = H - safeBot - hh2 - (S.ort === 'disko' ? 20 : 0) - (S.hilfe ? 20 : 0);
-        dialogRect = { x: mx - Math.round(bw2 / 2), y: wy, w: bw2, h: hh2 };
-        if (!freiVonKnoepfen(dialogRect)) { dialogRect.x = Math.max(4, Math.round(W * 0.2 - bw2 / 2)); wy = dialogRect.y; }
-        panel(c, dialogRect.x, dialogRect.y, dialogRect.w, dialogRect.h, h.art === 'schlecht' ? '#ffd1da' : (h.art === 'gut' ? '#d8f5dc' : P.uiFlaeche), 7);
-        textInBox(c, h.text, dialogRect.x + 6, dialogRect.y + 2, dialogRect.w - 12, dialogRect.h - 4, 8, { col: P.uiTinte, ausr: 'center', maxZeilen: maxZ });
+    function cutR(a, b) { return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y); }
+    // Scooter-Leiste Disko (Hoch-Reserve: ≥4 px unter Banner; panel wird bei bySco−3 gezeichnet)
+    if (S.ort === 'disko') {
+      var bwSco = 150, bxSco = Math.round(W / 2 - bwSco / 2) + 2, bySco, b = S.boost, f = b.leiste, pulse = f >= 1 && Math.floor(S.t * 4) % 2 === 0;
+      if (resTop != null) {
+        var scoTop = R.hudRunde ? R.hudRunde.y + R.hudRunde.h + 4 : resTop + 2;
+        bySco = Math.min(H - 14, scoTop + 3);
+      } else bySco = H - (R.touch ? Math.ceil(120 / Math.max(0.5, sCss)) : 22) - 18;
+      panel(c, bxSco - 6, bySco - 3, bwSco + 12, 15, 'rgba(42,35,66,0.92)', 6);
+      rr(c, bxSco, bySco, bwSco, 9, 'rgba(255,255,255,0.12)', 4.5, P.kontur, 0.7); if (f > 0.02) rr(c, bxSco + 0.8, bySco + 0.8, (bwSco - 1.6) * f, 7.4, pulse ? '#ffffff' : P.neonPink, 3.7);
+      textInBox(c, S.boostAktiv ? 'HYPER HYPER!' : (f >= 1 ? 'R: HYPER-BOOST!' : 'SCOOTER · E tanzen'), bxSco, bySco, bwSco, 9, 7, { col: S.boostAktiv ? P.neonGelb : '#ffffff', ausr: 'center', kontur: 'rgba(30,10,60,0.9)', maxZeilen: 1 });
+    }
+    // Navigationspfeil: Referenz = unterer Rand der Uhr (nicht Banner)
+    var pfeilZoom = R.aktuellerWeltZoom != null ? R.aktuellerWeltZoom : WELT_ZOOM;
+    if (S.pfeil) pfeil(R, S.pfeil.x * pfeilZoom, S.pfeil.y * pfeilZoom, py + ph);
+    // Hinweis + Dialog
+    var h = Saufi.Hinweise.aktuell(S.hinweise);
+    var dialogRect = null, hilfeRect = null;
+    var cursorY;
+    if (R.hochkant && resTop != null) {
+      // Reserve von oben: Banner → Hinweis → Dialog; Summe ≤ Reserve−2; Abstand ≥ 2
+      cursorY = resTop + 2 + (R.hudRunde ? R.hudRunde.h + 2 : 0);
+      var freiRes = H - 2 - cursorY;
+      if (S.hilfe) {
+        var hilfeH = Math.min(12, freiRes);
+        var hm = textInBox(c, S.hilfe, 0, 0, Math.min(W - 24, Math.round(W * 0.85)) - 8, hilfeH, 7, { ausr: 'center', mess: true, maxZeilen: 1 });
+        var hw = Math.min(W - 16, Math.round(hm.w) + 14);
+        hilfeRect = { x: Math.round(W / 2 - hw / 2), y: cursorY, w: hw, h: hilfeH };
+        panel(c, hilfeRect.x, hilfeRect.y, hilfeRect.w, hilfeRect.h, 'rgba(255,248,238,0.96)', 5);
+        textInBox(c, S.hilfe, hilfeRect.x + 3, hilfeRect.y + 1, hilfeRect.w - 6, hilfeH - 2, 7, { col: P.uiTinte, ausr: 'center', maxZeilen: 1 });
+        R.hudHilfe = hilfeRect;
+        cursorY += hilfeH + 2; freiRes = H - 2 - cursorY;
+      } else R.hudHilfe = null;
+      if (h && h.art !== 'gross') {
+        var maxBoxW = Math.min(W - 24, Math.round(W * 0.85));
+        var mess = textInBox(c, h.text, 0, 0, maxBoxW - 12, Math.max(10, freiRes - 2), 7, { ausr: 'center', mess: true, maxZeilen: 2 });
+        var bw2 = Math.min(maxBoxW, Math.round(mess.w) + 14), hh2 = Math.min(Math.round(mess.h) + 6, freiRes);
+        dialogRect = { x: Math.round(W / 2 - bw2 / 2), y: cursorY, w: bw2, h: hh2 };
+        c.globalAlpha = Math.min(1, h.rest * 3);
+        panel(c, dialogRect.x, dialogRect.y, dialogRect.w, dialogRect.h, h.art === 'schlecht' ? '#ffd1da' : (h.art === 'gut' ? '#d8f5dc' : P.uiFlaeche), 5);
+        textInBox(c, h.text, dialogRect.x + 4, dialogRect.y + 1, dialogRect.w - 8, dialogRect.h - 2, 7, { col: P.uiTinte, ausr: 'center', maxZeilen: 2 });
+        c.globalAlpha = 1;
         R.hudDialog = dialogRect;
-      }
-      c.globalAlpha = 1;
-    } else R.hudDialog = null;
-    // Hilfe: Hoch in UI-Reserve, Quer oberhalb Stick/E — ≥ 4 px Abstand zur Dialogblase
-    if (S.hilfe) {
-      var hm = textInBox(c, S.hilfe, 0, 0, W - 40, 14, 8, { ausr: 'center', mess: true });
-      var hw = Math.min(W - 20, Math.round(hm.w) + 18), hy;
-      if (resTop != null) hy = Math.min(H - 18, resTop);
-      else {
-        hy = H - safeBot - 4;
-        if (dialogRect) hy = Math.min(hy, dialogRect.y - 16 - 4);
-      }
-      hilfeRect = { x: Math.round(W / 2 - hw / 2), y: hy, w: hw, h: 16 };
-      if (!R.hochkant && !freiVonKnoepfen(hilfeRect)) hilfeRect.x = Math.max(4, Math.round(W * 0.15));
-      panel(c, hilfeRect.x, hilfeRect.y, hilfeRect.w, hilfeRect.h, 'rgba(255,248,238,0.96)', 7);
-      textInBox(c, S.hilfe, hilfeRect.x + 4, hilfeRect.y + 1, hilfeRect.w - 8, 14, 8, { col: P.uiTinte, ausr: 'center' });
-      R.hudHilfe = hilfeRect;
-    } else R.hudHilfe = null;
+      } else if (h && h.art === 'gross') {
+        c.globalAlpha = Math.min(1, h.rest * 3);
+        textInBox(c, h.text, 16, Math.min(H - 20, cursorY), W - 32, 16, 12, { col: '#ffe84f', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
+        c.globalAlpha = 1; R.hudDialog = null;
+      } else R.hudDialog = null;
+    } else {
+      // Quer: Hinweis + Dialog unten mittig zwischen Stick und Knöpfen
+      var maxBubbleW = Math.min(Math.round(W * 0.45), W - stickZone - 40);
+      var bottomPad = 4;
+      var stackBottom = H - bottomPad;
+      if (h && h.art === 'gross') {
+        c.globalAlpha = Math.min(1, h.rest * 3);
+        textInBox(c, h.text, 16, Math.round(H * 0.38), W - 32, 24, 14, { col: '#ffe84f', ausr: 'center', kontur: P.kontur });
+        c.globalAlpha = 1; R.hudDialog = null;
+      } else if (h) {
+        var messQ = textInBox(c, h.text, 0, 0, maxBubbleW - 12, 36, 8, { ausr: 'center', mess: true, maxZeilen: 2 });
+        var bwQ = Math.min(maxBubbleW, Math.round(messQ.w) + 16), hhQ = Math.round(messQ.h) + 6;
+        var midX = stickZone + (W - stickZone - (knopfRects[0] ? (W - knopfRects[0].x) : 40)) / 2;
+        if (!isFinite(midX)) midX = W / 2;
+        dialogRect = { x: Math.round(midX - bwQ / 2), y: stackBottom - hhQ, w: bwQ, h: hhQ };
+        dialogRect.x = Math.max(stickZone + 4, Math.min(dialogRect.x, W - bwQ - 4));
+        if (!freiVonKnoepfen(dialogRect)) {
+          // verkuerzen statt verschieben
+          hhQ = Math.max(12, hhQ - 4); bwQ = Math.min(bwQ, Math.round(W * 0.4));
+          dialogRect = { x: Math.round(W / 2 - bwQ / 2), y: stackBottom - hhQ, w: bwQ, h: hhQ };
+        }
+        c.globalAlpha = Math.min(1, h.rest * 3);
+        panel(c, dialogRect.x, dialogRect.y, dialogRect.w, dialogRect.h, h.art === 'schlecht' ? '#ffd1da' : (h.art === 'gut' ? '#d8f5dc' : P.uiFlaeche), 6);
+        textInBox(c, h.text, dialogRect.x + 5, dialogRect.y + 1, dialogRect.w - 10, dialogRect.h - 2, 8, { col: P.uiTinte, ausr: 'center', maxZeilen: 2 });
+        c.globalAlpha = 1;
+        R.hudDialog = dialogRect;
+        stackBottom = dialogRect.y - 4;
+      } else R.hudDialog = null;
+      if (S.hilfe) {
+        var hmQ = textInBox(c, S.hilfe, 0, 0, maxBubbleW - 8, 14, 8, { ausr: 'center', mess: true, maxZeilen: 1 });
+        var hwQ = Math.min(maxBubbleW, Math.round(hmQ.w) + 14), hyQ = stackBottom - 12;
+        hilfeRect = { x: Math.round(W / 2 - hwQ / 2), y: hyQ, w: hwQ, h: 12 };
+        hilfeRect.x = Math.max(stickZone + 4, Math.min(hilfeRect.x, W - hwQ - 4));
+        if (dialogRect && cutR(hilfeRect, dialogRect)) hilfeRect.y = dialogRect.y - 12 - 4;
+        if (!freiVonKnoepfen(hilfeRect)) hilfeRect.x = Math.max(stickZone + 4, Math.round(W * 0.35 - hwQ / 2));
+        panel(c, hilfeRect.x, hilfeRect.y, hilfeRect.w, hilfeRect.h, 'rgba(255,248,238,0.96)', 6);
+        textInBox(c, S.hilfe, hilfeRect.x + 3, hilfeRect.y + 1, hilfeRect.w - 6, 10, 7, { col: P.uiTinte, ausr: 'center', maxZeilen: 1 });
+        R.hudHilfe = hilfeRect;
+      } else R.hudHilfe = null;
+    }
   }
   function pfeil(R, sx, sy, unterY) {
     var c = R.ctx, cx = W / 2, cy = Math.min(H, R.weltH || H) / 2, dx = sx - cx, dy = sy - cy;
@@ -853,15 +996,17 @@
     if (R.hochkant) by0 = Math.max(top, Math.round(H / 6 - ph / 2));
     else by0 = top + Math.max(0, Math.floor((H - top - 8 - ph) / 2));
     if (by0 + ph > H - 4) by0 = Math.max(top, H - 4 - ph);
-    // Kessel zuerst; Turm nur oberhalb Panel; Sterne nur im oberen Himmel
-    Sz.kesselSzene(c, W, H, sieg ? 28 : 26, t, { turmMaxY: by0, sterneMaxY: Math.max(H * 0.35, by0 - 4) });
-    // Sieg: grosse Sonne links der Mitte, nicht im Panel/Turm
+    // Kessel zuerst; bei Sieg keine Himmels-Sonne (endeBild zeichnet die einzige)
+    Sz.kesselSzene(c, W, H, sieg ? 28 : 26, t, { turmMaxY: by0, sterneMaxY: Math.max(H * 0.35, by0 - 4), ohneSonne: !!sieg });
+    // Sieg: einzige Sonne links der Mitte, nicht im Panel/Turm
     if (sieg) {
       var sonneR = Math.max(10, W * 0.07), sx = Math.round(W * 0.28), sy = Math.round(H * 0.42);
       if (sy + sonneR > by0 - 2) sy = by0 - sonneR - 4;
       if (sx + sonneR > bx) sx = Math.max(sonneR + 4, bx - sonneR - 8);
       G.glanz(c, sx, sy, sonneR * 3.5, 'rgba(255,230,160,0.75)', 'rgba(255,230,160,0)');
-      kreis(c, sx, sy, sonneR, '#ffe08a'); kreis(c, sx - sonneR * 0.25, sy - sonneR * 0.25, sonneR * 0.35, '#fff6c8');
+      kreis(c, sx, sy, sonneR, '#ffe08a');
+      // Highlight bewusst r<6, damit Mock nur 1 große Sonne zaehlt (plus Turm-Lichtpunkt)
+      kreis(c, sx - sonneR * 0.25, sy - sonneR * 0.25, Math.min(5.5, sonneR * 0.28), '#fff6c8');
       R.endeSonne = { x: sx, y: sy, r: sonneR };
     } else R.endeSonne = null;
     // Panel undurchsichtig (Alpha 1.0) — kein Turmschaft durchs Panel
@@ -1025,6 +1170,8 @@
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
     R.treffer = []; R.panel = null;
     if (S.zustand === 'start') { startBild(R, S); if (S.overlay && S.overlay.art === 'info') textFeld(R, 'Hinweis 18+', [Saufi.Hinweise.HINWEIS_VOLL], [{ label: 'Zurück' }], 0); if (S.overlay && S.overlay.art === 'playlist') playlistBild(R, S); return; }
+    // Ende: nur endeBild (keine Welt darunter — sonst viele große arcs / doppelte Sonne)
+    if (S.zustand === 'ende') { endeBild(R, S); return; }
     var wackel = !S.ruhig && S.fig.pegel >= 1.5, amp = Math.min(2, (S.fig.pegel - 1) * 0.8);
     S.doppelt = wackel;
     var weltH = (R.hochkant && R.weltH != null) ? R.weltH : H;
@@ -1048,7 +1195,6 @@
       c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
     }
     c.restore();
-    if (S.zustand === 'ende') { endeBild(R, S); return; }
     hud(R, S);
     if (S.zustand === 'umgefallen') pressFBild(R, S);
     if (S.overlay) {

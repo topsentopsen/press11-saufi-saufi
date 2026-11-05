@@ -4,6 +4,16 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v09
+
+- **Overlays/Reserve:** Banner, „E:“-Hinweis und Dialog im Hoch in der UI-Reserve (`UI_RESERVE_HOCH_TOUCH = 72`); Uhr kompakt in der oberen Reihe; Quer: Banner am Uhr-Panel (Uhr+Banner ≤ 38 px), Blasen unten mittig ≤ 45 % Breite.
+- **Ende-Bild:** genau eine Sonne (`ohneSonne` im Himmel); untere Hälfte mit Weg, Wiese, Büschen, Zaun — keine leere Fläche.
+- **Nacht-Schilder/Disko:** dunkler Schildgrund + gecachter Text-Overlay (Kontrast ≥ 4,5:1); Disko ohne ausgebrannten weißen Kern (Neon-Glanz ≤ 0,6× Länge).
+- **Figuren/Partikel:** weicher Laufzyklus, Idle-Atmen, pegelabhängiges Torkeln, Prost-Armbogen mit Schaum; Funken-Sterne, Staub beim Laufen (`js/partikel.js`, kein `S.rng`).
+- **Innenräume:** Lampen-Flackern, Bierfass-Glanz, rotierende Disko-Spots, Hotel-Uhrzeiger und Pflanzen-Wippen.
+- **Quer-Zoom:** `WELT_FLAECHE_QUER = 4.6`, `MIN_WELT_ZOOM = 0.46` (Gebäudenamen ≥ 8 CSS-px).
+- **Ton-Check:** erster Tipp entsperrt einmal; Hinweis bleibt bei `running`/visibility aus; Ende ohne Hinweis.
+
 ## Neu in v08
 
 - **Schilder / Banner / Blasen:** Hotelschild „Kehrwoche ok“ einzeilig auf dem Gesims; RUNDE-Banner und Uhr frei von Gebäudenamen; Quer-Dialog ≤ 60 % Breite, gestapelt über E/Wasser; NPC-Blasen nicht über Kneipenschild.

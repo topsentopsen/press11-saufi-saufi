@@ -197,15 +197,16 @@
     c.beginPath(); c.arc(sx + 8, sy + 5.5, 5.4, Math.PI, 0); c.strokeStyle = P.neonCyan; c.lineWidth = 0.9; c.stroke();
     rr(c, sx + 4.4, sy + 10.2, 7.2, 2.4, '#fff8ee', 0.8); r(c, sx + 5, sy + 13.2, 6, 0.8, P.neonCyan); kreis(c, sx + 8, sy + 6.4, 1.6, '#c9a64a');
   }
-  function pflanze(c, sx, sy, hs) {
+  function pflanze(c, sx, sy, hs, t) {
+    var wipp = t != null ? Math.sin(t * 1.3 + (hs % 7)) * 0.8 : 0;
     ellipse(c, sx + 8, sy + 15.4, 5, 1.4, 'rgba(40,20,40,0.25)');
     poly(c, [[sx + 4.6, sy + 9.6], [sx + 11.4, sy + 9.6], [sx + 10.4, sy + 15.6], [sx + 5.6, sy + 15.6]], '#e28a62', '#9a4a32', 0.7); r(c, sx + 4.2, sy + 9.2, 7.6, 1.6, '#f0a07a');
     var blaetter = [[-5.6, -2.6, -40], [5.6, -2.8, 40], [0, -7, 0], [-3, -5, -20], [3.4, -5.4, 22]];
     blaetter.forEach(function (b, i) {
-      c.save(); c.translate(sx + 8 + b[0] * 0.2, sy + 9.4); c.rotate(b[2] * Math.PI / 180); c.scale(1.7, 5.4 + (i % 2));
+      c.save(); c.translate(sx + 8 + b[0] * 0.2 + wipp, sy + 9.4); c.rotate((b[2] + wipp * 4) * Math.PI / 180); c.scale(1.7, 5.4 + (i % 2));
       c.beginPath(); c.arc(0, -1, 1, 0, Math.PI * 2); c.restore(); c.fillStyle = i % 2 ? '#4f9a5a' : '#68b872'; c.fill();
     });
-    if (hs % 2) kreis(c, sx + 11, sy + 2.4, 1, '#ff8fb4');
+    if (hs % 2) kreis(c, sx + 11 + wipp, sy + 2.4, 1, '#ff8fb4');
   }
   function kueche(c, karte, x, y, sx, sy, hs) {
     vlauf(c, sx, sy + 2, K, 14, '#eef2f8', '#cfd6e4'); r(c, sx, sy + 2, K, 1.4, '#fff'); r(c, sx, sy + 15, K, 1, P.konturStein);
@@ -294,8 +295,13 @@
     if (motiv === 0) { poly(c, [[x, y + h], [x + w * 0.35, y + h * 0.4], [x + w * 0.6, y + h * 0.7], [x + w * 0.8, y + h * 0.45], [x + w, y + h]], '#7dbb78'); kreis(c, x + w * 0.78, y + h * 0.25, 1.6, '#ffe58a'); }
     else { kreis(c, x + w / 2, y + h * 0.4, 3, '#e8b9a0'); poly(c, [[x + 1, y + h], [x + w / 2, y + h * 0.65], [x + w - 1, y + h]], '#b8566a'); }
   }
-  function uhrWand(c, cx, cy, rad) {
-    kreis(c, cx, cy, rad, '#fff8ee', '#4a3560', 0.9); linie(c, cx, cy, cx, cy - rad * 0.7, '#4a3560', 0.8); linie(c, cx, cy, cx + rad * 0.5, cy, '#4a3560', 0.8);
+  function uhrWand(c, cx, cy, rad, t) {
+    kreis(c, cx, cy, rad, '#fff8ee', '#4a3560', 0.9);
+    // Zeiger: t in Sekunden → Stunden/Minuten (Demo-Lauf)
+    var sek = (t || 0) % 60, min = ((t || 0) / 60) % 60, std = ((t || 0) / 3600) % 12;
+    var aMin = (min / 60) * Math.PI * 2 - Math.PI / 2, aStd = ((std + min / 60) / 12) * Math.PI * 2 - Math.PI / 2;
+    linie(c, cx, cy, cx + Math.cos(aStd) * rad * 0.45, cy + Math.sin(aStd) * rad * 0.45, '#4a3560', 1.0);
+    linie(c, cx, cy, cx + Math.cos(aMin) * rad * 0.7, cy + Math.sin(aMin) * rad * 0.7, '#4a3560', 0.8);
     for (var i = 0; i < 12; i++) { var a = i * Math.PI / 6; kreis(c, cx + Math.cos(a) * rad * 0.82, cy + Math.sin(a) * rad * 0.82, 0.3, '#4a3560'); }
   }
   function flaschenRegal(c, x, y, w, anzahl) {
@@ -384,14 +390,15 @@
   // Strahler, Discokugel mit Lichtpunkten, DJ-Equalizer und Nebel (additiv, nach der Toenung)
   function diskoLichter(c, S, cx, cy) {
     var t = S.t, K2 = K, boost = S.boostAktiv, ph = (t / Saufi.Ton.BEAT) % 1, i, k;
-    // Lichtkegel vom DJ-Pult
-    for (i = 0; i < 4; i++) {
-      var bx = (7.6 + i * 0.9) * K2 - cx, by = 3 * K2 - cy, sw = Math.sin(t * 1.6 + i * 1.7) * 38, farbe = TANZ_FARBEN[(i + Math.floor(t)) % 4];
-      var gr = c.createLinearGradient(bx, by, bx + sw, by + 92);
-      var a = (0.2 + (1 - ph) * 0.2) * (boost ? 1.7 : 1);
-      gr.addColorStop(0, G.mischeHex('#ffffff', farbe.length === 7 ? farbe : '#ffffff', 0.5)); gr.addColorStop(1, farbe);
-      c.globalAlpha = Math.min(0.7, a); c.fillStyle = gr;
-      c.beginPath(); c.moveTo(bx - 1.6, by); c.lineTo(bx + 1.6, by); c.lineTo(bx + sw + 24, by + 92); c.lineTo(bx + sw - 24, by + 92); c.closePath(); c.fill();
+    // 2–3 langsam rotierende Spots, Alpha ≤ 0.25, kein reinweisser Kern
+    for (i = 0; i < 3; i++) {
+      var ang = t * 0.35 + i * 2.1, bx = 9 * K2 - cx + Math.cos(ang) * 20, by = 3.2 * K2 - cy;
+      var farbe = TANZ_FARBEN[i % 4], reach = 70 + i * 8;
+      var gr = c.createRadialGradient(bx, by, 2, bx + Math.sin(ang) * 30, by + reach, reach);
+      gr.addColorStop(0, farbe); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      c.globalAlpha = Math.min(0.25, 0.18 + (1 - ph) * 0.07) * (boost ? 1.2 : 1); c.fillStyle = gr;
+      c.beginPath(); c.moveTo(bx - 2, by); c.lineTo(bx + 2, by);
+      c.lineTo(bx + Math.sin(ang) * 40 + 28, by + reach); c.lineTo(bx + Math.sin(ang) * 40 - 28, by + reach); c.closePath(); c.fill();
     }
     // Discokugel ueber der Tanzflaeche
     var kx = 9 * K2 - cx, ky = 3.6 * K2 - cy;
@@ -425,24 +432,40 @@
     c.globalAlpha = 1;
   }
 
-  // Warmes Raumlicht: Lampen-Inseln, Kneipen-Jukebox blinkt
+  // Warmes Raumlicht: Lampen-Inseln mit Flackern, Kneipen-Jukebox/Bierfass-Glanz
   function raumLichter(c, S, cx, cy) {
     var karte = S.karte, l = S.licht, t = S.t, i;
     for (i = 0; i < karte.w; i += 5) {
       var lx = i * K + 10 - cx, ly = 3 * K - cy;
-      var gr = c.createRadialGradient(lx, ly, 2, lx, ly, 50); gr.addColorStop(0, 'rgba(255,214,130,0.35)'); gr.addColorStop(1, 'rgba(255,214,130,0)');
-      c.globalAlpha = 0.7 + 0.3 * l.glut; c.fillStyle = gr; c.fillRect(lx - 52, ly - 52, 104, 104);
+      var flack = 1 + Math.sin(t * 3.1 + hash(i, 9) * 0.01) * 0.04;
+      var gr = c.createRadialGradient(lx, ly, 2, lx, ly, 50); gr.addColorStop(0, 'rgba(255,214,130,' + (0.35 * flack).toFixed(3) + ')'); gr.addColorStop(1, 'rgba(255,214,130,0)');
+      c.globalAlpha = Math.min(1, (0.7 + 0.3 * l.glut) * flack); c.fillStyle = gr; c.fillRect(lx - 52, ly - 52, 104, 104);
     }
     if (karte.id === 'kneipe') {
       var jx = 12.5 * K - cx, jy = 3 * K - cy, farbe = TANZ_FARBEN[Math.floor(t * 3) % 4];
       c.globalAlpha = 0.5 + 0.2 * Math.sin(t * 6); G.glanz(c, jx, jy, 26, farbe, 'rgba(0,0,0,0)');
       c.globalAlpha = 0.3; r(c, 12 * K - cx + 4, 3 * K - cy - 0.5, 8, 1, farbe);
+      // Bierfass-Glanz am Tresen
+      var fx = 5 * K - cx + 8, fy = 4 * K - cy + 6;
+      c.globalAlpha = 0.25 + 0.1 * Math.sin(t * 2.2); G.glanz(c, fx, fy, 12, 'rgba(255,220,140,0.7)', 'rgba(255,220,140,0)');
+      c.globalAlpha = 0.35; r(c, fx - 2, fy - 4, 1.2, 6, 'rgba(255,248,220,0.7)');
     }
     c.globalAlpha = 1;
   }
 
+  // Laufzeit-Overlay Hotel: Uhrzeiger + Pflanzen-Wippen (nicht im HG-Cache)
+  function hotelAnim(c, S, cx, cy) {
+    var t = S.t;
+    uhrWand(c, 8 * K + 8 - cx, 9 - cy, 5, t * 40);
+    var T = Saufi.Karte.T, karte = S.karte;
+    for (var y = 0; y < karte.h; y++) for (var x = 0; x < karte.w; x++) {
+      if (karte.tile(x, y) !== T.PFLANZE) continue;
+      pflanze(c, x * K - cx, y * K - cy, hash(x, y), t);
+    }
+  }
+
   Saufi.Innen = {
     TANZ_FARBEN: TANZ_FARBEN, zeichneInnenKachel: zeichneInnenKachel, wandDeko: wandDeko, innenFensterNacht: innenFensterNacht,
-    tanzFlaeche: tanzFlaeche, diskoLichter: diskoLichter, raumLichter: raumLichter
+    tanzFlaeche: tanzFlaeche, diskoLichter: diskoLichter, raumLichter: raumLichter, hotelAnim: hotelAnim
   };
 })(globalThis);

@@ -54,7 +54,8 @@
     c.fillStyle = '#f4f1de'; c.fill();
   }
 
-  function himmelZeichnen(c, x, y, w, h, stunde, t) {
+  function himmelZeichnen(c, x, y, w, h, stunde, t, opt) {
+    opt = opt || {};
     var f = himmelFarben(stunde); vlauf(c, x, y, w, h, f.oben, f.unten);
     var sa = sterneAlpha(stunde);
     if (sa > 0.02) {
@@ -64,7 +65,7 @@
       }
       c.globalAlpha = 1;
     }
-    var sp = sonnenPos(stunde);
+    var sp = opt.ohneSonne ? null : sonnenPos(stunde);
     if (sp) {
       var nah = sp.daemmer ? 0.85 : klemme(1 - Math.abs(sp.y - 0.78) / 0.3), sxp = x + sp.x * w, syp = y + sp.y * h;
       var rad = Math.max(3, (sp.daemmer ? w : h) * (sp.daemmer ? 0.07 : 0.07));
@@ -107,14 +108,13 @@
   }
 
   // Kessel-Panorama fuer Start- und Endbildschirm.
-  // opt: { turmMaxY } — Turmschaft nur bis zu dieser Y (Panel-Oberkante); { sterneMaxY } — Sterne nur darueber
+  // opt: { turmMaxY, sterneMaxY, ohneSonne }
   function kesselSzene(c, W, H, stunde, t, opt) {
     opt = opt || {};
     var n = nachtGrad(stunde), tag = 1 - n;
     var himmelH = opt.sterneMaxY != null ? opt.sterneMaxY : H * 0.72;
-    himmelZeichnen(c, 0, 0, W, Math.max(H * 0.55, himmelH), stunde, t);
+    himmelZeichnen(c, 0, 0, W, Math.max(H * 0.55, himmelH), stunde, t, { ohneSonne: !!opt.ohneSonne });
     var m = function (a, b) { return G.mischeHex(a, b, n); };
-    // ferne Hoehen mit Dunst
     function huegel(y0, amp, ph, farbe, rebenFarbe) {
       c.beginPath(); c.moveTo(0, H);
       for (var x = 0; x <= W; x += 6) c.lineTo(x, y0 + Math.sin((x + ph) / 46) * amp + Math.sin((x + ph) / 19) * amp * 0.35);
@@ -129,7 +129,6 @@
       }
     }
     huegel(H * 0.52, 7, 0, m('#a9c8d8', '#27315a'), null);
-    // Turm rechts; bei turmMaxY nur Anteil oberhalb der Panel-Kante (Kopf frei, kein Schaft im Panel)
     var turmFuss = H * 0.5, turmH = H * 0.3, turmX = W * 0.88;
     if (opt.turmMaxY != null) {
       c.save(); c.beginPath(); c.rect(0, 0, W, opt.turmMaxY); c.clip();
@@ -138,16 +137,43 @@
     } else turm(c, turmX, turmFuss, turmH, m('#9aa8be', '#1b2342'), n * 0.9);
     huegel(H * 0.58, 8, 90, m('#8cc27a', '#233a46'), m('#79b068', '#1d3340'));
     huegel(H * 0.67, 6, 40, m('#6fae6a', '#1b2d3a'), null);
-    // Haeuser im Kessel (warme Fenster bei Daemmerung/Nacht)
+    // Haeuser ~30 % groesser
     var by = H * 0.76, fenLit = stunde >= 19 || stunde >= 27 ? Math.max(n, 0.55) : n;
-    for (var i = 0; i < 20; i++) {
-      var hx = 10 + i * (W - 20) / 20, hh = 7 + (hash(i, 9) % 10), hw = 8 + (hash(i, 4) % 5);
+    for (var i = 0; i < 18; i++) {
+      var hx = 8 + i * (W - 16) / 18, hh = Math.round((7 + (hash(i, 9) % 10)) * 1.3), hw = Math.round((8 + (hash(i, 4) % 5)) * 1.3);
       haeuschen(c, hx, by - hh + 6, hw, hh, m(i % 2 ? '#f0dcc4' : '#e8cdb0', '#1b2036'), m(i % 3 ? '#d2694f' : '#b9553f', '#22223c'), fenLit, false);
     }
-    // Fluss und Vordergrund
-    vlauf(c, 0, by + 6, W, H - by - 6, m('#a8d68f', '#16222f'), m('#7fb678', '#101a26'));
-    c.globalAlpha = 0.55; r(c, 0, by + 10, W, 3, m('#7fd3ec', '#243a60')); c.globalAlpha = 1;
-    // Dunst unten
+    // Vordergrund ab by: Weg, Wiese, Buesche/Baeume, Zaun/Reben (keine einfarbige Flaeche > 25 % H)
+    var vgH = H - by;
+    vlauf(c, 0, by, W, vgH * 0.22, m('#a8d68f', '#16222f'), m('#8fba74', '#142018'));
+    // Weg-Fortsetzung vom Kessel
+    var wegY = by + vgH * 0.18, wegH = Math.max(6, vgH * 0.14);
+    vlauf(c, W * 0.28, wegY, W * 0.44, wegH, m('#dcb98e', '#3a3020'), m('#c79f74', '#2a2218'));
+    r(c, W * 0.28, wegY, W * 0.44, 1.2, m('#e8ccaa', '#4a4030'));
+    r(c, W * 0.28, wegY + wegH - 1, W * 0.44, 1, 'rgba(100,70,40,0.35)');
+    // Wiesenstreifen mit zwei Gruentoenen
+    vlauf(c, 0, by + vgH * 0.32, W, vgH * 0.28, m('#96c67e', '#1a2a22'), m('#7fb678', '#101a18'));
+    r(c, 0, by + vgH * 0.55, W, vgH * 0.12, m('#6fae6a', '#15241c'));
+    // Buesche/Baeume Silhouetten (deterministisch)
+    for (var b = 0; b < 14; b++) {
+      var bh = hash(b, 21), bx = 6 + (bh % 1000) / 1000 * (W - 20);
+      var by2 = by + vgH * (0.38 + ((bh >> 8) % 40) / 200), br = 3 + (bh % 4);
+      var g1 = m('#4f9058', '#0e1812'), g2 = m('#2f6a3f', '#0a120e');
+      ellipse(c, bx, by2, br * 1.4, br * 0.9, b % 2 ? g1 : g2);
+      if (b % 3 === 0) { r(c, bx - 0.6, by2, 1.2, br * 1.2, m('#6a4a30', '#1a1208')); ellipse(c, bx, by2 - br * 0.6, br * 1.1, br * 1.3, g1); }
+    }
+    // Zaun / Reben-Linie
+    var zaunY = by + vgH * 0.72;
+    c.strokeStyle = m('#6a4a30', '#2a1a10'); c.lineWidth = 1;
+    c.beginPath(); c.moveTo(0, zaunY);
+    for (var zx = 0; zx <= W; zx += 10) c.lineTo(zx, zaunY + Math.sin(zx / 18) * 1.5);
+    c.stroke();
+    for (var z2 = 0; z2 < W; z2 += 14) {
+      linie(c, z2, zaunY - 4, z2, zaunY + 3, m('#7a5a38', '#2a1a10'), 0.9);
+      linie(c, z2, zaunY - 2, z2 + 14, zaunY - 2, m('#5a8a4a', '#1a2a18'), 0.7);
+    }
+    vlauf(c, 0, zaunY + 4, W, H - (zaunY + 4), m('#7fb678', '#121c16'), m('#5a8a4a', '#0c1410'));
+    c.globalAlpha = 0.45; r(c, 0, by + 4, W, 2.5, m('#7fd3ec', '#243a60')); c.globalAlpha = 1;
     var gr = c.createLinearGradient(0, H * 0.45, 0, H * 0.78); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(1, 'rgba(255,240,225,' + (0.25 * tag + 0.06) + ')');
     c.fillStyle = gr; c.fillRect(0, H * 0.45, W, H * 0.33);
   }
@@ -331,7 +357,8 @@
     if (b.id === 'hotel') {
       for (i = 0; i < 4; i++) { plan.fenster.push({ x: x0 + 10 + i * 28 + (i > 1 ? 16 : 0), y: y0 + 28, w: 12, h: 13 }); plan.fenster.push({ x: x0 + 10 + i * 28 + (i > 1 ? 16 : 0), y: y0 + 50, w: 12, h: 13 }); }
       // Zwischen Fensterreihen auf dem Gesims (volle Breite, 1 Zeile ≥ 5,5 px) — Quelle fuer Zeichnung
-      plan.schildNeben = { x: x0 + (w - 56) / 2, y: y0 + 42.3, w: 56, h: 6.4, text: 'Kehrwoche ok' };
+      // ≥ 7 CSS-px im Hoch nicht erreichbar ohne Fenster-Overlap → Text „Kehrwoche“
+      plan.schildNeben = { x: x0 + (w - 56) / 2, y: y0 + 42.3, w: 56, h: 6.4, text: 'Kehrwoche' };
     } else if (b.id === 'restaurant') {
       for (i = 0; i < 3; i++) plan.fenster.push({ x: x0 + 8 + i * 34 + (i > 0 ? 10 : 0), y: y0 + 30, w: 14, h: 14 });
       plan.fenster.push({ x: x0 + 8, y: y0 + 54, w: 14, h: 14 }); plan.fenster.push({ x: x0 + w - 24, y: y0 + 54, w: 14, h: 14 });
