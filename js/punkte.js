@@ -16,7 +16,7 @@
   // Wertung: bei Sieg Bronze/Silber/Gold; bei Niederlage eigener Titel je nach Grund (Team vs. Umfallen).
   function wertung(punkte, sieg, art) {
     if (!sieg) {
-      if (art === 'team') return { medaille: '', titel: 'Abgehängt', kopf: 'Die Truppe hat dich abgehängt' };
+      if (art === 'team') return { medaille: '', titel: 'Feierabend', kopf: 'Die Truppe ist ohne dich weitergezogen.' };
       return { medaille: '', titel: 'Umgefallen', kopf: 'Press F to pay respects.' };
     }
     if (punkte >= GOLD) return { medaille: 'Gold', titel: 'Kesselkönig/-königin', kopf: 'Du stehst noch, Saufi.' };

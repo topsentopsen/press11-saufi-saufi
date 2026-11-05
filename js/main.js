@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.28', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.29', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function wendeCharStats(S, char) {
@@ -132,7 +132,7 @@
     var w = Saufi.Punkte.wertung(S.punkte.punkte, sieg, art), neu = false;
     if (S.speicher) { var alt = S.speicher.zahl('best', 0); if (sieg && S.punkte.punkte > alt) { S.speicher.setzeZahl('best', S.punkte.punkte); neu = true; S.best = S.punkte.punkte; } else S.best = Math.max(S.best || 0, alt); }
     else if (sieg && S.punkte.punkte > (S.best || 0)) { S.best = S.punkte.punkte; neu = true; }
-    if (art === 'team' && (!grund || /Teamstimmung 0/.test(grund))) grund = 'Die Truppe hat dich abgehängt (Teamstimmung 0).';
+    if (art === 'team' && (!grund || /Teamstimmung 0/.test(grund))) grund = 'Teamstimmung 0 – die anderen sitzen schon im Taxi.';
     S.ende = { sieg: sieg, grund: grund || '', wertung: w, art: art, t: 0, neuerBestwert: neu };
     if (sieg) X.T.fanfare(); else X.T.verloren();
     if (X.M) X.M.ende();
@@ -446,13 +446,17 @@
     for (var y = ty - r; y <= ty + r; y++) for (var x = tx - r; x <= tx + r; x++) if (!S.karte.blockiert(x, y)) res.push({ x: x, y: y });
     return res;
   }
-  function tippeWelt(S, X, sx, sy) {
+  function tippeWelt(S, X, sx, sy, opt) {
     var p = weltPunkt(S, sx, sy), sp = S.spieler, K = Saufi.Spieler.K;
     if (!p || sp.isst > 0 || S.uebergang || S.overlay) return 'nein';
     if (sp.sitzt) { sp.sitzt = false; stoppeTippWeg(S); return 'aufstehen'; }   // wie Finca: erster Tipp steht auf
     var z = tippZiel(S, p.x, p.y), ziele, akt = null;
+    var touch = !!(X && X.E && X.E.touch);
     if (z.art === 'wecken') {
-      if (Math.hypot(z.npc.x - sp.x, z.npc.y - sp.y) <= Saufi.NPCs.WECK_REICHWEITE) { stoppeTippWeg(S); wasserTrinken(S, X); return 'wecken'; }
+      var nahGenug = Math.hypot(z.npc.x - sp.x, z.npc.y - sp.y) <= Saufi.NPCs.WECK_REICHWEITE;
+      // Handy: neben der Figur weckt erst der zweite Tipp. Q und der Wecken-Knopf bleiben. Maus und Tastatur wie bisher.
+      if (nahGenug && touch && !(opt && opt.doppel)) { stoppeTippWeg(S); return 'doppelt'; }
+      if (nahGenug) { stoppeTippWeg(S); wasserTrinken(S, X); return 'wecken'; }
       ziele = freieNachbarn(S, Math.floor(z.npc.x / K), Math.floor(z.npc.y / K), 1); akt = z;
     } else if (z.art === 'stadtvolk') {
       if (Math.hypot(z.v.px - sp.x, z.v.py - sp.y) <= Saufi.Stadtvolk.REDE_PX) { stoppeTippWeg(S); quatsche(S, z.v); return 'stadtvolk'; }
@@ -869,7 +873,12 @@
     var neue = Saufi.NPCs.ankommen(S.npcs, m, S.karte, sp.x / K | 0, (sp.y - 1) / K | 0);
     neue.forEach(function (n) { sag(S, n.char.name + ' stößt dazu.', 3, 'info'); });
     S.npcs.forEach(function (n) {
-      if (n.melde === 'heim') { sag(S, n.char.name + ' geht früher nach Hause.', 3, 'info'); n.melde = null; }
+      if (n.melde === 'heim') {
+        var dabei = 0;
+        S.npcs.forEach(function (x) { if (x.aktiv) dabei++; });
+        sag(S, '🚕 ' + n.char.name + ' ist heim. Noch ' + dabei + ' von ' + S.npcs.length + ' dabei.', 3.2, 'heim');
+        n.melde = null;
+      }
     });
     // Joint / Boost Zeit
     Saufi.Ereignisse.Joint.update(S.joint, dt); Saufi.Ereignisse.Boost.update(S.boost, dt);
@@ -892,7 +901,11 @@
     }
     // Eingabe und Bewegung
     var achse = E ? E.achse() : { x: 0, y: 0 }, bewegt = Math.hypot(achse.x, achse.y) > 0.1;
-    if (E && E.klicks().length) { var kl = E.klicks()[E.klicks().length - 1]; tippeWelt(S, X, kl.x, kl.y); }
+    if (E && E.doppelTaps && E.doppelTaps().length && (E.touch || S.touch)) {
+      var dd = E.doppelTaps()[E.doppelTaps().length - 1];
+      var wp = weltPunkt(S, dd.x, dd.y);
+      if (wp && tippZiel(S, wp.x, wp.y).art === 'wecken') tippeWelt(S, X, dd.x, dd.y, { doppel: true });
+    } else if (E && E.klicks().length) { var kl = E.klicks()[E.klicks().length - 1]; tippeWelt(S, X, kl.x, kl.y); }
     if (S.marker) { S.marker.t += dt; if ((S.marker.nein || !S.tippWeg) && S.marker.t > 0.9) S.marker = null; }
     if (bewegt && S.tippWeg) stoppeTippWeg(S);          // Tasten/Joystick haben Vorrang
     else if (!bewegt && S.tippWeg && !S.overlay && !S.uebergang && sp.isst <= 0) { var ta = tippAchse(S, X, dt); if (ta) achse = ta; }
@@ -1204,7 +1217,21 @@
       else updateSpiel(S, dt, X, E);
     }
     if (E && S.zustand === 'spiel' && !S.overlay) { /* Eingabe wird vom Aufrufer mit E.ende() geleert */ }
+    pruefeStimmung(S);
     return S;
+  }
+  // Teamstimmung 1: einmaliges Warn-Sheet, bevor die Truppe ohne dich weiterzieht.
+  function pruefeStimmung(S) {
+    var vor = S._teamVor;
+    S._teamVor = S.runden ? S.runden.team : vor;
+    if (vor == null || S.zustand !== 'spiel' || !S.runden) return;
+    if (S.runden.team === 1 && vor > 1) {
+      sag(S, 'Stimmung kippt! Nächste Runde mittrinken, sonst zieht die Truppe ohne dich weiter.', 4.5, 'kippt');
+      try {
+        var nav = g.navigator;
+        if (nav && typeof nav.vibrate === 'function') nav.vibrate(30);
+      } catch (e) { /* kein Vibrator */ }
+    }
   }
 
   // ---------------------------------------------------------------- Debug / Test-Hilfen
@@ -1339,7 +1366,10 @@
       // Bedienleiste nur Hochformat+Touch. Auswahl bleibt 96–140. Im Spiel +29 % (124–180), damit die größeren Knöpfe reinpassen.
       var ingame = !!(S && S.zustand && S.zustand !== 'start');
       var bedienCss = (isTouch && hoch) ? berechneBedien(availH, ingame) : 0;
-      var playH = Math.max(1, availH - bedienCss);
+      // Im Spiel liegt die Leiste über der Welt und zieht keine Canvas-Höhe ab.
+      // Die Auswahl behält den Streifen, damit sich deren Canvas-Höhe nicht ändert.
+      var bedienLayout = ingame ? 0 : bedienCss;
+      var playH = Math.max(1, availH - bedienLayout);
       var logH = hoch ? Saufi.Render.berechnePortH(availW, playH) : Saufi.Render.BASE_H;
       var touchWechsel = !!R.touch !== isTouch;
       var sollZoom = Saufi.Render.clampZoomFaktor(R.userZoom != null ? R.userZoom : 1);
@@ -1350,6 +1380,7 @@
         E.setzeMass(R.W, R.H);
         if (S && S.kamera) { S.kamera.viewW = R.VW || R.W; S.kamera.viewH = R.VH || R.H; }
       }
+      if (S && S.kamera) S.kamera.daumenFrei = (hoch && isTouch && ingame) ? 0.12 : 0;
       var sk = berechneSkala(availW, playH, R.W, R.H, isTouch, Saufi.Gfx.MIN_SCHRIFT || 7);
       var s = sk.s, cw = sk.cw, ch = sk.ch;
       canvas.style.width = cw + 'px'; canvas.style.height = ch + 'px';
