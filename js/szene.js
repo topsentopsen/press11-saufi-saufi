@@ -113,17 +113,19 @@
     opt = opt || {};
     var n = nachtGrad(stunde), tag = 1 - n;
     var himmelH = opt.sterneMaxY != null ? opt.sterneMaxY : H * 0.72;
-    himmelZeichnen(c, 0, 0, W, Math.max(H * 0.55, himmelH), stunde, t, { ohneSonne: !!opt.ohneSonne });
+    // Rand +2 px: keine Ebene endet vor W (weißer Strich vermeiden)
+    var x0e = -2, We = W + 4;
+    himmelZeichnen(c, x0e, 0, We, Math.max(H * 0.55, himmelH), stunde, t, { ohneSonne: !!opt.ohneSonne });
     var m = function (a, b) { return G.mischeHex(a, b, n); };
     function huegel(y0, amp, ph, farbe, rebenFarbe) {
-      c.beginPath(); c.moveTo(0, H);
-      for (var x = 0; x <= W; x += 6) c.lineTo(x, y0 + Math.sin((x + ph) / 46) * amp + Math.sin((x + ph) / 19) * amp * 0.35);
-      c.lineTo(W, H); c.closePath(); c.fillStyle = farbe; c.fill();
+      c.beginPath(); c.moveTo(x0e, H);
+      for (var x = x0e; x <= W + 2; x += 6) c.lineTo(x, y0 + Math.sin((x + ph) / 46) * amp + Math.sin((x + ph) / 19) * amp * 0.35);
+      c.lineTo(W + 2, H); c.closePath(); c.fillStyle = farbe; c.fill();
       if (rebenFarbe) {
         c.strokeStyle = rebenFarbe; c.lineWidth = 0.7;
         for (var k2 = 1; k2 < 5; k2++) {
           c.beginPath();
-          for (var x2 = 0; x2 <= W; x2 += 6) { var yy = y0 + k2 * 4 + Math.sin((x2 + ph) / 46) * amp + Math.sin((x2 + ph) / 19) * amp * 0.35; if (x2 === 0) c.moveTo(x2, yy); else c.lineTo(x2, yy); }
+          for (var x2 = x0e; x2 <= W + 2; x2 += 6) { var yy = y0 + k2 * 4 + Math.sin((x2 + ph) / 46) * amp + Math.sin((x2 + ph) / 19) * amp * 0.35; if (x2 === x0e) c.moveTo(x2, yy); else c.lineTo(x2, yy); }
           c.stroke();
         }
       }
@@ -145,15 +147,15 @@
     }
     // Vordergrund ab by: Weg, Wiese, Buesche/Baeume, Zaun/Reben (keine einfarbige Flaeche > 25 % H)
     var vgH = H - by;
-    vlauf(c, 0, by, W, vgH * 0.22, m('#a8d68f', '#16222f'), m('#8fba74', '#142018'));
+    vlauf(c, x0e, by, We, vgH * 0.22, m('#a8d68f', '#16222f'), m('#8fba74', '#142018'));
     // Weg-Fortsetzung vom Kessel
     var wegY = by + vgH * 0.18, wegH = Math.max(6, vgH * 0.14);
     vlauf(c, W * 0.28, wegY, W * 0.44, wegH, m('#dcb98e', '#3a3020'), m('#c79f74', '#2a2218'));
     r(c, W * 0.28, wegY, W * 0.44, 1.2, m('#e8ccaa', '#4a4030'));
     r(c, W * 0.28, wegY + wegH - 1, W * 0.44, 1, 'rgba(100,70,40,0.35)');
     // Wiesenstreifen mit zwei Gruentoenen
-    vlauf(c, 0, by + vgH * 0.32, W, vgH * 0.28, m('#96c67e', '#1a2a22'), m('#7fb678', '#101a18'));
-    r(c, 0, by + vgH * 0.55, W, vgH * 0.12, m('#6fae6a', '#15241c'));
+    vlauf(c, x0e, by + vgH * 0.32, We, vgH * 0.28, m('#96c67e', '#1a2a22'), m('#7fb678', '#101a18'));
+    r(c, x0e, by + vgH * 0.55, We, vgH * 0.12, m('#6fae6a', '#15241c'));
     // Buesche/Baeume Silhouetten (deterministisch)
     for (var b = 0; b < 14; b++) {
       var bh = hash(b, 21), bx = 6 + (bh % 1000) / 1000 * (W - 20);
@@ -165,17 +167,17 @@
     // Zaun / Reben-Linie
     var zaunY = by + vgH * 0.72;
     c.strokeStyle = m('#6a4a30', '#2a1a10'); c.lineWidth = 1;
-    c.beginPath(); c.moveTo(0, zaunY);
-    for (var zx = 0; zx <= W; zx += 10) c.lineTo(zx, zaunY + Math.sin(zx / 18) * 1.5);
+    c.beginPath(); c.moveTo(x0e, zaunY);
+    for (var zx = x0e; zx <= W + 2; zx += 10) c.lineTo(zx, zaunY + Math.sin(zx / 18) * 1.5);
     c.stroke();
     for (var z2 = 0; z2 < W; z2 += 14) {
       linie(c, z2, zaunY - 4, z2, zaunY + 3, m('#7a5a38', '#2a1a10'), 0.9);
       linie(c, z2, zaunY - 2, z2 + 14, zaunY - 2, m('#5a8a4a', '#1a2a18'), 0.7);
     }
-    vlauf(c, 0, zaunY + 4, W, H - (zaunY + 4), m('#7fb678', '#121c16'), m('#5a8a4a', '#0c1410'));
-    c.globalAlpha = 0.45; r(c, 0, by + 4, W, 2.5, m('#7fd3ec', '#243a60')); c.globalAlpha = 1;
+    vlauf(c, x0e, zaunY + 4, We, H - (zaunY + 4), m('#7fb678', '#121c16'), m('#5a8a4a', '#0c1410'));
+    c.globalAlpha = 0.45; r(c, x0e, by + 4, We, 2.5, m('#7fd3ec', '#243a60')); c.globalAlpha = 1;
     var gr = c.createLinearGradient(0, H * 0.45, 0, H * 0.78); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(1, 'rgba(255,240,225,' + (0.25 * tag + 0.06) + ')');
-    c.fillStyle = gr; c.fillRect(0, H * 0.45, W, H * 0.33);
+    c.fillStyle = gr; c.fillRect(x0e, H * 0.45, We, H * 0.33);
   }
 
   // Kleines Himmelsfenster fuer das HUD: Sonne, Mond, Sterne in einem Kreis
@@ -352,28 +354,34 @@
   // Plan in Weltpixeln: Fenster (leuchten nachts), Neon, Tuer
   function bauplan(b) {
     var x0 = b.x * K, y0 = b.y * K, w = b.w * K, h = b.h * K, tx = b.tuer.x * K, ty = b.tuer.y * K;
-    var plan = { x0: x0, y0: y0, w: w, h: h, tuer: { x: tx, y: ty, w: K, h: K }, fenster: [], neon: [], schild: { x: x0 + w / 2, y: y0 + 21 }, schildNeben: null, npcZone: null };
+    var plan = { x0: x0, y0: y0, w: w, h: h, tuer: { x: tx, y: ty, w: K, h: K }, fenster: [], neon: [], schild: { x: x0 + w / 2, y: y0 + 21 }, schildHaupt: null, schildNeben: null, npcZone: null };
     var i;
     if (b.id === 'hotel') {
       for (i = 0; i < 4; i++) { plan.fenster.push({ x: x0 + 10 + i * 28 + (i > 1 ? 16 : 0), y: y0 + 28, w: 12, h: 13 }); plan.fenster.push({ x: x0 + 10 + i * 28 + (i > 1 ? 16 : 0), y: y0 + 50, w: 12, h: 13 }); }
       // Zwischen Fensterreihen auf dem Gesims (volle Breite, 1 Zeile ≥ 5,5 px) — Quelle fuer Zeichnung
       // ≥ 7 CSS-px im Hoch nicht erreichbar ohne Fenster-Overlap → Text „Kehrwoche“
       plan.schildNeben = { x: x0 + (w - 56) / 2, y: y0 + 42.3, w: 56, h: 6.4, text: 'Kehrwoche' };
+      plan.schildHaupt = { x: x0 + w / 2, y: y0 + 14, w: Math.min(w - 8, 112), h: 14, text: 'HOTEL KESSELBLICK' };
     } else if (b.id === 'restaurant') {
       for (i = 0; i < 3; i++) plan.fenster.push({ x: x0 + 8 + i * 34 + (i > 0 ? 10 : 0), y: y0 + 30, w: 14, h: 14 });
       plan.fenster.push({ x: x0 + 8, y: y0 + 54, w: 14, h: 14 }); plan.fenster.push({ x: x0 + w - 24, y: y0 + 54, w: 14, h: 14 });
+      plan.schildHaupt = { x: x0 + w / 2, y: y0 + 14, w: Math.min(w - 8, 108), h: 14, text: 'GASTHAUS MAULTÄSCHLE' };
     } else if (b.id === 'kneipe') {
       plan.fenster.push({ x: x0 + 8, y: y0 + 28, w: 22, h: 18 }); plan.fenster.push({ x: x0 + w - 30, y: y0 + 28, w: 22, h: 18 });
       plan.neon.push({ x: x0 + w / 2 - 18, y: y0 + 16, w: 36, h: 4, farbe: P.neonGelb });
       // Feinstaub auf Markisen-Band (oben); NPC-Schlange vor der Tuer (unter Markise) — kein Overlap
       plan.schildNeben = { x: x0 + w / 2 - 30, y: y0 + 38, w: 60, h: 10, text: 'Feinstaub drin' };
-      plan.npcZone = { x: tx - 24, y: ty + 2, w: K + 48, h: K + 14 };
+      plan.schildHaupt = { x: x0 + w / 2, y: y0 + 8, w: Math.min(w - 8, 108), h: 14, text: 'ZUM DURSTIGEN DACHS' };
+      plan.npcZone = { x: tx - 24, y: Math.max(ty + 2, plan.schildNeben.y + plan.schildNeben.h + 2), w: K + 48, h: K + 14 };
     } else if (b.id === 'disko') {
       plan.neon.push({ x: x0 + 8, y: y0 + 18, w: w - 16, h: 3, farbe: P.neonPink });
       plan.neon.push({ x: x0 + 8, y: y0 + 24, w: w - 16, h: 2, farbe: P.neonCyan });
       plan.neon.push({ x: x0 + 10, y: y0 + h - 2, w: w - 20, h: 2, farbe: P.neonLila });
       plan.fenster.push({ x: x0 + 12, y: y0 + 34, w: 10, h: 18 }); plan.fenster.push({ x: x0 + w - 22, y: y0 + 34, w: 10, h: 18 });
+      plan.schildHaupt = { x: x0 + w / 2, y: y0 - 1, w: w - 12, h: 12, text: 'UNTERGRUND 07' };
     }
+    // Alias: Tests/Nacht lesen schild; Werte so, dass Tag = Nacht (Oberkante)
+    if (plan.schildHaupt) plan.schild = { x: plan.schildHaupt.x, y: plan.schildHaupt.y };
     return plan;
   }
 
@@ -433,7 +441,7 @@
     rr(c, d.x - 8, d.y - 10, d.w + 16, 7, '#2e3f7a', 2, 'rgba(20,20,60,0.8)', 0.7);
     for (i = 0; i < 6; i++) r(c, d.x - 8 + i * 4.0 + 1, d.y - 10, 2, 7, 'rgba(255,255,255,0.18)');
     for (i = 0; i < 9; i++) kreis(c, d.x - 6 + i * 3.5, d.y - 3, 1.6, '#2e3f7a');
-    schildGeb(c, x0 + w / 2, y0 + 14, Math.min(w - 8, 112), 14, '#2e3f7a', '#ffe9a8', 'HOTEL KESSELBLICK', 11, '#d9b86a');
+    var shH = p.schildHaupt; schildGeb(c, shH.x, shH.y, shH.w, shH.h, '#2e3f7a', '#ffe9a8', shH.text, 11, '#d9b86a');
     r(c, x0 - 1, y0 + 17, w + 2, 1, 'rgba(60,40,80,0.35)');                       // Dachrinne
     // Gesims-Band: Koordinaten aus plan.schildNeben (eine Quelle)
     var hotelSchild = p.schildNeben;
@@ -464,7 +472,7 @@
     r(c, x0 + w - 14, y0 + 33, 12, 1.4, '#3a2a30'); rr(c, x0 + w - 9, y0 + 34.5, 8, 6, '#ffd36e', 1.4, '#7a4a34', 0.6); kreis(c, x0 + w - 5, y0 + 37.5, 1.8, '#c8864a');
     var d = p.tuer;
     [d.x - 14, d.x + d.w + 3].forEach(function (bx, i2) { ellipse(c, bx + 5, d.y + 15, 6, 2, 'rgba(60,40,50,0.25)'); rr(c, bx, d.y + 5, 10, 10, '#b97a4a', 3, '#6a3f2a', 0.7); r(c, bx + 0.5, d.y + 8, 9, 0.8, '#6a3f2a'); r(c, bx + 0.5, d.y + 12, 9, 0.8, '#6a3f2a'); if (i2) kreis(c, bx + 5, d.y + 4.6, 3, '#6fae6a'); });
-    schildGeb(c, x0 + w / 2, y0 + 14, Math.min(w - 8, 108), 14, '#6a3f2a', '#ffe9a8', 'GASTHAUS MAULTÄSCHLE', 11, '#d9b86a');
+    var shR = p.schildHaupt; schildGeb(c, shR.x, shR.y, shR.w, shR.h, '#6a3f2a', '#ffe9a8', shR.text, 11, '#d9b86a');
     schild(c, x0 + w - 28, y0 + 50, 40, 10, '#ffd36e', '#6a3f2a', 'Spätzle!', 7);
   }
   function kneipeFassade(c, p) {
@@ -502,7 +510,7 @@
     kreis(c, sx - 2, sy - 1, 0.6, '#222'); kreis(c, sx + 2, sy - 1, 0.6, '#222'); kreis(c, sx, sy + 2.6, 0.9, '#222');
     // Kreidetafel
     rr(c, d.x + d.w + 4, d.y + 3, 9, 12, '#3a3a40', 1, '#8a5a3a', 0.9); linie(c, d.x + d.w + 6, d.y + 7, d.x + d.w + 11, d.y + 7, '#fff8ee', 0.5); linie(c, d.x + d.w + 6, d.y + 10, d.x + d.w + 10, d.y + 10, '#fff8ee', 0.5);
-    schildGeb(c, x0 + w / 2, y0 + 8, Math.min(w - 8, 108), 14, '#2f6a3f', '#ffe9a8', 'ZUM DURSTIGEN DACHS', 11, '#d9b86a');
+    var shK = p.schildHaupt; schildGeb(c, shK.x, shK.y, shK.w, shK.h, '#2f6a3f', '#ffe9a8', shK.text, 11, '#d9b86a');
     // Bandstreifen: Koordinaten aus plan.schildNeben
     var kneipeSchild = p.schildNeben;
     if (kneipeSchild) schild(c, kneipeSchild.x + kneipeSchild.w / 2, kneipeSchild.y, kneipeSchild.w, kneipeSchild.h, '#2a2a30', '#fff8ee', kneipeSchild.text, 7);
@@ -523,7 +531,7 @@
     p.fenster.forEach(function (f) { fensterV(c, f, '#5a4a8a', null, false); });
     // Neon (dunkel, leuchtet in der Lichtstufe)
     p.neon.forEach(function (n) { c.globalAlpha = 0.45; rr(c, n.x, n.y, n.w, n.h, n.farbe, 1); c.globalAlpha = 1; });
-    textInBox(c, 'UNTERGRUND 07', x0 + 6, y0 - 1, w - 12, 12, 10, { col: P.neonCyan, ausr: 'center', kontur: 'rgba(20,10,50,0.85)', min: 7 });
+    var shD = p.schildHaupt; textInBox(c, shD.text, shD.x - shD.w / 2, shD.y, shD.w, shD.h, 10, { col: P.neonCyan, ausr: 'center', kontur: 'rgba(20,10,50,0.85)', min: 7 });
     // Absperrung vor der Tuer
     var d = p.tuer;
     [d.x - 6, d.x + d.w + 6].forEach(function (px) { r(c, px - 0.6, d.y + 10, 1.2, 7, '#d8b050'); kreis(c, px, d.y + 9.6, 1.4, '#ffd75e'); });

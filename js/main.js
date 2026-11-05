@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.9', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.10', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function neuesSpiel(opt) {
@@ -95,9 +95,16 @@
     X = stub(X);
     var von = S.ort, b = null;
     S.welt.stadt.gebaeude.forEach(function (g2) { if (g2.id === von) b = g2; });
-    S.ort = 'stadt'; S.karte = S.welt.stadt; stelleHin(S, b.aussen.x, b.aussen.y);
-    Saufi.NPCs.uebergang(S.npcs, S.karte, b.aussen.x, b.aussen.y);
-    S.spieler.sitzt = false; X.T.tuer();
+    S.ort = 'stadt'; S.karte = S.welt.stadt;
+    S.spieler.sitzt = false; S.spieler.isst = 0; S.spieler.essenId = null;
+    if (b && b.aussen) {
+      stelleHin(S, b.aussen.x, b.aussen.y);
+      Saufi.NPCs.uebergang(S.npcs, S.karte, b.aussen.x, b.aussen.y);
+    } else {
+      stelleHin(S, S.karte.spawn.x, S.karte.spawn.y);
+      Saufi.NPCs.uebergang(S.npcs, S.karte, S.karte.spawn.x, S.karte.spawn.y);
+    }
+    X.T.tuer();
     if (von === 'disko' && X.M) X.M.ende();
     musikFuerOrt(S, X);
   }
@@ -466,10 +473,11 @@
         Saufi.Punkte.add(S.punkte, 200, 'Aufnahme'); sag(S, 'WILLKOMMEN IN DER TRUPPE, ' + Saufi.Charaktere.holen(id).name.toUpperCase() + '!', 4, 'gross'); T.fanfare();
       });
     }
-    // Rauswurf bei Ladenschluss
+    // Rauswurf bei Ladenschluss (danach return: kein Umfallen/Eingabe im selben Frame)
     if (S.ort !== 'stadt' && !Saufi.Uhr.tresenOffen(S.ort, m) && !S.uebergang) {
       sag(S, 'Feierabend! Ihr werdet rausgeworfen.', 3, 'info');
       uebergang(S, function () { verlassen(S, X); });
+      return;
     }
     // Eingabe und Bewegung
     var achse = E ? E.achse() : { x: 0, y: 0 }, bewegt = Math.hypot(achse.x, achse.y) > 0.1;
@@ -498,9 +506,10 @@
     Saufi.Pegel.update(fig, dt, halbiert(S));
     var fall = Saufi.Pegel.pruefe(fig);
     if (fall) {
-      sp.liegt = true; sp.sitzt = false; sp.isst = 0; T.umfall();
+      sp.liegt = true; sp.sitzt = false; sp.isst = 0; sp.tanzt = 0; T.umfall();
       Saufi.Punkte.add(S.punkte, -200, 'Umgefallen');
       S.zustand = 'umgefallen';
+      S.overlay = null; S.uebergang = null; S.prost = 0;
       S.pressF = { n: 0, noetig: 5, rest: 3, zweitesLeben: fall === 'aufstehbar', t: 0 };
       sag(S, 'F', 2, 'gross');
       return;
@@ -578,13 +587,13 @@
     });
     if (geklickt === 'up') { o.index = aktivIdx(-1); return; }
     if (geklickt === 'down') { o.index = aktivIdx(1); return; }
-    if (geklickt === 'x' || daneben) { if (o.art === 'minispiel') { S.overlay = null; return; } schliesse(S); return; }
+    if (geklickt === 'x' || daneben) { if (o.art === 'minispiel') { beendeMinispiel(S, X); return; } schliesse(S); return; }
     var wahlNr = E.neu('wahl1') ? 0 : (E.neu('wahl2') ? 1 : (E.neu('wahl3') ? 2 : -1));
     if (wahlNr >= 0 && wahlNr < n && (o.art === 'menue' || o.art === 'minispiel')) geklickt = wahlNr;
     var best = geklickt !== null ? geklickt : (E.neu('aktion') ? o.index : -1);
     if (E.neu('pause')) {
       if (o.art === 'menue' && o.titel === 'Pause') { S.overlay = null; return; }
-      if (o.art === 'minispiel') { S.overlay = null; return; }
+      if (o.art === 'minispiel') { beendeMinispiel(S, X); return; }
       schliesse(S); return;
     }
     if (E.neu('playlist')) { if (o.art === 'playlist') schliesse(S); else playlistOverlay(S, X); return; }
@@ -991,8 +1000,19 @@
     // Touch-Knoepfe nur zeigen, wenn passend
     function knoepfeAktualisieren() {
       var item = doc.getElementById('knopf-item'), f = doc.getElementById('knopf-f');
-      if (item) item.style.display = (S.joint.hat || (S.ort === 'disko' && S.boost.leiste >= 1)) ? 'block' : 'none';
-      if (f) f.style.display = S.zustand === 'umgefallen' ? 'block' : 'none';
+      var akt = doc.getElementById('knopf-aktion'), was = doc.getElementById('knopf-wasser');
+      var endeAn = S.zustand === 'ende';
+      if (rahmen && rahmen.classList) rahmen.classList.toggle('ende', endeAn);
+      if (akt) akt.hidden = endeAn;
+      if (was) was.hidden = endeAn;
+      if (item) {
+        item.hidden = endeAn;
+        item.style.display = endeAn ? 'none' : ((S.joint.hat || (S.ort === 'disko' && S.boost.leiste >= 1)) ? 'block' : 'none');
+      }
+      if (f) {
+        f.hidden = endeAn;
+        f.style.display = endeAn ? 'none' : (S.zustand === 'umgefallen' ? 'block' : 'none');
+      }
       var dbgEl = doc.getElementById('debug'); if (dbgEl && !dbgEl.hidden) dbgEl.textContent = JSON.stringify(schnappschuss(S), null, 1);
     }
 

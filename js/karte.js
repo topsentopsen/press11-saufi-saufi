@@ -17,6 +17,7 @@
 
   var ORTE = ['hotel', 'restaurant', 'kneipe', 'disko'];
   var NAMEN = { hotel: 'Hotel Kesselblick', restaurant: 'Gasthaus Maultäschle', kneipe: 'Zum durstigen Dachs', disko: 'Untergrund 07' };
+  var KURZ = { hotel: 'Kesselblick', restaurant: 'Maultäschle', kneipe: 'Dachs', disko: 'Untergrund' };
 
   function neueKarte(id, w, h, fill, innen) {
     var k = {
@@ -241,5 +242,5 @@
     return res;
   }
 
-  Saufi.Karte = { K: K, T: T, BLOCK: BLOCK, ORTE: ORTE, NAMEN: NAMEN, erstelleStadt: erstelleStadt, erstelleWelt: erstelleWelt, nahe: nahe, umgebung: umgebung, abstand: abstand };
+  Saufi.Karte = { K: K, T: T, BLOCK: BLOCK, ORTE: ORTE, NAMEN: NAMEN, KURZ: KURZ, erstelleStadt: erstelleStadt, erstelleWelt: erstelleWelt, nahe: nahe, umgebung: umgebung, abstand: abstand };
 })(globalThis);

@@ -4,6 +4,16 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v10
+
+- **HUD Hoch:** Uhr in der UI-Reserve (`UI_RESERVE_HOCH_TOUCH = 80`), Stapel Uhr→Banner→Hinweis→Dialog; kein Uhr-Panel mehr auf dem Hoteldach; „→ HIER“ nur als Marker wenn Ziel sichtbar.
+- **Nachtschilder:** eine Quelle `schildHaupt` (Tag = Nacht, keine Doppelung); Blasen nach Fensterlichtern; Kneipen-Warteschlange unter „Feinstaub“.
+- **Ende-Bild:** Hintergrundebenen bis über den Rand (`x=−2…W+2`); Sonne voll sichtbar; E/Wasser/Item/F im Ende ausgeblendet.
+- **Hoch-Zoom / Süd:** `WELT_FLAECHE_HOCH = 2.4`; Süd-Wiese mit Beet, Heuballen, Zaun, Teich (HG-Cache, kein `S.rng`); Quer unverändert 4.0.
+- **Playlist:** einheitliche Schriftgröße für alle Titel (kein `…`); Banner-Kurznamen (`Karte.KURZ`).
+- **Durchspiel-Bot v2:** Wegfindung + Soft-Lock-Fixes (Umfallen schließt Overlay, Rauswurf-`return`, `verlassen` null-sicher, Minispiel-`beendeMinispiel` bei Klick daneben).
+- **Ton-Check:** Start-Tipp entsperrt im selben Handler; kein Resume-Spam bei `running`.
+
 ## Neu in v09
 
 - **Overlays/Reserve:** Banner, „E:“-Hinweis und Dialog im Hoch in der UI-Reserve (`UI_RESERVE_HOCH_TOUCH = 72`); Uhr kompakt in der oberen Reihe; Quer: Banner am Uhr-Panel (Uhr+Banner ≤ 38 px), Blasen unten mittig ≤ 45 % Breite.

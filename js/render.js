@@ -10,7 +10,7 @@
   var BASE_W = 320, BASE_H = 176, PORT_H = 400, PORT_H_MIN = 280, PORT_H_MAX = 720, K = 16;
   // Kamera rausgezoomt; Querformat staerker (niedrigeres VH). HUD bleibt in Bildschirmkoordinaten (W×H)
   // UI_RESERVE_HOCH: Dunkelfeld unten ohne Touch; UI_RESERVE_HOCH_TOUCH schmaler (DOM-Leiste darunter); STADT_PX_H = 40×60
-  var WELT_FLAECHE_HOCH = 2.1, WELT_FLAECHE_QUER = 4.0, MIN_WELT_ZOOM = 0.5, UI_RESERVE_HOCH = 80, UI_RESERVE_HOCH_TOUCH = 72, STADT_PX_H = 960;
+  var WELT_FLAECHE_HOCH = 2.4, WELT_FLAECHE_QUER = 4.0, MIN_WELT_ZOOM = 0.5, UI_RESERVE_HOCH = 80, UI_RESERVE_HOCH_TOUCH = 80, STADT_PX_H = 960;
   var WELT_FLAECHE = WELT_FLAECHE_QUER, WELT_ZOOM = 1 / Math.sqrt(WELT_FLAECHE);
   var MAX_BREITE = 4096, MAX_BG_SKALA = 6, MAX_DPR = 2;
   // Laternenkegel-Radius (Weltpixel); v06 war 44 → v08 kleiner/weicher
@@ -146,7 +146,40 @@
     for (var y = 0; y < karte.h; y++) for (var x = 0; x < karte.w; x++) {
       if (karte.innen) In.zeichneInnenKachel(hc, karte, x, y, x * K, y * K); else Sz.zeichneAussenKachel(hc, karte, x, y, x * K, y * K);
     }
-    if (karte.innen) In.wandDeko(hc, karte); else { Sz.hangKulisse(hc, karte); Sz.blumen(hc, karte); }
+    if (karte.innen) In.wandDeko(hc, karte); else {
+      Sz.hangKulisse(hc, karte); Sz.blumen(hc, karte);
+      // Sued-Deko y≥40·K: Beet, Heuballen, Zaun, Teich, Blumen — hash, kein S.rng
+      var yMin = 40 * K;
+      for (var sd = 0; sd < 5; sd++) {
+        var hx = hash(sd, 77), bx = 24 + (hx % (karte.pxW - 80)), by = yMin + 20 + ((hx >> 8) % Math.max(1, karte.pxH - yMin - 60));
+        var kx = Math.floor(bx / K), ky = Math.floor(by / K);
+        if (karte.blockiert(kx, ky)) continue;
+        // Beet/Feldstreifen
+        r(hc, bx, by, 28, 12, sd % 2 ? '#8a6a3a' : '#6e5430');
+        r(hc, bx + 2, by + 2, 24, 1, '#5a4020'); r(hc, bx + 2, by + 5, 24, 1, '#5a4020'); r(hc, bx + 2, by + 8, 24, 1, '#5a4020');
+      }
+      for (var hb = 0; hb < 4; hb++) {
+        var hh2 = hash(hb, 91), hx2 = 40 + (hh2 % (karte.pxW - 60)), hy2 = yMin + 40 + ((hh2 >> 6) % Math.max(1, karte.pxH - yMin - 80));
+        if (karte.blockiert(Math.floor(hx2 / K), Math.floor(hy2 / K))) continue;
+        ellipse(hc, hx2, hy2, 7, 4.5, '#c9a050'); ellipse(hc, hx2, hy2 - 2, 5.5, 3.2, '#d8b060');
+      }
+      for (var zf = 0; zf < 2; zf++) {
+        var zh = hash(zf, 55), zx = 30 + (zh % (karte.pxW - 100)), zy = yMin + 60 + ((zh >> 4) % Math.max(1, karte.pxH - yMin - 100));
+        if (karte.blockiert(Math.floor(zx / K), Math.floor(zy / K))) continue;
+        linie(hc, zx, zy, zx + 40, zy, '#6a4a30', 1.2);
+        for (var zp = 0; zp < 5; zp++) linie(hc, zx + zp * 10, zy - 5, zx + zp * 10, zy + 2, '#7a5a38', 1);
+      }
+      var th = hash(3, 33), tx = 80 + (th % (karte.pxW - 160)), ty = yMin + 100 + ((th >> 5) % Math.max(1, karte.pxH - yMin - 140));
+      if (!karte.blockiert(Math.floor(tx / K), Math.floor(ty / K))) {
+        ellipse(hc, tx, ty, 18, 10, '#4fb0d6'); ellipse(hc, tx, ty, 14, 7, '#7ec8e3');
+        for (var sch = 0; sch < 4; sch++) { linie(hc, tx - 12 + sch * 8, ty + 4, tx - 10 + sch * 8, ty - 4, '#2f6a3f', 1); }
+      }
+      for (var bl = 0; bl < 6; bl++) {
+        var bh3 = hash(bl, 44), fx = 16 + (bh3 % (karte.pxW - 32)), fy = yMin + 10 + ((bh3 >> 7) % Math.max(1, karte.pxH - yMin - 40));
+        if (karte.blockiert(Math.floor(fx / K), Math.floor(fy / K))) continue;
+        kreis(hc, fx, fy, 1.4, bl % 2 ? '#ff7aa0' : '#ffd36e'); kreis(hc, fx, fy, 0.6, '#fff8ee');
+      }
+    }
     h = { canvas: cv, sk: sk }; R.hg[karte.id] = h; return h;
   }
 
@@ -402,19 +435,19 @@
     if (S.zustand !== 'start') dinge.push({ y: S.spieler.y + 0.1, art: 'spieler' });
     if (karte.id === 'disko') dinge.push({ y: 10 * K + 8, art: 'tuersteher', x: 6 * K + 8, ky: 10 * K + 8 });
     dinge.sort(function (a, b) { return a.y - b.y || (a.art === 'spieler' ? 1 : 0) - (b.art === 'spieler' ? 1 : 0); });
-    // Schild-Rechtecke in Bildschirmkoordinaten (fuer → HIER-Label)
+    // Schild- und Gebaeude-Rechtecke in Bildschirmkoordinaten (fuer → HIER-Label)
     var zZoom = R.aktuellerWeltZoom != null ? R.aktuellerWeltZoom : WELT_ZOOM;
-    R._schildRects = [];
+    R._schildRects = []; R._gebRects = [];
     if (!karte.innen) karte.gebaeude.forEach(function (b) {
-      var pl = bauplan(b), sw = Math.min(pl.w - 8, 112);
-      R._schildRects.push({
-        x: (pl.schild.x - sw / 2 - cx) * zZoom, y: (pl.schild.y - 7 - cy) * zZoom, w: sw * zZoom, h: 14 * zZoom
-      });
+      var pl = bauplan(b), sh = pl.schildHaupt || { x: pl.schild.x, y: pl.schild.y, w: Math.min(pl.w - 8, 112), h: 14 };
+      R._schildRects.push({ x: (sh.x - sh.w / 2 - cx) * zZoom, y: (sh.y - cy) * zZoom, w: sh.w * zZoom, h: sh.h * zZoom });
+      R._gebRects.push({ x: (pl.x0 - cx) * zZoom, y: (pl.y0 - cy) * zZoom, w: pl.w * zZoom, h: pl.h * zZoom });
       if (pl.schildNeben) {
         var sn = pl.schildNeben;
         R._schildRects.push({ x: (sn.x - cx) * zZoom, y: (sn.y - cy) * zZoom, w: sn.w * zZoom, h: sn.h * zZoom });
       }
     });
+    R.blasen = [];
     dinge.forEach(function (d) {
       var px = d.x - cx, fy = d.y - cy;                           // d.y = Fusslinie
       if (d.art === 'geb') zeichneGebaeude(R, c, d.b, px, d.b.y * K - cy);
@@ -440,13 +473,13 @@
             var pl = bauplan(b); if (!pl.schildNeben) return;
             var sn = pl.schildNeben;
             vermeide = { x: sn.x - cx, y: sn.y - cy, w: sn.w, h: sn.h };
-            var hs = pl.schild; if (hs) {
-              var hw = Math.min(pl.w - 8, 108), hh = 14;
-              var main = { x: hs.x - hw / 2 - cx, y: hs.y - 13 - cy, w: hw, h: hh };
+            var hs = pl.schildHaupt || pl.schild; if (hs) {
+              var hw = (pl.schildHaupt && pl.schildHaupt.w) || Math.min(pl.w - 8, 108), hh = (pl.schildHaupt && pl.schildHaupt.h) || 14;
+              var main = { x: hs.x - hw / 2 - cx, y: hs.y - cy, w: hw, h: hh };
               if (!vermeide || n.y - cy - 25 < sn.y - cy + sn.h) vermeide = main;
             }
           });
-          blase(c, n.x - cx, n.y - cy - 25, n.char.name + ': ' + n.blase.text, vermeide);
+          R.blasen.push({ x: n.x - cx, y: n.y - cy - 25, text: n.char.name + ': ' + n.blase.text, vermeide: vermeide });
         }
         else if (n.liegt) textInBox(c, 'Q = wecken', n.x - cx - 28, n.y - cy - 22, 56, 12, 8, { col: '#ffffff', ausr: 'center', kontur: P.kontur, min: 7 });
       }
@@ -488,6 +521,8 @@
     var tint = tintFuer(S);
     c.globalCompositeOperation = 'multiply'; r(c, 0, 0, viewW, viewH, rgb(tint)); c.globalCompositeOperation = 'source-over';
     zeichneLichter(R, S, cx, cy, tint);
+    // Blasen nach Lichtern (lesbar ueber Fensterlichtern)
+    (R.blasen || []).forEach(function (b) { blase(c, b.x, b.y, b.text, b.vermeide); });
     var nacht = karte.innen ? 0 : Sz.nachtGrad(S.uhr.minute / 60);
     if (nacht > 0.05) {                                           // weiche Vignette in der Nacht
       var vg = c.createRadialGradient(viewW / 2, viewH / 2, viewH * 0.28, viewW / 2, viewH / 2, Math.max(viewW, viewH) * 0.72);
@@ -523,18 +558,19 @@
   }
   function zeichneSchildNacht(R, c, b, plan, cx, cy, glut) {
     var info = SCHILD_NACHT_TEXTE[b.id] || { haupt: (b.name || '').toUpperCase(), hauptCol: '#ffe9a8', nebenCol: '#ffe9a8' };
-    var sw = Math.min(plan.w - 8, b.id === 'disko' ? plan.w - 12 : 112), sh = 14;
-    var sx = plan.schild.x - cx - sw / 2, sy = plan.schild.y - cy - 7;
-    // source-over dunkler Grund (nicht nur lighter)
+    var sh = plan.schildHaupt || { x: plan.schild.x, y: plan.schild.y, w: Math.min(plan.w - 8, b.id === 'disko' ? plan.w - 12 : 112), h: 14 };
+    var sw = sh.w, shH = sh.h, sx = sh.x - cx - sw / 2, sy = sh.y - cy;
+    // source-over dunkler Grund (nicht nur lighter) — exakt auf Tag-Schild
     c.globalCompositeOperation = 'source-over';
     c.globalAlpha = Math.min(1, 0.75 + SCHILD_NACHT_ALPHA * glut * 0.3);
     c.fillStyle = 'rgba(20,14,40,0.75)';
-    c.fillRect(sx, sy, sw, sh);
-    var spr = schildNachtSprite(R, b.id + '_h', sw, sh, info.haupt, info.hauptCol, b.id === 'disko' ? 9 : 10);
+    c.fillRect(sx, sy, sw, shH);
+    var spr = schildNachtSprite(R, b.id + '_h', sw, shH, info.haupt, info.hauptCol, b.id === 'disko' ? 9 : 10);
     c.globalAlpha = Math.min(1, 0.55 + glut * 0.45);
-    if (spr && spr.cv) c.drawImage(spr.cv, sx, sy, sw, sh);
-    else textInBox(c, info.haupt, sx + 1, sy + 1, sw - 2, sh - 2, 9, { col: info.hauptCol, ausr: 'center', kontur: 'rgba(20,14,40,0.9)', min: 5, maxZeilen: 1 });
-    if (plan.schildNeben) {
+    if (spr && spr.cv) c.drawImage(spr.cv, sx, sy, sw, shH);
+    else textInBox(c, info.haupt, sx + 1, sy + 1, sw - 2, shH - 2, 9, { col: info.hauptCol, ausr: 'center', kontur: 'rgba(20,14,40,0.9)', min: 5, maxZeilen: 1 });
+    // Disko: Neon-Streifen ohne zweiten Text; sonst Neben-Schild (Kehrwoche/Feinstaub)
+    if (plan.schildNeben && b.id !== 'disko') {
       var sn = plan.schildNeben, nx = sn.x - cx, ny = sn.y - cy;
       c.globalAlpha = Math.min(1, 0.75 + SCHILD_NACHT_ALPHA * glut * 0.3);
       c.fillStyle = 'rgba(20,14,40,0.75)';
@@ -669,55 +705,63 @@
     var sCss = (R.cssW > 0 && W > 0) ? (R.cssW / W) : 1;
     var btnBand = R.touch ? Math.ceil((4 * 44 + 8) / Math.max(0.5, sCss)) : 40;
     var freiL = lx + lpW + 4, freiR = W - btnBand - 2;
-    // Uhr: Hoch kompakt (pw≈80–96), Stern in Panel; Quer Stern in Panel, Banner-Anhang darunter
-    var pw = R.hochkant ? 96 : (kompakt ? 88 : 96);
-    var ph = R.hochkant ? 22 : (kompakt ? 24 : 26);
-    var sternInPanel = true, py = 3, px;
-    if (R.hochkant && freiR - freiL < pw + 4) {
-      // Kein Platz in oberer Reihe: darunter, max y ≤ ly+lpH+2+ph, ohne Stern-Zeile
-      sternInPanel = false;
-      py = Math.min(ly + lpH + 2, Math.ceil(44 / Math.max(0.5, sCss)) + 2);
-      py = Math.max(py, ly + lpH + 2);
-      if (py + ph > ly + lpH + 2 + ph) py = ly + lpH + 2;
-      px = Math.round((W - pw) / 2);
-      px = Math.max(lx + 2, Math.min(px, W - btnBand - pw - 2));
-    } else {
-      px = Math.round((freiL + freiR - pw) / 2);
-      px = Math.max(freiL, Math.min(px, Math.max(freiL, freiR - pw)));
-    }
-    panel(c, px, py, pw, ph, '#fff8ee', kompakt ? 5 : 6);
-    var iconR = R.hochkant ? 8 : (kompakt ? 9 : 10);
-    Sz.himmelIcon(c, px + (R.hochkant ? 12 : (kompakt ? 13 : 14)), py + ph / 2, iconR, uhr.minute / 60, S.t);
-    var textL = px + (R.hochkant ? 24 : (kompakt ? 26 : 28));
-    var textW = pw - (R.hochkant ? 28 : (kompakt ? 30 : 32));
-    textInBox(c, Saufi.Uhr.text(uhr), textL, py + 1, textW, R.hochkant ? 10 : (kompakt ? 11 : 12), R.hochkant ? 9 : (kompakt ? 9 : 10), { col: P.uiTinte, ausr: 'center' });
-    // Kurze Phasen-Codes: volle „Sa · Morgen“ wurde bei Stern-Spalte zu „Sa ·…“ gekuerzt
-    var PHASE_KURZ = { Morgen: 'Mo', Mittag: 'Mi', Nachmittag: 'Nm', Abend: 'Ab', Nacht: 'Na', 'Tiefe Nacht': 'TN' };
-    var phName = Saufi.Uhr.phase(uhr), phaseTxt = Saufi.Uhr.tag(uhr).slice(0, 2) + ' · ' + (PHASE_KURZ[phName] || phName);
-    if (sternInPanel) {
-      var sternTxt = '★' + S.punkte.punkte, sternW = Math.min(36, Math.max(16, Math.ceil(breite(c, sternTxt, 7) + 4)));
-      textInBox(c, phaseTxt, textL, py + (R.hochkant ? 11 : (kompakt ? 12 : 13)), Math.max(20, textW - sternW), 9, 7, { col: P.uiTinteWeich, ausr: 'left' });
-      textInBox(c, sternTxt, px + pw - sternW - 2, py + (R.hochkant ? 11 : (kompakt ? 12 : 13)), sternW, 9, 7, { col: P.uiTinte, ausr: 'right' });
-    } else {
-      textInBox(c, phaseTxt, textL, py + 11, textW, 9, 7, { col: P.uiTinteWeich, ausr: 'center' });
-    }
-    R.hudUhr = { x: px, y: py, w: pw, h: ph, btnBand: btnBand };
-    var uhrUnten = py + ph;
-    var nr = Saufi.Runden.naechste(S.runden), ry = 0, rundenH = 0, rx = 0, rw = 0;
     var weltH = (R.weltH != null && R.hochkant) ? R.weltH : H;
     var resTop = R.hochkant && weltH < H ? weltH : null;
-    var reserve = resTop != null ? (H - weltH) : 0;
+    var PHASE_KURZ = { Morgen: 'Mo', Mittag: 'Mi', Nachmittag: 'Nm', Abend: 'Ab', Nacht: 'Na', 'Tiefe Nacht': 'TN' };
+    var phName = Saufi.Uhr.phase(uhr), phaseTxt = Saufi.Uhr.tag(uhr).slice(0, 2) + ' · ' + (PHASE_KURZ[phName] || phName);
+    var sternTxt = '★' + S.punkte.punkte;
+    var pw, ph, px, py;
+    if (R.hochkant && resTop != null) {
+      // Hoch: Uhr ganz oben in der Reserve (nicht im Weltbereich)
+      ph = 14; pw = Math.min(Math.round(W * 0.7), W - 16);
+      px = Math.round((W - pw) / 2); py = resTop + 2;
+      panel(c, px, py, pw, ph, '#fff8ee', 4);
+      Sz.himmelIcon(c, px + 8, py + ph / 2, 5, uhr.minute / 60, S.t);
+      var uhrTxt = Saufi.Uhr.text(uhr);
+      var sternW = Math.min(28, Math.max(14, Math.ceil(breite(c, sternTxt, 7) + 2)));
+      var midW = pw - 18 - sternW - 4;
+      textInBox(c, uhrTxt, px + 14, py + 1, Math.min(36, midW * 0.4), 12, 8, { col: P.uiTinte, ausr: 'left', maxZeilen: 1 });
+      textInBox(c, phaseTxt, px + 14 + Math.min(36, midW * 0.4), py + 1, Math.max(20, midW - Math.min(36, midW * 0.4)), 12, 7, { col: P.uiTinteWeich, ausr: 'left', maxZeilen: 1 });
+      textInBox(c, sternTxt, px + pw - sternW - 2, py + 1, sternW, 12, 7, { col: P.uiTinte, ausr: 'right', maxZeilen: 1 });
+      R.hudUhr = { x: px, y: py, w: pw, h: ph, btnBand: btnBand };
+    } else {
+      // Quer / Hoch ohne Reserve: Uhr oben zwischen HUD und btnBand
+      pw = kompakt ? 88 : 96; ph = kompakt ? 24 : 26; py = 3;
+      px = Math.round((freiL + freiR - pw) / 2);
+      px = Math.max(freiL, Math.min(px, Math.max(freiL, freiR - pw)));
+      panel(c, px, py, pw, ph, '#fff8ee', kompakt ? 5 : 6);
+      Sz.himmelIcon(c, px + (kompakt ? 13 : 14), py + ph / 2, kompakt ? 9 : 10, uhr.minute / 60, S.t);
+      var textL = px + (kompakt ? 26 : 28), textW = pw - (kompakt ? 30 : 32);
+      textInBox(c, Saufi.Uhr.text(uhr), textL, py + 1, textW, kompakt ? 11 : 12, kompakt ? 9 : 10, { col: P.uiTinte, ausr: 'center' });
+      var sternWQ = Math.min(36, Math.max(16, Math.ceil(breite(c, sternTxt, 7) + 4)));
+      textInBox(c, phaseTxt, textL, py + (kompakt ? 12 : 13), Math.max(20, textW - sternWQ), 9, 7, { col: P.uiTinteWeich, ausr: 'left' });
+      textInBox(c, sternTxt, px + pw - sternWQ - 2, py + (kompakt ? 12 : 13), sternWQ, 9, 7, { col: P.uiTinte, ausr: 'right' });
+      R.hudUhr = { x: px, y: py, w: pw, h: ph, btnBand: btnBand };
+    }
+    function bannerLabel(aktiv, nrOrt, nrZeit, boxW) {
+      var kurz = (Saufi.Karte.KURZ && Saufi.Karte.KURZ[nrOrt]) || Saufi.Karte.NAMEN[nrOrt] || nrOrt;
+      var pref = aktiv ? 'RUNDE! ' : ('Runde ' + Saufi.Uhr.zeitText(nrZeit) + ': ');
+      var lab = pref + kurz;
+      var mess = textInBox(c, lab, 0, 0, boxW, 8, 7, { ausr: 'center', mess: true, maxZeilen: 1, min: 6 });
+      if (mess.lines && mess.lines.some(function (z) { return z.indexOf('…') >= 0; }) || mess.w > boxW) {
+        pref = aktiv ? 'RUNDE ' : ('Runde ' + Saufi.Uhr.zeitText(nrZeit) + ': ');
+        lab = pref + kurz;
+      }
+      return lab;
+    }
+    var nr = Saufi.Runden.naechste(S.runden), ry = 0, rundenH = 0, rx = 0, rw = 0;
     // --- Banner ---
     if (nr && (nr.status === 'warnung' || nr.status === 'aktiv')) {
       var aktiv = nr.status === 'aktiv', rest = aktiv ? nr.zeit + Saufi.Runden.FRIST_MIN - uhr.minute : nr.zeit - uhr.minute;
       var blink = aktiv && Math.floor(S.t * 3) % 2 === 0;
-      var balkenH = 3, label = (aktiv ? 'RUNDE! ' : 'Runde ' + Saufi.Uhr.zeitText(nr.zeit) + ': ') + Saufi.Karte.NAMEN[nr.ort];
+      var balkenH = 3, label;
       if (R.hochkant && resTop != null) {
-        // Hoch: Banner in Reserve
+        // Hoch: Banner unter Uhr in Reserve
         rundenH = 14; rw = Math.min(Math.round(W * 0.85), W - 16);
-        rx = Math.round((W - rw) / 2); ry = resTop + 2;
+        rx = Math.round((W - rw) / 2); ry = py + ph + 2;
+        label = bannerLabel(aktiv, nr.ort, nr.zeit, rw - 8);
         panel(c, rx, ry, rw, rundenH, aktiv ? (blink ? '#ff9fb0' : '#ffd1da') : '#fff0c8', 5);
-        textInBox(c, label, rx + 4, ry + 1, rw - 8, 8, 7, { col: P.uiTinte, ausr: 'center', maxZeilen: 1 });
+        textInBox(c, label, rx + 4, ry + 1, rw - 8, 8, 7, { col: P.uiTinte, ausr: 'center', maxZeilen: 1, min: 6 });
         var frac = Math.max(0, Math.min(1, rest / (aktiv ? Saufi.Runden.FRIST_MIN : Saufi.Runden.VORLAUF_MIN)));
         rr(c, rx + 8, ry + rundenH - balkenH - 1, rw - 16, balkenH, 'rgba(74,53,96,0.25)', 2); if (frac > 0.01) rr(c, rx + 8, ry + rundenH - balkenH - 1, (rw - 16) * frac, balkenH, aktiv ? '#e0504a' : '#f0b030', 2);
         R.hudRunde = { x: rx, y: ry, w: rw, h: rundenH };
@@ -725,28 +769,29 @@
         // Quer: Anhang direkt unter Uhr, gleiche Breite, Höhe ≤ 11, Gesamt ≤ 38
         rundenH = Math.min(11, Math.max(1, 38 - ph));
         rw = pw; rx = px; ry = py + ph;
+        label = bannerLabel(aktiv, nr.ort, nr.zeit, rw - 4);
         panel(c, rx, ry, rw, rundenH, aktiv ? (blink ? '#ff9fb0' : '#ffd1da') : '#fff0c8', 4);
         textInBox(c, label, rx + 2, ry + 0.5, rw - 4, 7, 6.5, { col: P.uiTinte, ausr: 'center', maxZeilen: 1, min: 6 });
         var fracQ = Math.max(0, Math.min(1, rest / (aktiv ? Saufi.Runden.FRIST_MIN : Saufi.Runden.VORLAUF_MIN)));
         rr(c, rx + 4, ry + rundenH - 3, rw - 8, 2, 'rgba(74,53,96,0.25)', 1.5); if (fracQ > 0.01) rr(c, rx + 4, ry + rundenH - 3, (rw - 8) * fracQ, 2, aktiv ? '#e0504a' : '#f0b030', 1.5);
         R.hudRunde = { x: rx, y: ry, w: rw, h: rundenH };
-        uhrUnten = ry + rundenH;
       } else {
         // Hoch ohne Touch-Reserve (Dunkelstreifen): Banner trotzdem unten in Reserve-Zone
         rundenH = 14; rw = Math.min(Math.round(W * 0.85), W - 16);
         rx = Math.round((W - rw) / 2); ry = Math.max(weltH + 2, H - 70);
+        label = bannerLabel(aktiv, nr.ort, nr.zeit, rw - 8);
         panel(c, rx, ry, rw, rundenH, aktiv ? (blink ? '#ff9fb0' : '#ffd1da') : '#fff0c8', 5);
-        textInBox(c, label, rx + 4, ry + 1, rw - 8, 8, 7, { col: P.uiTinte, ausr: 'center', maxZeilen: 1 });
+        textInBox(c, label, rx + 4, ry + 1, rw - 8, 8, 7, { col: P.uiTinte, ausr: 'center', maxZeilen: 1, min: 6 });
         R.hudRunde = { x: rx, y: ry, w: rw, h: rundenH };
       }
     } else R.hudRunde = null;
-    // Safe-Zone / Knöpfe Quer
+    // Safe-Zone / Knöpfe Quer (E-Basis 48, Abstand 4 CSS-px)
     var stickZone = R.touch && !R.hochkant ? Math.ceil(120 / Math.max(0.5, sCss)) : 0;
     var knopfRects = [];
     if (R.touch && !R.hochkant) {
-      var kS = Math.max(0.5, sCss), kE = Math.max(44 / kS, 56 * 0.85), kW2 = Math.max(44 / kS, 44 * 0.85);
+      var kS = Math.max(0.5, sCss), kE = Math.max(44 / kS, 48 * 0.85), kW2 = Math.max(44 / kS, 44 * 0.85);
       var padQ = 2 * 3 / kS; // CSS 2·s
-      knopfRects.push({ x: W - padQ - kE, y: H - padQ - kE - kW2 - 8 / kS, w: kE, h: kE });
+      knopfRects.push({ x: W - padQ - kE, y: H - padQ - kE - kW2 - 4 / kS, w: kE, h: kE });
       knopfRects.push({ x: W - padQ - kW2, y: H - padQ - kW2, w: kW2, h: kW2 });
     }
     function freiVonKnoepfen(rect) {
@@ -757,23 +802,24 @@
     if (S.ort === 'disko') {
       var bwSco = 150, bxSco = Math.round(W / 2 - bwSco / 2) + 2, bySco, b = S.boost, f = b.leiste, pulse = f >= 1 && Math.floor(S.t * 4) % 2 === 0;
       if (resTop != null) {
-        var scoTop = R.hudRunde ? R.hudRunde.y + R.hudRunde.h + 4 : resTop + 2;
+        var scoTop = R.hudRunde ? R.hudRunde.y + R.hudRunde.h + 4 : (R.hudUhr ? R.hudUhr.y + R.hudUhr.h + 2 : resTop + 2);
         bySco = Math.min(H - 14, scoTop + 3);
       } else bySco = H - (R.touch ? Math.ceil(120 / Math.max(0.5, sCss)) : 22) - 18;
       panel(c, bxSco - 6, bySco - 3, bwSco + 12, 15, 'rgba(42,35,66,0.92)', 6);
       rr(c, bxSco, bySco, bwSco, 9, 'rgba(255,255,255,0.12)', 4.5, P.kontur, 0.7); if (f > 0.02) rr(c, bxSco + 0.8, bySco + 0.8, (bwSco - 1.6) * f, 7.4, pulse ? '#ffffff' : P.neonPink, 3.7);
       textInBox(c, S.boostAktiv ? 'HYPER HYPER!' : (f >= 1 ? 'R: HYPER-BOOST!' : 'SCOOTER · E tanzen'), bxSco, bySco, bwSco, 9, 7, { col: S.boostAktiv ? P.neonGelb : '#ffffff', ausr: 'center', kontur: 'rgba(30,10,60,0.9)', maxZeilen: 1 });
     }
-    // Navigationspfeil: Referenz = unterer Rand der Uhr (nicht Banner)
+    // Navigationspfeil: Referenz = Unterkante linkes HUD (Hoch) bzw. Uhr (Quer)
     var pfeilZoom = R.aktuellerWeltZoom != null ? R.aktuellerWeltZoom : WELT_ZOOM;
-    if (S.pfeil) pfeil(R, S.pfeil.x * pfeilZoom, S.pfeil.y * pfeilZoom, py + ph);
+    var pfeilUnter = (R.hochkant && resTop != null) ? (ly + lpH + 2) : (py + ph);
+    if (S.pfeil) pfeil(R, S.pfeil.x * pfeilZoom, S.pfeil.y * pfeilZoom, pfeilUnter);
     // Hinweis + Dialog
     var h = Saufi.Hinweise.aktuell(S.hinweise);
     var dialogRect = null, hilfeRect = null;
     var cursorY;
     if (R.hochkant && resTop != null) {
-      // Reserve von oben: Banner → Hinweis → Dialog; Summe ≤ Reserve−2; Abstand ≥ 2
-      cursorY = resTop + 2 + (R.hudRunde ? R.hudRunde.h + 2 : 0);
+      // Reserve von oben: Uhr → Banner → Hinweis → Dialog; Summe ≤ Reserve−2; Abstand ≥ 2
+      cursorY = (R.hudRunde ? R.hudRunde.y + R.hudRunde.h + 2 : (R.hudUhr.y + R.hudUhr.h + 2));
       var freiRes = H - 2 - cursorY;
       if (S.hilfe) {
         var hilfeH = Math.min(12, freiRes);
@@ -787,12 +833,13 @@
       } else R.hudHilfe = null;
       if (h && h.art !== 'gross') {
         var maxBoxW = Math.min(W - 24, Math.round(W * 0.85));
-        var mess = textInBox(c, h.text, 0, 0, maxBoxW - 12, Math.max(10, freiRes - 2), 7, { ausr: 'center', mess: true, maxZeilen: 2 });
+        var maxZ = freiRes < 18 ? 1 : 2;
+        var mess = textInBox(c, h.text, 0, 0, maxBoxW - 12, Math.max(10, freiRes - 2), 7, { ausr: 'center', mess: true, maxZeilen: maxZ });
         var bw2 = Math.min(maxBoxW, Math.round(mess.w) + 14), hh2 = Math.min(Math.round(mess.h) + 6, freiRes);
         dialogRect = { x: Math.round(W / 2 - bw2 / 2), y: cursorY, w: bw2, h: hh2 };
         c.globalAlpha = Math.min(1, h.rest * 3);
         panel(c, dialogRect.x, dialogRect.y, dialogRect.w, dialogRect.h, h.art === 'schlecht' ? '#ffd1da' : (h.art === 'gut' ? '#d8f5dc' : P.uiFlaeche), 5);
-        textInBox(c, h.text, dialogRect.x + 4, dialogRect.y + 1, dialogRect.w - 8, dialogRect.h - 2, 7, { col: P.uiTinte, ausr: 'center', maxZeilen: 2 });
+        textInBox(c, h.text, dialogRect.x + 4, dialogRect.y + 1, dialogRect.w - 8, dialogRect.h - 2, 7, { col: P.uiTinte, ausr: 'center', maxZeilen: maxZ });
         c.globalAlpha = 1;
         R.hudDialog = dialogRect;
       } else if (h && h.art === 'gross') {
@@ -845,28 +892,23 @@
     var c = R.ctx, cx = W / 2, cy = Math.min(H, R.weltH || H) / 2, dx = sx - cx, dy = sy - cy;
     var weltH = R.weltH || H;
     var inside = sx > 10 && sx < W - 10 && sy > 50 && sy < weltH - 24;
+    R.hierLabel = null;
     if (inside) { var bob = Math.sin(Date.now() / 160) * 2; poly(c, [[sx - 6, sy - 22 + bob], [sx + 6, sy - 22 + bob], [sx, sy - 11 + bob]], '#ffd75e', P.kontur, 1); return; }
     var ang = Math.atan2(dy, dx), rad = Math.min(cx - 14, (cy - 28) / Math.max(0.2, Math.abs(Math.sin(ang))), (cx - 14) / Math.max(0.2, Math.abs(Math.cos(ang))));
     var px = cx + Math.cos(ang) * rad, py = cy + Math.sin(ang) * rad;
     py = Math.max(56, Math.min(weltH - 26, py)); px = Math.max(12, Math.min(W - 12, px));
     c.save(); c.translate(px, py); c.rotate(ang);
     poly(c, [[9, 0], [-5, -7], [-3, 0], [-5, 7]], '#ffd75e', P.kontur, 1); c.restore();
-    // Label unter Uhr/Runden-Panel; nie ueber Gebaeudeschildern (Dachfirst / neben Gebaeude)
-    var labelY = Math.max(unterY > 0 ? unterY + 4 : 56, (R.hudUhr ? R.hudUhr.y + R.hudUhr.h + 14 : 56));
+    // Label nur wenn kein Schnitt mit Schilder/Dach/Fassade; Referenz Oberkante = unterY (ly+lpH+2)
+    var labelY = Math.max(unterY > 0 ? unterY + 4 : 56, 56);
     var labelX = W / 2 - (R.hochkant ? 40 : 70), labelW = R.hochkant ? 80 : 140, labelH = 12;
     var labelTxt = R.hochkant ? '→ HIER' : 'HIER SOLLST DU HIN';
-    if (R._schildRects) {
-      var lab = { x: labelX, y: labelY, w: labelW, h: labelH };
-      function hit(a, b) { return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y); }
-      R._schildRects.forEach(function (sr) {
-        if (hit(lab, sr)) {
-          labelY = Math.max(12, sr.y - labelH - 4);
-          if (labelY < 40) { labelX = sr.x + sr.w + 4; if (labelX + labelW > W - 4) labelX = Math.max(4, sr.x - labelW - 4); labelY = Math.max(unterY > 0 ? unterY + 4 : 56, sr.y); }
-          lab = { x: labelX, y: labelY, w: labelW, h: labelH };
-        }
-      });
-    }
-    R.hierLabel = { x: labelX, y: labelY, w: labelW, h: labelH };
+    var lab = { x: labelX, y: labelY, w: labelW, h: labelH };
+    function hit(a, b) { return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y); }
+    var konflikte = [].concat(R._schildRects || [], R._gebRects || []);
+    var konflikt = konflikte.some(function (sr) { return hit(lab, sr); });
+    if (konflikt) return;
+    R.hierLabel = lab;
     textInBox(c, labelTxt, labelX, labelY, labelW, labelH, 7, { col: P.uiTinte, ausr: 'center', kontur: 'rgba(255,248,238,0.9)' });
   }
 
@@ -998,11 +1040,19 @@
     if (by0 + ph > H - 4) by0 = Math.max(top, H - 4 - ph);
     // Kessel zuerst; bei Sieg keine Himmels-Sonne (endeBild zeichnet die einzige)
     Sz.kesselSzene(c, W, H, sieg ? 28 : 26, t, { turmMaxY: by0, sterneMaxY: Math.max(H * 0.35, by0 - 4), ohneSonne: !!sieg });
-    // Sieg: einzige Sonne links der Mitte, nicht im Panel/Turm
+    // Sieg: einzige Sonne links der Mitte, voll sichtbar (cx−r≥4, cy−r≥4), nicht unter #oben, nicht im Panel
     if (sieg) {
       var sonneR = Math.max(10, W * 0.07), sx = Math.round(W * 0.28), sy = Math.round(H * 0.42);
-      if (sy + sonneR > by0 - 2) sy = by0 - sonneR - 4;
-      if (sx + sonneR > bx) sx = Math.max(sonneR + 4, bx - sonneR - 8);
+      sx = Math.max(sonneR + 4, Math.min(sx, Math.round(W * 0.45) - sonneR));
+      sy = Math.max(sonneR + 4, Math.min(sy, H - sonneR - 4));
+      // Schnitt mit Panel → unter dem Panel (Landschaft); nur bei genug Platz darüber darüber
+      if (sx + sonneR > bx && sx - sonneR < bx + bw && sy + sonneR > by0 && sy - sonneR < by0 + ph) {
+        var unterSy = by0 + ph + sonneR + 4, ueberSy = by0 - sonneR - 4;
+        if (unterSy + sonneR <= H - 4) sy = unterSy;
+        else if (ueberSy - sonneR >= 4) sy = ueberSy;
+        else sy = Math.min(H - sonneR - 4, unterSy);
+      }
+      sy = Math.max(sonneR + 4, Math.min(sy, H - sonneR - 4));
       G.glanz(c, sx, sy, sonneR * 3.5, 'rgba(255,230,160,0.75)', 'rgba(255,230,160,0)');
       kreis(c, sx, sy, sonneR, '#ffe08a');
       // Highlight bewusst r<6, damit Mock nur 1 große Sonne zaehlt (plus Turm-Lichtpunkt)
@@ -1109,9 +1159,16 @@
     textInBox(c, 'Scooter-Playlist', bx + 18, by + 2, bw - 36, kopfH - 2, 9, { col: P.uiTinte, ausr: 'center', maxZeilen: 1 });
     schliessX(R, bx, by, bw, bh);
     var colW = (bw - 20) / 2;
+    // Einheitliche Schrift: erst messen (min-Größe aller Titel), dann zeichnen — kein …
+    var songMin = songSz, iT;
+    for (iT = 0; iT < tl.length; iT++) {
+      var labT = (iT + 1) + '. ' + tl[iT];
+      var mT = textInBox(c, labT, 0, 0, colW - 4, lz * 2, songSz, { ausr: 'left', mess: true, maxZeilen: 2, min: 6 });
+      if (mT.size < songMin) songMin = mT.size;
+    }
     tl.forEach(function (t2, i) {
       var cx2 = bx + 10 + (i >= zeilen ? colW : 0), cy2 = by + kopfH + (i % zeilen) * lz;
-      textInBox(c, (i + 1) + '. ' + t2, cx2, cy2, colW - 4, lz, songSz, { col: P.uiTinte, ausr: 'left', maxZeilen: 1 });
+      textInBox(c, (i + 1) + '. ' + t2, cx2, cy2, colW - 4, lz, songMin, { col: P.uiTinte, ausr: 'left', maxZeilen: 2, min: songMin });
     });
     var sy = by + kopfH + zeilen * lz + 2;
     textInBox(c, quelleText, bx + 8, sy, bw - 16, metaLz, metaSz, { col: P.uiTinteWeich, ausr: 'center', maxZeilen: 1 });
@@ -1217,6 +1274,6 @@
     UI_RESERVE_HOCH: UI_RESERVE_HOCH, UI_RESERVE_HOCH_TOUCH: UI_RESERVE_HOCH_TOUCH, STADT_PX_H: STADT_PX_H,
     LATERNE_RADIUS: LATERNE_RADIUS, LATERNE_RADIUS_V06: 44, SCHILD_NACHT_ALPHA: SCHILD_NACHT_ALPHA, UI_DUNKEL: '#1b1530',
     get WELT_FLAECHE() { return WELT_FLAECHE; }, get WELT_ZOOM() { return WELT_ZOOM; },
-    WELT_FLAECHE_HOCH: WELT_FLAECHE_HOCH, WELT_FLAECHE_QUER: WELT_FLAECHE_QUER
+    WELT_FLAECHE_HOCH: WELT_FLAECHE_HOCH, WELT_FLAECHE_QUER: WELT_FLAECHE_QUER, MIN_WELT_ZOOM: MIN_WELT_ZOOM
   };
 })(globalThis);
