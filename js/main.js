@@ -433,7 +433,6 @@
       case 'tribuene':
         if (!Uhr.offen('motocross', m)) {
           sag(S, 'Tribüne geschlossen. Rennen vorbei.', 2.5, 'info');
-          sp.sitzt = true; sp.vx = 0; sp.vy = 0;
           return;
         }
         getraenkeMenue(S, st);

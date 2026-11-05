@@ -236,7 +236,8 @@
       rr(c, x - 4, y - 6.6, 15, 6.4, ch.hose, 2.6, KONT, 0.85);
       rr(c, x - 8.6, y - 8.6, 12.4, 8, ch.shirt, 3, KONT, 0.85);
       kreis(c, x - 10.6, y - 5.6, 4.4, P.haut, KONT, 0.85);
-      c.beginPath(); c.arc(x - 10.6, y - 5.6, 4.6, Math.PI * 0.95, Math.PI * 1.9); c.fillStyle = ch.haar || (extra === 'kaeppi' ? '#ff4fa0' : P.haut); c.fill();
+      c.beginPath(); c.arc(x - 10.6, y - 5.6, 4.6, Math.PI * 0.95, Math.PI * 1.9); c.fillStyle = ch.haar || P.haut; c.fill();
+      if (extra === 'kaeppi') { rr(c, x - 15.4, y - 9.6, 4.2, 8, '#ff4fa0', 1.6, KONT, 0.6); rr(c, x - 16.6, y - 4.2, 2, 4, '#d8327f', 0.8); }   // Kaeppi seitlich am Kopf
       linie(c, x - 12, y - 5.6, x - 10.6, y - 5.3, KONT, 0.6); linie(c, x - 9.8, y - 5.6, x - 8.6, y - 5.3, KONT, 0.6);
       rr(c, x + 9, y - 4.6, 3.4, 2.6, KONT, 1.2);
       textInBox(c, 'zZz', x - 12, y - 20 + Math.sin(t * 3), 16, 10, 8, { col: '#ffffff', ausr: 'center', kontur: P.kontur, min: 7 });
@@ -452,6 +453,10 @@
     if (karte.id === 'hotel' && S.joint && !S.joint.gefunden) dinge.push({ y: 8 * K + 12, art: 'joint', x: 14 * K, ky: 8 * K });
     S.npcs.forEach(function (n) { if (n.aktiv && n.karteId === karte.id) dinge.push({ y: n.y, art: 'npc', n: n }); });
     if (S.zustand !== 'start') dinge.push({ y: S.spieler.y + 0.1, art: 'spieler' });
+    if (karte.id === 'stadt') for (var bi = 0; bi < 2; bi++) {          // Motorraeder nach Y sortiert mit allem anderen
+      var ang = t * 0.7 + bi * Math.PI;
+      dinge.push({ art: 'motorrad', bi: bi, bx: 32.5 * K + Math.cos(ang) * 4.4 * K, y: 37.5 * K + Math.sin(ang) * 4.8 * K });
+    }
     if (karte.id === 'disko') dinge.push({ y: 10 * K + 8, art: 'tuersteher', x: 6 * K + 8, ky: 10 * K + 8 });
     dinge.sort(function (a, b) { return a.y - b.y || (a.art === 'spieler' ? 1 : 0) - (b.art === 'spieler' ? 1 : 0); });
     // Schild- und Gebaeude-Rechtecke in Bildschirmkoordinaten (fuer → HIER-Label)
@@ -485,6 +490,10 @@
         textInBox(c, d.text || 'Motocross', px + 1, fy - 21, 32, 8, 5.5, { col: '#fff8ee', ausr: 'center', min: 5, maxZeilen: 1 });
       }
       else if (d.art === 'tram') { var tx = ((t * 14) % (karte.pxW + 160)) - 90 - cx; if (tx > -80 && tx < viewW + 10) Sz.strassenbahn(c, tx, 253 - cy, t); }
+      else if (d.art === 'motorrad') {
+        kreis(c, d.bx - cx - 3, d.y - cy, 2.2, '#2a2a32'); kreis(c, d.bx - cx + 3, d.y - cy, 2.2, '#2a2a32');
+        rr(c, d.bx - cx - 5, d.y - cy - 4, 10, 4, d.bi ? '#ff4fa0' : '#4fe6ff', 1.2);
+      }
       else if (d.art === 'joint') zeichneJoint(c, d.x - cx + 8, d.ky - cy + 8, t);
       else if (d.art === 'tuersteher') figur(c, { id: 'tuersteher', shirt: '#14102a', hose: '#14102a', haar: '#14102a', extra: 'hut' }, d.x - cx, d.ky - cy, { dir: 'unten', t: t });
       else if (d.art === 'npc') {
@@ -494,7 +503,7 @@
           schwips: n.fig.pegel > 1.5, tanzt: S.tanzBeat && !n.liegt, glas: S.prost > 0 && !n.liegt,
           pegel: n.fig.pegel, prost: S.prost
         });
-        if (n.char && n.char.id === 'raphael' && !n.liegt) namensschild(c, n.char.name, n.x - cx, n.y - cy - 28);
+        if (n.char && n.char.id === 'raphael' && !n.liegt && !n.blase) namensschild(c, n.char.name, n.x - cx, n.y - cy - 28);
         if (n.blase && !n.liegt) {
           var vermeide = null;
           if (!karte.innen) karte.gebaeude.forEach(function (b) {
@@ -526,13 +535,6 @@
         }
       }
     });
-    if (karte.id === 'stadt') {
-      for (var bi = 0; bi < 2; bi++) {
-        var ang = t * 0.7 + bi * Math.PI, bx = 32.5 * K + Math.cos(ang) * 4.4 * K, by = 37.5 * K + Math.sin(ang) * 4.8 * K;
-        kreis(c, bx - cx - 3, by - cy, 2.2, '#2a2a32'); kreis(c, bx - cx + 3, by - cy, 2.2, '#2a2a32');
-        rr(c, bx - cx - 5, by - cy - 4, 10, 4, bi ? '#ff4fa0' : '#4fe6ff', 1.2);
-      }
-    }
     // Effekte (Funken-Sterne, Schaum, Staub) — nur Weltpass
     (S.effekte || []).forEach(function (e) {
       var a = Math.max(0, e.rest / e.dauer), age = e.dauer - e.rest;
@@ -1030,13 +1032,18 @@
     }
   }
 
-  function versionsAnzeige(R) {
+  // Version: horizontal mittig. Hochformat: unten in der Reserve (oben liegen die #oben-Knoepfe),
+  // sonst oben, ausser die Uhr liegt dort (nur im Spiel, R.hudUhr gilt nur fuer den aktuellen Frame).
+  function versionsAnzeige(R, imSpiel) {
     var c = R.ctx, txt = 'v' + Saufi.Spiel.VERSION, y = 2;
-    var weltH = (R.weltH != null && R.hochkant) ? R.weltH : H;
-    if (R.hudUhr && R.hudUhr.y < (R.hochkant && R.weltH != null ? R.weltH : 40)) {
-      y = Math.max(2, weltH - 10);
+    if (R.hochkant) {
+      y = H - 10;
+      [R.hudHilfe, R.hudDialog].forEach(function (b) { if (b && b.y < y + 9 && b.y + b.h > y) y = Math.max(2, b.y - 10); });
+    } else if (imSpiel && R.hudUhr && R.hudUhr.y < 40) {
+      y = Math.max(2, H - 10);
       if (R.hudHilfe && R.hudHilfe.y < y + 10 && R.hudHilfe.y + R.hudHilfe.h > y) y = Math.max(2, R.hudHilfe.y - 10);
     }
+    R.hudVersion = { x: W / 2 - 20, y: y, w: 40, h: 8 };
     textInBox(c, txt, W / 2 - 20, y, 40, 8, 6, { col: '#fff8ee', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
   }
 
@@ -1311,7 +1318,7 @@
     }
     c.restore();
     hud(R, S);
-    versionsAnzeige(R);
+    versionsAnzeige(R, true);
     if (S.zustand === 'umgefallen') pressFBild(R, S);
     if (S.overlay) {
       if (S.overlay.art === 'playlist') playlistBild(R, S);

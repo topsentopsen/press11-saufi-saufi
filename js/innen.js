@@ -326,11 +326,11 @@
       rr(c, 2 * K + 2, 8, 4 * K - 4, 14, '#5a3a28', 1.6, '#2e1c14', 0.6);               // Schluesselbrett
       for (i = 0; i < 8; i++) { kreis(c, 2 * K + 7 + i * 6.8, 13, 0.7, '#e8c46a'); r(c, 2 * K + 6.6 + i * 6.8, 14, 0.8, 4, '#e8c46a'); kreis(c, 2 * K + 7 + i * 6.8, 19, 1, i % 3 ? '#c9a64a' : '#e0504a'); }
       rr(c, 2 * K + 8, 1.2, 48, 10, '#c9a64a', 1.6); textInBox(c, 'REZEPTION', 2 * K + 10, 1.4, 44, 9.2, 9, { col: '#4a2f12', ausr: 'center', min: 6 });
-      rr(c, 11 * K + 2, 2, 28, 12, '#1a1530', 1.4, '#ffe9a8', 0.7); textInBox(c, '♩ JAZZ', 11 * K + 3, 3, 26, 10, 8, { col: '#ffe9a8', ausr: 'center', min: 6 });
       bilderRahmen(c, 6 * K + 4, 8, 12, 9, 0); bilderRahmen(c, 13 * K + 3, 8, 9, 11, 1);
       uhrWand(c, 8 * K + 8, 9, 5);
       rr(c, 9 * K + 4, 2, 3 * K + 10, 12, '#f6efe0', 1.6, '#8a5a3a', 0.7); textInBox(c, 'FRÜHSTÜCK', 9 * K + 6, 3, 3 * K + 6, 10, 9, { col: '#6a3f2a', ausr: 'center', min: 6 });
       rr(c, 14 * K, 1.5, 14, 10, '#4fb0d6', 1.2); textInBox(c, 'H2O', 14 * K, 2, 14, 9, 9, { col: '#fff', ausr: 'center', min: 6 });
+      rr(c, 6 * K + 2, 18.5, 26, 9, '#1a1530', 1.4, '#ffe9a8', 0.7); textInBox(c, '♩ JAZZ', 6 * K + 3, 19, 24, 8, 7, { col: '#ffe9a8', ausr: 'center', min: 5 });   // freie Wand unter dem Bilderrahmen, zuletzt gezeichnet
     } else if (id === 'restaurant') {
       flaschenRegal(c, 2 * K + 2, 12, 5 * K - 4, 9);
       rr(c, 8 * K + 2, 2, 2 * K - 4, 24, '#2f3a34', 1.6, '#8a5a3a', 1); textInBox(c, 'KARTE', 8 * K + 3, 3, 2 * K - 6, 10, 9, { col: '#fff8ee', ausr: 'center', min: 6 });

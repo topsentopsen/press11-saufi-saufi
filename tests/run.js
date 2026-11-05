@@ -3237,6 +3237,15 @@ test('150 Versionsanzeige mittig: Start/Spiel/Ende in drei Layouts', function ()
       else { t.S.zustand = 'start'; }
       D.Render.zeichne(R, t.S);
       wahr(!!versionMitte(log, R.W), 'v0.13 mittig @ ' + z + ' hoch=' + lay.hoch + ' touch=' + !!lay.touch);
+      var hv = R.hudVersion; wahr(!!hv, 'hudVersion gesetzt');
+      var schneidet = function (a, b) { return a && b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; };
+      if (lay.hoch) {
+        // #oben-Knoepfe: 44 css px hoch + Rand oben, ueber die volle Breite gedacht
+        var cssH = R.cssH || 667, oben = { x: 0, y: 0, w: R.W, h: Math.ceil((44 + 12) * R.H / cssH) };
+        wahr(!schneidet(hv, oben), 'Version nicht unter #oben @ ' + z + ' ' + JSON.stringify(hv) + ' ' + JSON.stringify(oben));
+        if (z === 'spiel') wahr(hv.y >= (R.weltH || 0), 'Version in der Reserve');
+      }
+      if (z === 'spiel') { wahr(!schneidet(hv, R.hudHilfe), 'nicht ueber Hilfe'); wahr(!schneidet(hv, R.hudDialog), 'nicht ueber Dialog'); }
     });
   });
 });

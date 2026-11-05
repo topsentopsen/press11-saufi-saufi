@@ -18,7 +18,7 @@
 
   var ORTE = ['hotel', 'restaurant', 'kneipe', 'disko'];
   var NAMEN = { hotel: 'Jazz in the City', restaurant: 'Gasthaus Maultäschle', kneipe: 'Sophies Brauhaus', disko: 'Untergrund 07', motocross: 'Motocross-Park' };
-  var KURZ = { hotel: 'Jazz', restaurant: 'Maultäschle', kneipe: 'Brauhaus', disko: 'Untergrund', motocross: 'Motocross' };
+  var KURZ = { hotel: 'Jazz', restaurant: 'Maultäschle', kneipe: 'Sophie', disko: 'Untergrund', motocross: 'Motocross' };
 
   function neueKarte(id, w, h, fill, innen) {
     var k = {
@@ -168,7 +168,7 @@
       else k.setze(x, y, T.GRAS);
     }
     // Drei Huegel/Spruenge auf der Piste (begehbar)
-    k.setze(30, 34, T.HUEGEL); k.setze(35, 37, T.HUEGEL); k.setze(31, 41, T.HUEGEL);
+    k.setze(30, 33, T.HUEGEL); k.setze(36, 35, T.HUEGEL); k.setze(32, 42, T.HUEGEL);   // alle auf der Piste (d² 0,42 bis 0,92)
     // Tribuene Nordseite, Nachbarkacheln frei (Piste/Gras)
     k.rect(28, 32, 4, 1, T.TRIBUENE);
     k.station('tribuene', 'tribuene', 28, 32, 4, 1, 'Tribüne');
