@@ -4,6 +4,14 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v08
+
+- **Schilder / Banner / Blasen:** Hotelschild „Kehrwoche ok“ einzeilig auf dem Gesims; RUNDE-Banner und Uhr frei von Gebäudenamen; Quer-Dialog ≤ 60 % Breite, gestapelt über E/Wasser; NPC-Blasen nicht über Kneipenschild.
+- **Nachtgrafik:** Schild-Aufheller (`SCHILD_NACHT_ALPHA`), weichere Fenster/Disko/Laternen (Radius 22), Wiese nachts erkennbar, Abendton warm-orange.
+- **Hoch-Zoom / Karte:** Stadtkarte 40×60 (960 px), `WELT_FLAECHE_HOCH ≈ 2.1` — ca. 20 % mehr Welt ohne Schwarzbereich.
+- **Grafik Tag:** Wiese mit Ton-Varianten/Halmen, Wege mit Kante/Kies, Wasser mit Schaumsaum, Dächer/Bäume detaillierter (Cache-Sprites).
+- **Ende-Bild:** sichtbare Sonne links, opakes Panel oben, Turmschaft nicht durchs Panel, Landschaft darunter.
+
 ## Neu in v07
 
 - **Mond-Bug:** `Gfx.hex` parst auch `rgb(…)`; Mond als echte Sichel (kein schwarzer Fleck); Sieg-Daemmerung mit Sonne; Turm verschoben.

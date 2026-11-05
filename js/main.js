@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.7', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.8', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function neuesSpiel(opt) {
@@ -749,7 +749,7 @@
     dbg.schritte = function (sek, ds) { ds = ds || 1 / 30; for (var i = 0; i < sek / ds; i++) { update(S, ds, X); E.ende(); } return schnappschuss(S); };
     dbg.zustand = function () { return S; };
     dbg.musik = function () { return M.zustand(); };
-    dbg.mass = function () { return { W: R.W, H: R.H, VW: R.VW, VH: R.VH, zoom: R.weltZoom, weltH: R.weltH }; };
+    dbg.mass = function () { return { W: R.W, H: R.H, VW: R.VW, VH: R.VH, zoom: R.weltZoom, weltH: R.weltH, stadtPxH: R.stadtPxH }; };
     Saufi.debug = dbg;
 
     // Groesse: Hochformat = Spielfeld oben + Bedienleiste unten, R.H aus Viewport-Seitenverhaeltnis;

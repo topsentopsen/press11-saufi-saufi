@@ -217,8 +217,21 @@
     c.lineWidth = 0.9; c.strokeStyle = P.kontur; c.lineJoin = 'round'; c.stroke();
   }
 
+  // Relative Luminanz und WCAG-Kontrast (fuer Nachtschilder)
+  function luminanz(col) {
+    var h = typeof col === 'string' ? hex(col) : col;
+    if (!h || h.r == null) return 0;
+    function lin(c) { c = c / 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+    return 0.2126 * lin(h.r) + 0.7152 * lin(h.g) + 0.0722 * lin(h.b);
+  }
+  function kontrast(a, b) {
+    var L1 = luminanz(a), L2 = luminanz(b), hell = Math.max(L1, L2), dunkel = Math.min(L1, L2);
+    return (hell + 0.05) / (dunkel + 0.05);
+  }
+
   Saufi.Gfx = {
     SCHRIFT: SCHRIFT, MIN_SCHRIFT: MIN_SCHRIFT, P: P, hash: hash, rgb: rgb, mix: mix, hex: hex, hexVon: hexVon, mischeHex: mischeHex, mischeHexStr: mischeHexStr, r: r, rundPfad: rundPfad, rr: rr, box: box, kreis: kreis, ellipse: ellipse,
-    poly: poly, linie: linie, vlauf: vlauf, glanz: glanz, herz: herz, text: text, breite: breite, umbruch: umbruch, kuerze: kuerze, textInBox: textInBox, panel: panel, schriftGroesse: schriftGroesse
+    poly: poly, linie: linie, vlauf: vlauf, glanz: glanz, herz: herz, text: text, breite: breite, umbruch: umbruch, kuerze: kuerze, textInBox: textInBox, panel: panel, schriftGroesse: schriftGroesse,
+    luminanz: luminanz, kontrast: kontrast
   };
 })(globalThis);

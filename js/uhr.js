@@ -37,9 +37,10 @@
   function buffetOffen(minute) { return minute >= 7 * 60 && minute < 11 * 60; }
 
   // Licht zum Multiplizieren: morgens hell mit gruenlichem Gold, mittags weiss, nachmittags warm und dunkler, abends rosa bis violett, nachts fast schwarz.
+  // Abend 19–21 warm-orange; Nacht etwas angehoben (Luminanz ≥ 0.10 um 02:30); Monotonie 08→20→26 bleibt
   var LICHT = [
     [8, 0xf0ffcc], [9.5, 0xf6ffe0], [11, 0xffffff], [15, 0xfff3de], [17, 0xffd8a8], [18.5, 0xffb27e],
-    [19.5, 0xe39cc4], [21, 0x8a74c4], [22.5, 0x4f4f9c], [24, 0x34346e], [28, 0x22224a]
+    [19.5, 0xffa060], [20, 0xe88850], [21, 0xc07058], [22.5, 0x5a5a9c], [24, 0x3a3a7a], [26.5, 0x2e2e68], [28, 0x2a2a5a]
   ];
   function kanal(f, k) { return (f >> k) & 255; }
   function mische(a, b, t) {

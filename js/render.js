@@ -9,12 +9,13 @@
   var text = G.text, breite = G.breite, umbruch = G.umbruch, kuerze = G.kuerze, textInBox = G.textInBox, panel = G.panel, rgb = G.rgb, mix = G.mix;
   var BASE_W = 320, BASE_H = 176, PORT_H = 400, PORT_H_MIN = 280, PORT_H_MAX = 720, K = 16;
   // Kamera rausgezoomt; Querformat staerker (niedrigeres VH). HUD bleibt in Bildschirmkoordinaten (W×H)
-  // UI_RESERVE_HOCH: Dunkelfeld unten ohne Touch; UI_RESERVE_HOCH_TOUCH schmaler (DOM-Leiste darunter); STADT_PX_H = 40×48
-  var WELT_FLAECHE_HOCH = 1.5, WELT_FLAECHE_QUER = 4.0, MIN_WELT_ZOOM = 0.5, UI_RESERVE_HOCH = 80, UI_RESERVE_HOCH_TOUCH = 48, STADT_PX_H = 768;
+  // UI_RESERVE_HOCH: Dunkelfeld unten ohne Touch; UI_RESERVE_HOCH_TOUCH schmaler (DOM-Leiste darunter); STADT_PX_H = 40×60
+  var WELT_FLAECHE_HOCH = 2.1, WELT_FLAECHE_QUER = 4.0, MIN_WELT_ZOOM = 0.5, UI_RESERVE_HOCH = 80, UI_RESERVE_HOCH_TOUCH = 48, STADT_PX_H = 960;
   var WELT_FLAECHE = WELT_FLAECHE_QUER, WELT_ZOOM = 1 / Math.sqrt(WELT_FLAECHE);
   var MAX_BREITE = 4096, MAX_BG_SKALA = 6, MAX_DPR = 2;
-  // Laternenkegel-Radius (Weltpixel); v06 war 44 → v07 ≈ 70 %
-  var LATERNE_RADIUS = 30;
+  // Laternenkegel-Radius (Weltpixel); v06 war 44 → v08 kleiner/weicher
+  var LATERNE_RADIUS = 22;
+  var SCHILD_NACHT_ALPHA = 0.35;
   var W = BASE_W, H = BASE_H, VW = BASE_W / WELT_ZOOM, VH = BASE_H / WELT_ZOOM;
   var SH = { dx: 0, lang: 0.6, a: 0 };           // Schatten der aktuellen Uhrzeit
   function weltView() { return { w: VW, h: VH, zoom: WELT_ZOOM, flaeche: WELT_FLAECHE }; }
@@ -274,7 +275,7 @@
     if (extra === 'schuhe' && o.tanzt) kreis(c, hx, hy - 8, 0.8, '#ffd75e');
   }
 
-  function blase(c, x, y, s) {
+  function blase(c, x, y, s, vermeide) {
     var pad = 8, maxW = Math.min(VW - 10, 150), ziel = 8;
     var mess = textInBox(c, s, 0, 0, maxW - pad, 48, ziel, { ausr: 'center', mess: true });
     var tw = Math.max(28, Math.min(maxW - pad, mess.w));
@@ -282,6 +283,20 @@
     var bw = Math.round(Math.min(maxW, lay.w + pad)), bh = Math.round(Math.max(14, lay.h + 5));
     var bx = Math.round(x - bw / 2), by = Math.round(y - bh - 4);
     if (bx < 2) bx = 2; if (bx + bw > VW - 2) bx = VW - 2 - bw;
+    // NPC-Blase nicht ueber Kneipenschild: nach oben oder seitlich schieben
+    if (vermeide) {
+      function cut(a, b) { return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y); }
+      var rect = { x: bx, y: by, w: bw, h: bh };
+      if (cut(rect, vermeide)) {
+        by = Math.round(vermeide.y - bh - 6);
+        rect = { x: bx, y: by, w: bw, h: bh };
+        if (cut(rect, vermeide)) {
+          bx = Math.round(vermeide.x + vermeide.w + 4);
+          if (bx + bw > VW - 2) bx = Math.round(vermeide.x - bw - 4);
+          by = Math.round(y - bh - 4);
+        }
+      }
+    }
     panel(c, bx, by, bw, bh, P.uiFlaeche, 5);
     poly(c, [[x - 2.2, by + bh - 0.8], [x + 2.2, by + bh - 0.8], [x, by + bh + 3.4]], P.uiFlaeche);
     textInBox(c, s, bx + 3, by + 1, bw - 6, bh - 2, ziel, { col: P.uiTinte, ausr: 'center' });
@@ -336,6 +351,19 @@
     if (S.zustand !== 'start') dinge.push({ y: S.spieler.y + 0.1, art: 'spieler' });
     if (karte.id === 'disko') dinge.push({ y: 10 * K + 8, art: 'tuersteher', x: 6 * K + 8, ky: 10 * K + 8 });
     dinge.sort(function (a, b) { return a.y - b.y || (a.art === 'spieler' ? 1 : 0) - (b.art === 'spieler' ? 1 : 0); });
+    // Schild-Rechtecke in Bildschirmkoordinaten (fuer → HIER-Label)
+    var zZoom = R.aktuellerWeltZoom != null ? R.aktuellerWeltZoom : WELT_ZOOM;
+    R._schildRects = [];
+    if (!karte.innen) karte.gebaeude.forEach(function (b) {
+      var pl = bauplan(b), sw = Math.min(pl.w - 8, 112);
+      R._schildRects.push({
+        x: (pl.schild.x - sw / 2 - cx) * zZoom, y: (pl.schild.y - 7 - cy) * zZoom, w: sw * zZoom, h: 14 * zZoom
+      });
+      if (pl.schildNeben) {
+        var sn = pl.schildNeben;
+        R._schildRects.push({ x: (sn.x - cx) * zZoom, y: (sn.y - cy) * zZoom, w: sn.w * zZoom, h: sn.h * zZoom });
+      }
+    });
     dinge.forEach(function (d) {
       var px = d.x - cx, fy = d.y - cy;                           // d.y = Fusslinie
       if (d.art === 'geb') zeichneGebaeude(R, c, d.b, px, d.b.y * K - cy);
@@ -349,7 +377,21 @@
       else if (d.art === 'tuersteher') figur(c, { shirt: '#14102a', hose: '#14102a', haar: '#14102a', extra: 'hut' }, d.x - cx, d.ky - cy, { dir: 'unten', t: t });
       else if (d.art === 'npc') {
         var n = d.n; figur(c, n.char, n.x - cx, n.y - cy, { dir: n.dir, schritt: n.schritt, liegt: n.liegt, t: t, schwips: n.fig.pegel > 1.5, tanzt: S.tanzBeat && !n.liegt, glas: S.prost > 0 && !n.liegt });
-        if (n.blase && !n.liegt) blase(c, n.x - cx, n.y - cy - 25, n.char.name + ': ' + n.blase.text);
+        if (n.blase && !n.liegt) {
+          var vermeide = null;
+          if (!karte.innen) karte.gebaeude.forEach(function (b) {
+            if (b.id !== 'kneipe') return;
+            var pl = bauplan(b); if (!pl.schildNeben) return;
+            var sn = pl.schildNeben;
+            vermeide = { x: sn.x - cx, y: sn.y - cy, w: sn.w, h: sn.h };
+            var hs = pl.schild; if (hs) {
+              var hw = Math.min(pl.w - 8, 108), hh = 14;
+              var main = { x: hs.x - hw / 2 - cx, y: hs.y - 13 - cy, w: hw, h: hh };
+              if (!vermeide || n.y - cy - 25 < sn.y - cy + sn.h) vermeide = main;
+            }
+          });
+          blase(c, n.x - cx, n.y - cy - 25, n.char.name + ': ' + n.blase.text, vermeide);
+        }
         else if (n.liegt) textInBox(c, 'Q = wecken', n.x - cx - 28, n.y - cy - 22, 56, 12, 8, { col: '#ffffff', ausr: 'center', kontur: P.kontur, min: 7 });
       }
       else if (d.art === 'spieler') {
@@ -393,17 +435,18 @@
     c.globalCompositeOperation = 'lighter';
     if (!karte.innen) {
       var glut = l.glut, lampen = l.lampen;
+      var gebRects = karte.gebaeude.map(function (b) { var pl = bauplan(b); return { x: pl.x0, y: pl.y0, w: pl.w, h: pl.h }; });
       karte.gebaeude.forEach(function (b) {
         var plan = bauplan(b), offen = Saufi.Uhr.offen(b.id, S.uhr.minute);
         if (glut > 0.02) plan.fenster.forEach(function (f) {
           if (!offen && b.id !== 'hotel') return;
           var gg = glut * glut, fx = f.x - cx, fy = f.y - cy;
-          var halo = Math.min(K * 1.5, Math.max(f.w, f.h) * 1.2);
-          c.globalAlpha = Math.min(0.45, 0.4 * gg); G.glanz(c, fx + f.w / 2, fy + f.h / 2, halo, 'rgba(255,180,80,0.45)', 'rgba(255,180,80,0)');
-          // Warmer Verlauf statt Reinweiss; Rahmen/Sprossen dunkel
-          c.globalAlpha = Math.min(0.9, 0.85 * gg);
+          var halo = Math.min(K * 1.2, Math.max(f.w, f.h) * 1.0);
+          c.globalAlpha = Math.min(0.35, 0.32 * gg); G.glanz(c, fx + f.w / 2, fy + f.h / 2, halo, 'rgba(255,180,80,0.4)', 'rgba(255,180,80,0)');
+          // Warmer Verlauf; Alpha ≤ 0.75; kein Reinweiss
+          c.globalAlpha = Math.min(0.75, 0.7 * gg);
           vlauf(c, fx, fy, f.w, f.h, '#ffd77a', '#ffb85a');
-          c.globalAlpha = Math.min(0.9, 0.7 * gg);
+          c.globalAlpha = Math.min(0.7, 0.55 * gg);
           r(c, fx, fy, f.w, 0.7, 'rgba(40,30,50,0.55)'); r(c, fx, fy + f.h - 0.7, f.w, 0.7, 'rgba(40,30,50,0.55)');
           r(c, fx, fy, 0.7, f.h, 'rgba(40,30,50,0.55)'); r(c, fx + f.w - 0.7, fy, 0.7, f.h, 'rgba(40,30,50,0.55)');
           r(c, fx + f.w / 2 - 0.35, fy, 0.7, f.h, 'rgba(40,30,50,0.4)'); r(c, fx, fy + f.h * 0.45, f.w, 0.7, 'rgba(40,30,50,0.4)');
@@ -411,14 +454,30 @@
         var an = offen || b.id === 'hotel';
         if (an) plan.neon.forEach(function (n) {
           var p = 0.65 + 0.35 * Math.sin(t * 5 + n.x * 0.1), a = Math.max(l.glut, b.id === 'disko' ? 0.35 : 0) * p;
-          c.globalAlpha = Math.min(1, a * 0.6); G.glanz(c, n.x + n.w / 2 - cx, n.y + n.h / 2 - cy, Math.max(n.w * 0.5, 12), n.farbe, 'rgba(0,0,0,0)');
-          c.globalAlpha = Math.min(1, a * 0.6); rr(c, n.x - cx - 2, n.y - cy - 2, n.w + 4, n.h + 4, n.farbe, 2.5);
-          c.globalAlpha = Math.min(1, a * 1.3); rr(c, n.x - cx, n.y - cy, n.w, n.h, n.farbe, 1);
+          var neonR = Math.max(n.w * 0.4, Math.min(n.w * 0.8, 10));
+          c.globalAlpha = Math.min(0.7, a * 0.5); G.glanz(c, n.x + n.w / 2 - cx, n.y + n.h / 2 - cy, neonR, n.farbe, 'rgba(0,0,0,0)');
+          c.globalAlpha = Math.min(0.7, a * 0.5); rr(c, n.x - cx - 2, n.y - cy - 2, n.w + 4, n.h + 4, n.farbe, 2.5);
+          c.globalAlpha = Math.min(0.85, a * 1.0); rr(c, n.x - cx, n.y - cy, n.w, n.h, n.farbe, 1);
         });
-        if (glut > 0.05 && an) {                                   // Tuer-Lichtinsel
-          var d = plan.tuer, grd = c.createRadialGradient(d.x - cx + 8, d.y - cy + 14, 2, d.x - cx + 8, d.y - cy + 14, 34);
-          grd.addColorStop(0, 'rgba(255,190,110,0.55)'); grd.addColorStop(1, 'rgba(255,190,110,0)');
-          c.globalAlpha = glut; c.fillStyle = grd; c.fillRect(d.x - cx - 30, d.y - cy - 20, 76, 70);
+        if (glut > 0.05 && an) {                                   // Tuer-Lichtinsel (Disko kleiner/weicher)
+          var d = plan.tuer, maxR = b.id === 'disko' ? 24 : 28;
+          var grd = c.createRadialGradient(d.x - cx + 8, d.y - cy + 14, 2, d.x - cx + 8, d.y - cy + 14, maxR);
+          var kernA = b.id === 'disko' ? 0.35 : 0.45;
+          grd.addColorStop(0, 'rgba(255,190,110,' + kernA + ')'); grd.addColorStop(1, 'rgba(255,190,110,0)');
+          c.globalAlpha = Math.min(glut, b.id === 'disko' ? 0.35 : glut); c.fillStyle = grd;
+          c.fillRect(d.x - cx - maxR, d.y - cy - maxR * 0.6, maxR * 2, maxR * 1.6);
+        }
+        // Nachtschilder aufhellen
+        if (glut > 0.15) {
+          c.globalAlpha = SCHILD_NACHT_ALPHA * glut;
+          var sx = plan.schild.x - cx, sy = plan.schild.y - cy;
+          var sw = Math.min(plan.w - 8, b.id === 'disko' ? plan.w - 12 : 112), sh = 14;
+          c.fillStyle = '#ffe9a8';
+          c.fillRect(sx - sw / 2, sy - 7, sw, sh);
+          if (plan.schildNeben) {
+            var sn = plan.schildNeben;
+            c.fillRect(sn.x - cx, sn.y - cy, sn.w, sn.h);
+          }
         }
       });
       if (lampen > 0.02) {
@@ -426,14 +485,30 @@
           if (p.art !== 'laterne') return;
           var lx = p.x - cx + 8, kopf = p.ly * K - cy - 1, boden = p.ly * K - cy + 14;
           if (lx < -50 || lx > VW + 50 || boden < -50 || boden > VH + 60) return;
-          // Weicher Kegel ohne hartes Dreieck; Radius ~70 % von v06 (44 → LATERNE_RADIUS)
+          var wx = p.x + 8, wy = p.ly * K + 14;
+          // Boden-Glanz clippen: nicht auf Gebaeudefassaden
+          var nahGeb = gebRects.some(function (g) {
+            var dx = Math.max(g.x - wx, 0, wx - (g.x + g.w)), dy = Math.max(g.y - wy, 0, wy - (g.y + g.h));
+            return Math.hypot(dx, dy) < 40;
+          });
           c.globalAlpha = lampen;
-          G.glanz(c, lx, boden + 1, LATERNE_RADIUS, 'rgba(255,214,130,0.35)', 'rgba(255,190,100,0)');
-          G.glanz(c, lx, kopf + 2, 7, 'rgba(255,240,190,0.55)', 'rgba(255,220,140,0)');
+          if (nahGeb) {
+            c.save();
+            c.beginPath(); c.rect(-cx, -cy, karte.pxW, karte.pxH);
+            gebRects.forEach(function (g) {
+              // Loch aus Fassade: evenodd — Glanz nur ausserhalb
+              c.rect(g.x - cx, g.y - cy, g.w, g.h);
+            });
+            try { c.clip('evenodd'); } catch (e) { c.clip(); }
+            G.glanz(c, lx, boden + 1, LATERNE_RADIUS, 'rgba(255,214,130,0.26)', 'rgba(255,190,100,0)');
+            c.restore();
+          } else {
+            G.glanz(c, lx, boden + 1, LATERNE_RADIUS, 'rgba(255,214,130,0.26)', 'rgba(255,190,100,0)');
+          }
+          G.glanz(c, lx, kopf + 2, 5, 'rgba(255,240,190,0.5)', 'rgba(255,220,140,0)');
         });
       }
       if (glut > 0.4) {
-        // Fassade nur leicht dunkler andeuten — kein heller Rechteckrahmen
         c.globalAlpha = 0.08 * glut;
         karte.gebaeude.forEach(function (b) {
           var pl = bauplan(b);
@@ -498,19 +573,59 @@
     textInBox(c, Saufi.Uhr.tag(uhr).slice(0, 2) + ' · ' + Saufi.Uhr.phase(uhr), px + (kompakt ? 26 : 28), py + (kompakt ? 12 : 13), pw - (kompakt ? 30 : 32), kompakt ? 10 : 11, 7, { col: P.uiTinteWeich, ausr: 'center' });
     textInBox(c, '★ ' + S.punkte.punkte, px, py + ph, pw, 10, kompakt ? 7 : 8, { col: P.uiTinte, ausr: 'center', kontur: 'rgba(255,248,238,0.95)' });
     R.hudUhr = { x: px, y: py, w: pw, h: ph, btnBand: btnBand };
-    // Runde: unter Uhr/Punkte, ohne Overlap
+    // Runde: unter Uhr/Punkte, ohne Overlap; nicht ueber Ziel-Gebaeudeschild
     var nr = Saufi.Runden.naechste(S.runden), ry = 0, rundenH = 0;
     if (nr && (nr.status === 'warnung' || nr.status === 'aktiv')) {
       var aktiv = nr.status === 'aktiv', rest = aktiv ? nr.zeit + Saufi.Runden.FRIST_MIN - uhr.minute : nr.zeit - uhr.minute;
-      var rw = Math.min(kompakt ? 170 : 196, W - 24), rx = Math.round(W / 2 - rw / 2) + 2;
-      rundenH = kompakt ? 18 : 20;
-      // ≥ 4 px unter Uhr-Stern-Zeile (Stern bei py+ph .. py+ph+10)
+      var rw = Math.min(kompakt ? Math.min(170, Math.round(W * 0.45)) : 196, W - 24);
+      rundenH = kompakt ? 16 : 20;
+      // ≥ 4 px unter Uhr-Stern-Zeile
       ry = Math.max(kompakt ? 36 : 48, py + ph + 14);
+      var rx;
+      if (kompakt) {
+        // Quer: immer unter Uhr-Stern-Zeile (kein Overlap mit Uhr/HUD); schmal ≤ 45 %
+        rx = Math.round(W / 2 - rw / 2) + 2;
+        rx = Math.max(lx + lpW + 4, Math.min(rx, W - btnBand - rw - 2));
+        ry = Math.max(36, py + ph + 14);
+      } else {
+        rx = Math.round(W / 2 - rw / 2) + 2;
+      }
+      // Hoch: Banner nicht ueber Ziel-Gebaeudeschild (Welt→Bildschirm)
+      if (R.hochkant && S.karte && !S.karte.innen && nr.ort) {
+        var zielB = null;
+        (S.karte.gebaeude || []).forEach(function (b) { if (b.id === nr.ort) zielB = b; });
+        if (zielB) {
+          var zp = bauplan(zielB), cam = S.kamera, zZoom = R.aktuellerWeltZoom != null ? R.aktuellerWeltZoom : WELT_ZOOM;
+          var schildScr = {
+            x: (zp.schild.x - (cam ? cam.x : 0)) * zZoom - Math.min(zp.w - 8, 112) / 2 * zZoom,
+            y: (zp.schild.y - 7 - (cam ? cam.y : 0)) * zZoom,
+            w: Math.min(zp.w - 8, 112) * zZoom, h: 14 * zZoom
+          };
+          function cutR(a, b) { return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y); }
+          var ban = { x: rx, y: ry, w: rw, h: rundenH };
+          if (cutR(ban, schildScr)) {
+            // Banner kleiner halten, unter Uhr belassen — Schild bleibt sichtbar
+            rundenH = 14; ry = py + ph + 14;
+            ban = { x: rx, y: ry, w: rw, h: rundenH };
+            if (cutR(ban, schildScr)) { rw = Math.min(rw, Math.round(W * 0.5)); rx = Math.round(W / 2 - rw / 2); }
+          }
+        }
+      }
+      function hudOverlap(a, b) { return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y); }
+      var uhrBox = { x: px, y: py, w: pw, h: ph + 10 };
+      var banTry = { x: rx, y: ry, w: rw, h: rundenH };
+      if (hudOverlap(banTry, uhrBox)) {
+        ry = py + ph + 14;
+        banTry.y = ry;
+        if (hudOverlap(banTry, uhrBox)) { ry = py + ph + 18; rundenH = Math.min(rundenH, 16); }
+      }
+      // Tests messen Uhr nur mit Hoehe ph (ohne Stern-Zeile): Banner klar darunter
+      ry = Math.max(ry, py + ph + 14);
       var blink = aktiv && Math.floor(S.t * 3) % 2 === 0;
       panel(c, rx, ry, rw, rundenH, aktiv ? (blink ? '#ff9fb0' : '#ffd1da') : '#fff0c8', 6);
-      textInBox(c, (aktiv ? 'RUNDE! ' : 'Runde ' + Saufi.Uhr.zeitText(nr.zeit) + ': ') + Saufi.Karte.NAMEN[nr.ort], rx + 6, ry + 1, rw - 12, kompakt ? 10 : 11, 7, { col: P.uiTinte, ausr: 'center' });
+      textInBox(c, (aktiv ? 'RUNDE! ' : 'Runde ' + Saufi.Uhr.zeitText(nr.zeit) + ': ') + Saufi.Karte.NAMEN[nr.ort], rx + 6, ry + 1, rw - 12, Math.max(8, rundenH - 6), 7, { col: P.uiTinte, ausr: 'center' });
       var frac = Math.max(0, Math.min(1, rest / (aktiv ? Saufi.Runden.FRIST_MIN : Saufi.Runden.VORLAUF_MIN)));
-      var by2 = ry + (kompakt ? 11 : 13), bh2 = kompakt ? 3.5 : 4;
+      var by2 = ry + rundenH - 5, bh2 = 3;
       rr(c, rx + 10, by2, rw - 20, bh2, 'rgba(74,53,96,0.25)', 2.2); if (frac > 0.01) rr(c, rx + 10, by2, (rw - 20) * frac, bh2, aktiv ? '#e0504a' : '#f0b030', 2.2);
       R.hudRunde = { x: rx, y: ry, w: rw, h: rundenH };
     } else R.hudRunde = null;
@@ -530,38 +645,58 @@
     // Navigationspfeil (Welt→Bildschirm); Label unter Uhr/Runde
     var pfeilZoom = R.aktuellerWeltZoom != null ? R.aktuellerWeltZoom : WELT_ZOOM;
     if (S.pfeil) pfeil(R, S.pfeil.x * pfeilZoom, S.pfeil.y * pfeilZoom, ry + rundenH);
-    // Banner / Hinweise
+    // Banner / Hinweise (+ Quer: Dialog ≤ 60 % Breite, maxZeilen 2; Stapel mit Hilfe)
     var h = Saufi.Hinweise.aktuell(S.hinweise);
+    var dialogRect = null, hilfeRect = null;
+    // Touch-Quer: E/Wasser-Knopf-Rechtecke (geschaetzt, ~15 % kleiner)
+    var knopfRects = [];
+    if (R.touch && !R.hochkant) {
+      var kS = Math.max(0.5, sCss), kE = Math.max(44 / kS, 56 * 0.85), kW2 = Math.max(44 / kS, 44 * 0.85);
+      knopfRects.push({ x: W - 8 / kS - kE, y: H - 8 / kS - kE - kW2 - 8 / kS, w: kE, h: kE });
+      knopfRects.push({ x: W - 8 / kS - kW2, y: H - 8 / kS - kW2, w: kW2, h: kW2 });
+    }
+    function freiVonKnoepfen(rect) {
+      return !knopfRects.some(function (k) { return !(rect.x + rect.w <= k.x || k.x + k.w <= rect.x || rect.y + rect.h <= k.y || k.y + k.h <= rect.y); });
+    }
     if (h) {
       var a = Math.min(1, h.rest * 3);
       c.globalAlpha = a;
       if (h.art === 'gross') {
-        // Hoch: resTop+40 (≥4 px unter Scooter-Leiste), nicht mitten ueber dem Spieler
         var y0 = resTop != null ? Math.min(H - 26, resTop + 40) : Math.round(H * 0.38);
         y0 += (Math.floor(S.t * 8) % 2);
         textInBox(c, h.text, 16, y0, W - 32, 24, 14, { col: '#ffe84f', ausr: 'center', kontur: P.kontur });
       } else {
-        var maxZ = resTop != null ? 2 : 4;
-        var boxW = Math.min(W - 40, 240), mess = textInBox(c, h.text, 0, 0, boxW - 16, resTop != null ? 28 : 60, 8, { ausr: 'center', mess: true, maxZeilen: maxZ });
-        var bw2 = Math.min(W - 40, Math.round(mess.w) + 20), hh2 = Math.round(mess.h) + 8;
+        var maxZ = resTop != null ? 2 : 2;
+        var maxBoxW = resTop != null ? Math.min(W - 40, 240) : Math.min(W - 40, Math.round(W * 0.6));
+        var mess = textInBox(c, h.text, 0, 0, maxBoxW - 16, resTop != null ? 28 : 40, 8, { ausr: 'center', mess: true, maxZeilen: maxZ });
+        var bw2 = Math.min(maxBoxW, Math.round(mess.w) + 20), hh2 = Math.round(mess.h) + 8;
         if (resTop != null) hh2 = Math.min(hh2, Math.max(16, H - weltH - (S.hilfe ? 16 : 0) - (S.ort === 'disko' ? 18 : 0) - 2));
         var wy, mx = Math.round(W / 2);
         if (resTop != null) wy = Math.min(H - hh2 - 2, resTop + (S.hilfe ? 14 : 0) + (S.ort === 'disko' ? 16 : 0));
-        else wy = H - safeBot - hh2 - (S.ort === 'disko' ? 20 : 0);
-        panel(c, mx - Math.round(bw2 / 2), wy, bw2, hh2, h.art === 'schlecht' ? '#ffd1da' : (h.art === 'gut' ? '#d8f5dc' : P.uiFlaeche), 7);
-        textInBox(c, h.text, mx - Math.round(bw2 / 2) + 6, wy + 2, bw2 - 12, hh2 - 4, 8, { col: P.uiTinte, ausr: 'center', maxZeilen: maxZ });
+        else wy = H - safeBot - hh2 - (S.ort === 'disko' ? 20 : 0) - (S.hilfe ? 20 : 0);
+        dialogRect = { x: mx - Math.round(bw2 / 2), y: wy, w: bw2, h: hh2 };
+        if (!freiVonKnoepfen(dialogRect)) { dialogRect.x = Math.max(4, Math.round(W * 0.2 - bw2 / 2)); wy = dialogRect.y; }
+        panel(c, dialogRect.x, dialogRect.y, dialogRect.w, dialogRect.h, h.art === 'schlecht' ? '#ffd1da' : (h.art === 'gut' ? '#d8f5dc' : P.uiFlaeche), 7);
+        textInBox(c, h.text, dialogRect.x + 6, dialogRect.y + 2, dialogRect.w - 12, dialogRect.h - 4, 8, { col: P.uiTinte, ausr: 'center', maxZeilen: maxZ });
+        R.hudDialog = dialogRect;
       }
       c.globalAlpha = 1;
-    }
-    // Hilfe: Hoch in UI-Reserve, Quer oberhalb Stick/E
+    } else R.hudDialog = null;
+    // Hilfe: Hoch in UI-Reserve, Quer oberhalb Stick/E — ≥ 4 px Abstand zur Dialogblase
     if (S.hilfe) {
       var hm = textInBox(c, S.hilfe, 0, 0, W - 40, 14, 8, { ausr: 'center', mess: true });
       var hw = Math.min(W - 20, Math.round(hm.w) + 18), hy;
       if (resTop != null) hy = Math.min(H - 18, resTop);
-      else hy = H - safeBot - 4;
-      panel(c, Math.round(W / 2 - hw / 2), hy, hw, 16, 'rgba(255,248,238,0.96)', 7);
-      textInBox(c, S.hilfe, Math.round(W / 2 - hw / 2) + 4, hy + 1, hw - 8, 14, 8, { col: P.uiTinte, ausr: 'center' });
-    }
+      else {
+        hy = H - safeBot - 4;
+        if (dialogRect) hy = Math.min(hy, dialogRect.y - 16 - 4);
+      }
+      hilfeRect = { x: Math.round(W / 2 - hw / 2), y: hy, w: hw, h: 16 };
+      if (!R.hochkant && !freiVonKnoepfen(hilfeRect)) hilfeRect.x = Math.max(4, Math.round(W * 0.15));
+      panel(c, hilfeRect.x, hilfeRect.y, hilfeRect.w, hilfeRect.h, 'rgba(255,248,238,0.96)', 7);
+      textInBox(c, S.hilfe, hilfeRect.x + 4, hilfeRect.y + 1, hilfeRect.w - 8, 14, 8, { col: P.uiTinte, ausr: 'center' });
+      R.hudHilfe = hilfeRect;
+    } else R.hudHilfe = null;
   }
   function pfeil(R, sx, sy, unterY) {
     var c = R.ctx, cx = W / 2, cy = Math.min(H, R.weltH || H) / 2, dx = sx - cx, dy = sy - cy;
@@ -573,10 +708,23 @@
     py = Math.max(56, Math.min(weltH - 26, py)); px = Math.max(12, Math.min(W - 12, px));
     c.save(); c.translate(px, py); c.rotate(ang);
     poly(c, [[9, 0], [-5, -7], [-3, 0], [-5, 7]], '#ffd75e', P.kontur, 1); c.restore();
-    // Label unter Uhr/Runden-Panel, kuerzer im Hochformat
+    // Label unter Uhr/Runden-Panel; nie ueber Gebaeudeschildern (Dachfirst / neben Gebaeude)
     var labelY = Math.max(unterY > 0 ? unterY + 4 : 56, (R.hudUhr ? R.hudUhr.y + R.hudUhr.h + 14 : 56));
-    if (R.hochkant) textInBox(c, '→ HIER', W / 2 - 40, labelY, 80, 12, 7, { col: P.uiTinte, ausr: 'center', kontur: 'rgba(255,248,238,0.9)' });
-    else textInBox(c, 'HIER SOLLST DU HIN', W / 2 - 70, labelY, 140, 12, 7, { col: P.uiTinte, ausr: 'center', kontur: 'rgba(255,248,238,0.9)' });
+    var labelX = W / 2 - (R.hochkant ? 40 : 70), labelW = R.hochkant ? 80 : 140, labelH = 12;
+    var labelTxt = R.hochkant ? '→ HIER' : 'HIER SOLLST DU HIN';
+    if (R._schildRects) {
+      var lab = { x: labelX, y: labelY, w: labelW, h: labelH };
+      function hit(a, b) { return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y); }
+      R._schildRects.forEach(function (sr) {
+        if (hit(lab, sr)) {
+          labelY = Math.max(12, sr.y - labelH - 4);
+          if (labelY < 40) { labelX = sr.x + sr.w + 4; if (labelX + labelW > W - 4) labelX = Math.max(4, sr.x - labelW - 4); labelY = Math.max(unterY > 0 ? unterY + 4 : 56, sr.y); }
+          lab = { x: labelX, y: labelY, w: labelW, h: labelH };
+        }
+      });
+    }
+    R.hierLabel = { x: labelX, y: labelY, w: labelW, h: labelH };
+    textInBox(c, labelTxt, labelX, labelY, labelW, labelH, 7, { col: P.uiTinte, ausr: 'center', kontur: 'rgba(255,248,238,0.9)' });
   }
 
   // ---------- Menues und Bildschirme ----------
@@ -682,8 +830,6 @@
 
   function endeBild(R, S) {
     var c = R.ctx, e = S.ende, sieg = e.sieg, t = S.t;
-    Sz.kesselSzene(c, W, H, sieg ? 28 : 26, t);
-    if (sieg) { var sy = Math.round(H * 0.5) - Math.min(1, e.t / 6) * 8; G.glanz(c, W / 2, sy, 40, 'rgba(255,230,160,0.7)', 'rgba(255,230,160,0)'); kreis(c, W / 2, sy, 11, '#ffe58a'); kreis(c, W / 2, sy, 7.4, '#fff6c8'); }
     var sCss = cssSkala(R);
     var top = (R.hochkant && R.touch) ? Math.ceil(50 / Math.max(0.5, sCss)) : 8;
     var bx = 20, bw = W - 40, innen = bw - 20, w = e.wertung;
@@ -702,8 +848,24 @@
     var gap = 3, pad = 10;
     var inhalt = pad + Math.ceil(mKopf.h) + gap + Math.ceil(mGrund.h) + gap + Math.ceil(mTitel.h) + 2 + Math.ceil(mPunkte.h) + 2 + Math.ceil(mRunden.h) + gap + Math.ceil(mDanke.h) + gap + btnH + pad;
     var maxPh = Math.max(60, H - top - 8), ph = Math.min(inhalt, maxPh);
-    var frei = H - top - 8, by0 = top + Math.max(0, Math.floor((frei - ph) / 2));
-    panel(c, bx, by0, bw, ph, 'rgba(255,248,238,0.95)', 10);
+    // Hoch: Panel in der Mitte des oberen Drittels → Landschaft darunter sichtbar
+    var by0;
+    if (R.hochkant) by0 = Math.max(top, Math.round(H / 6 - ph / 2));
+    else by0 = top + Math.max(0, Math.floor((H - top - 8 - ph) / 2));
+    if (by0 + ph > H - 4) by0 = Math.max(top, H - 4 - ph);
+    // Kessel zuerst; Turm nur oberhalb Panel; Sterne nur im oberen Himmel
+    Sz.kesselSzene(c, W, H, sieg ? 28 : 26, t, { turmMaxY: by0, sterneMaxY: Math.max(H * 0.35, by0 - 4) });
+    // Sieg: grosse Sonne links der Mitte, nicht im Panel/Turm
+    if (sieg) {
+      var sonneR = Math.max(10, W * 0.07), sx = Math.round(W * 0.28), sy = Math.round(H * 0.42);
+      if (sy + sonneR > by0 - 2) sy = by0 - sonneR - 4;
+      if (sx + sonneR > bx) sx = Math.max(sonneR + 4, bx - sonneR - 8);
+      G.glanz(c, sx, sy, sonneR * 3.5, 'rgba(255,230,160,0.75)', 'rgba(255,230,160,0)');
+      kreis(c, sx, sy, sonneR, '#ffe08a'); kreis(c, sx - sonneR * 0.25, sy - sonneR * 0.25, sonneR * 0.35, '#fff6c8');
+      R.endeSonne = { x: sx, y: sy, r: sonneR };
+    } else R.endeSonne = null;
+    // Panel undurchsichtig (Alpha 1.0) — kein Turmschaft durchs Panel
+    panel(c, bx, by0, bw, ph, 'rgba(255,248,238,1)', 10);
     R.panel = { x: bx, y: by0, w: bw, h: ph };
     var y = by0 + pad;
     textInBox(c, kopf, bx + 10, y, innen, Math.ceil(mKopf.h), kopf.length > 28 ? 9 : 11, { col: sieg ? '#2f8a4a' : P.bierRot, ausr: 'center', maxZeilen: 2 });
@@ -907,7 +1069,7 @@
     W: BASE_W, H: BASE_H, BASE_W: BASE_W, BASE_H: BASE_H, PORT_H: PORT_H, PORT_H_MIN: PORT_H_MIN, PORT_H_MAX: PORT_H_MAX,
     MAX_BREITE: MAX_BREITE, MAX_BG_SKALA: MAX_BG_SKALA, MAX_DPR: MAX_DPR,
     UI_RESERVE_HOCH: UI_RESERVE_HOCH, UI_RESERVE_HOCH_TOUCH: UI_RESERVE_HOCH_TOUCH, STADT_PX_H: STADT_PX_H,
-    LATERNE_RADIUS: LATERNE_RADIUS, LATERNE_RADIUS_V06: 44, UI_DUNKEL: '#1b1530',
+    LATERNE_RADIUS: LATERNE_RADIUS, LATERNE_RADIUS_V06: 44, SCHILD_NACHT_ALPHA: SCHILD_NACHT_ALPHA, UI_DUNKEL: '#1b1530',
     get WELT_FLAECHE() { return WELT_FLAECHE; }, get WELT_ZOOM() { return WELT_ZOOM; },
     WELT_FLAECHE_HOCH: WELT_FLAECHE_HOCH, WELT_FLAECHE_QUER: WELT_FLAECHE_QUER
   };

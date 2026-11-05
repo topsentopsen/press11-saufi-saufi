@@ -66,10 +66,12 @@
     }
     var sp = sonnenPos(stunde);
     if (sp) {
-      var nah = sp.daemmer ? 0.85 : klemme(1 - Math.abs(sp.y - 0.78) / 0.3), sxp = x + sp.x * w, syp = y + sp.y * h, rad = Math.max(3, h * (sp.daemmer ? 0.055 : 0.07));
-      var col = G.mischeHex('#fff2a8', '#ff9a50', nah * 0.9);
+      var nah = sp.daemmer ? 0.85 : klemme(1 - Math.abs(sp.y - 0.78) / 0.3), sxp = x + sp.x * w, syp = y + sp.y * h;
+      var rad = Math.max(3, (sp.daemmer ? w : h) * (sp.daemmer ? 0.07 : 0.07));
+      var col = sp.daemmer ? '#ffe08a' : G.mischeHex('#fff2a8', '#ff9a50', nah * 0.9);
       G.glanz(c, sxp, syp, rad * 4, 'rgba(255,230,160,0.55)', 'rgba(255,230,160,0)');
       kreis(c, sxp, syp, rad, col);
+      if (sp.daemmer) { kreis(c, sxp - rad * 0.25, syp - rad * 0.25, rad * 0.35, '#fff6c8'); }
     }
     // Mond nur nachts, nicht in der Sieges-Daemmerung (Sonne uebernimmt ab ~27.2)
     var mp = mondPos(stunde);
@@ -99,15 +101,18 @@
     var n = Math.max(1, Math.floor(w / 6));
     for (var i = 0; i < n; i++) {
       var fx = x + (i + 0.5) * (w / n) - 1.2, an = lit > 0.1;
-      r(c, fx, y + h * 0.35, 2.4, h * 0.4, an ? G.mischeHex('#8aa4c4', '#ffb85a', lit) : '#8aa4c4');
+      r(c, fx, y + h * 0.35, 2.4, h * 0.4, an ? G.mischeHex('#8aa4c4', '#ffd77a', lit) : '#8aa4c4');
     }
     if (treppe) r(c, x - 1, y + h, w + 2, 1.5, 'rgba(60,40,70,0.25)');
   }
 
-  // Kessel-Panorama fuer Start- und Endbildschirm
-  function kesselSzene(c, W, H, stunde, t) {
+  // Kessel-Panorama fuer Start- und Endbildschirm.
+  // opt: { turmMaxY } — Turmschaft nur bis zu dieser Y (Panel-Oberkante); { sterneMaxY } — Sterne nur darueber
+  function kesselSzene(c, W, H, stunde, t, opt) {
+    opt = opt || {};
     var n = nachtGrad(stunde), tag = 1 - n;
-    himmelZeichnen(c, 0, 0, W, H * 0.72, stunde, t);
+    var himmelH = opt.sterneMaxY != null ? opt.sterneMaxY : H * 0.72;
+    himmelZeichnen(c, 0, 0, W, Math.max(H * 0.55, himmelH), stunde, t);
     var m = function (a, b) { return G.mischeHex(a, b, n); };
     // ferne Hoehen mit Dunst
     function huegel(y0, amp, ph, farbe, rebenFarbe) {
@@ -124,14 +129,20 @@
       }
     }
     huegel(H * 0.52, 7, 0, m('#a9c8d8', '#27315a'), null);
-    turm(c, W * 0.86, H * 0.5, H * 0.3, m('#9aa8be', '#1b2342'), n * 0.9);
+    // Turm rechts; bei turmMaxY nur Anteil oberhalb der Panel-Kante (Kopf frei, kein Schaft im Panel)
+    var turmFuss = H * 0.5, turmH = H * 0.3, turmX = W * 0.88;
+    if (opt.turmMaxY != null) {
+      c.save(); c.beginPath(); c.rect(0, 0, W, opt.turmMaxY); c.clip();
+      turm(c, turmX, turmFuss, turmH, m('#9aa8be', '#1b2342'), n * 0.9);
+      c.restore();
+    } else turm(c, turmX, turmFuss, turmH, m('#9aa8be', '#1b2342'), n * 0.9);
     huegel(H * 0.58, 8, 90, m('#8cc27a', '#233a46'), m('#79b068', '#1d3340'));
     huegel(H * 0.67, 6, 40, m('#6fae6a', '#1b2d3a'), null);
-    // Haeuser im Kessel
-    var by = H * 0.76;
+    // Haeuser im Kessel (warme Fenster bei Daemmerung/Nacht)
+    var by = H * 0.76, fenLit = stunde >= 19 || stunde >= 27 ? Math.max(n, 0.55) : n;
     for (var i = 0; i < 20; i++) {
       var hx = 10 + i * (W - 20) / 20, hh = 7 + (hash(i, 9) % 10), hw = 8 + (hash(i, 4) % 5);
-      haeuschen(c, hx, by - hh + 6, hw, hh, m(i % 2 ? '#f0dcc4' : '#e8cdb0', '#1b2036'), m(i % 3 ? '#d2694f' : '#b9553f', '#22223c'), n);
+      haeuschen(c, hx, by - hh + 6, hw, hh, m(i % 2 ? '#f0dcc4' : '#e8cdb0', '#1b2036'), m(i % 3 ? '#d2694f' : '#b9553f', '#22223c'), fenLit, false);
     }
     // Fluss und Vordergrund
     vlauf(c, 0, by + 6, W, H - by - 6, m('#a8d68f', '#16222f'), m('#7fb678', '#101a26'));
@@ -171,16 +182,22 @@
   }
 
   function gras(c, sx, sy, hs) {
-    vlauf(c, sx, sy, K, K, hs % 2 ? '#a9d790' : '#a4d38b', hs % 2 ? '#9fcf86' : '#a8d68f');
-    for (var i = 0; i < 4; i++) {
-      var hh = hash(hs, i + 11), px = sx + 1 + (hh % 14), py = sy + 2 + ((hh >> 4) % 12);
-      linie(c, px, py, px + 0.6, py - 2, i % 2 ? P.gras2 : P.gras3, 0.55);
+    var hell = (hs % 3) !== 1;
+    vlauf(c, sx, sy, K, K, hell ? '#a9d790' : '#96c67e', hell ? '#9fcf86' : '#8fba74');
+    for (var i = 0; i < 5; i++) {
+      var hh = hash(hs, i + 11), px = sx + 1 + (hh % 14), py = sy + 3 + ((hh >> 4) % 11);
+      linie(c, px, py, px + ((hh >> 8) % 3) * 0.3 - 0.2, py - 2.2 - (hh % 2), i % 2 ? P.gras2 : P.gras3, 0.55);
     }
     if (hs % 5 === 0) ellipse(c, sx + 3 + hs % 9, sy + 4 + (hs >> 3) % 8, 3.2, 1.5, 'rgba(120,180,110,0.35)');
   }
   function weg(c, sx, sy, hs) {
     r(c, sx, sy, K, K, P.weg); r(c, sx, sy, K, K, 'rgba(255,255,255,0.05)');
-    for (var i = 0; i < 4; i++) { var hh = hash(hs, i + 3); ellipse(c, sx + 2 + hh % 12, sy + 2 + (hh >> 5) % 12, 0.9 + (hh % 3) * 0.3, 0.6, i % 2 ? P.weg2 : '#e9ccaa'); }
+    r(c, sx, sy, K, 0.7, 'rgba(255,248,230,0.35)'); r(c, sx, sy + K - 0.7, K, 0.7, 'rgba(160,120,80,0.18)');
+    for (var i = 0; i < 5; i++) {
+      var hh = hash(hs, i + 3), px = sx + 2 + hh % 12, py = sy + 2 + (hh >> 5) % 12;
+      ellipse(c, px, py, 0.9 + (hh % 3) * 0.3, 0.6, i % 2 ? P.weg2 : '#e9ccaa');
+      if (i < 3) r(c, sx + 3 + (hh % 10), sy + 4 + ((hh >> 3) % 8), 2.2, 0.35, 'rgba(140,100,70,0.28)');
+    }
   }
   function pflaster(c, sx, sy, hs) {
     r(c, sx, sy, K, K, '#d9c19a');
@@ -209,12 +226,15 @@
     }
   }
   function wasser(c, sx, sy, hs) {
-    vlauf(c, sx, sy, K, K, '#86d9ef', '#6cc7e4');
+    vlauf(c, sx, sy, K, K, '#86d9ef', '#5bb8d8');
     r(c, sx, sy, K, 1.6, 'rgba(255,255,255,0.18)');
+    r(c, sx, sy, K, 1, 'rgba(232,251,255,0.55)');                              // Schaumsaum
     if (hs % 2) ellipse(c, sx + 5 + hs % 6, sy + 8, 3, 0.7, 'rgba(255,255,255,0.45)');
   }
   function bruecke(c, karte, x, y, sx, sy) {
     var T = Saufi.Karte.T;
+    // Spiegelung unter der Bruecke (dunkler Streifen im Wasser)
+    r(c, sx, sy + K - 3, K, 2.5, 'rgba(40,70,90,0.35)');
     r(c, sx, sy, K, K, '#b4794f');
     for (var i = 0; i < 5; i++) { r(c, sx, sy + i * 3.2, K, 0.5, 'rgba(70,40,30,0.5)'); r(c, sx, sy + i * 3.2 + 0.5, K, 0.7, 'rgba(255,230,200,0.18)'); }
     if (karte.tile(x - 1, y) !== T.BRUECKE) { r(c, sx, sy, 2.2, K, '#7a4a3a'); r(c, sx + 0.4, sy, 0.8, K, '#a8705a'); }
@@ -288,12 +308,17 @@
       rr(c, x + 2, y + h - 4, w - 4, 2, '#e8a0b0', 1);                        // Blumenkasten
     });
   }
-  // Tupfer im Gras (Blumen) und Gras-Details auf dem Hintergrund
+  // Tupfer im Gras (Blumen) — Cluster statt gleichmaessiger Streuung
   function blumen(c, karte) {
     karte.deco.forEach(function (d) {
       linie(c, d.x, d.y + 1, d.x, d.y + 3, '#5f9e64', 0.5);
       for (var i = 0; i < 5; i++) { var a = i * 1.2566; kreis(c, d.x + Math.cos(a) * 0.9, d.y + Math.sin(a) * 0.9, 0.7, d.farbe); }
       kreis(c, d.x, d.y, 0.55, '#ffcf40');
+      // kleiner Nachbar-Tupfer (Cluster)
+      if ((hash(d.x | 0, d.y | 0) % 3) === 0) {
+        var ox = 3 + (hash(d.x | 0, 2) % 4), oy = 1 + (hash(d.y | 0, 3) % 3);
+        kreis(c, d.x + ox, d.y + oy, 0.7, d.farbe); kreis(c, d.x + ox, d.y + oy, 0.4, '#ffcf40');
+      }
     });
   }
 
@@ -305,8 +330,8 @@
     var i;
     if (b.id === 'hotel') {
       for (i = 0; i < 4; i++) { plan.fenster.push({ x: x0 + 10 + i * 28 + (i > 1 ? 16 : 0), y: y0 + 28, w: 12, h: 13 }); plan.fenster.push({ x: x0 + 10 + i * 28 + (i > 1 ? 16 : 0), y: y0 + 50, w: 12, h: 13 }); }
-      // Kehrwoche zwischen Fensterreihen, in der Tuer-Luecke (kein Fenster, nicht „→ HIER“)
-      plan.schildNeben = { x: x0 + 51, y: y0 + 40, w: 30, h: 10, text: 'Kehrwoche ok' };
+      // Zwischen Fensterreihen auf dem Gesims (volle Breite, 1 Zeile ≥ 5,5 px) — Quelle fuer Zeichnung
+      plan.schildNeben = { x: x0 + (w - 56) / 2, y: y0 + 42.3, w: 56, h: 6.4, text: 'Kehrwoche ok' };
     } else if (b.id === 'restaurant') {
       for (i = 0; i < 3; i++) plan.fenster.push({ x: x0 + 8 + i * 34 + (i > 0 ? 10 : 0), y: y0 + 30, w: 14, h: 14 });
       plan.fenster.push({ x: x0 + 8, y: y0 + 54, w: 14, h: 14 }); plan.fenster.push({ x: x0 + w - 24, y: y0 + 54, w: 14, h: 14 });
@@ -382,11 +407,13 @@
     for (i = 0; i < 6; i++) r(c, d.x - 8 + i * 4.0 + 1, d.y - 10, 2, 7, 'rgba(255,255,255,0.18)');
     for (i = 0; i < 9; i++) kreis(c, d.x - 6 + i * 3.5, d.y - 3, 1.6, '#2e3f7a');
     schildGeb(c, x0 + w / 2, y0 + 14, Math.min(w - 8, 112), 14, '#2e3f7a', '#ffe9a8', 'HOTEL KESSELBLICK', 11, '#d9b86a');
-    // Zwischen Fensterreihen in der Tuer-Luecke (x0+51..81); zwei Zeilen → kein …
-    var hotelSchild = 30, hotelTxt = 'Kehrwoche ok';
-    rr(c, x0 + 51, y0 + 40, hotelSchild, 10, '#fff8ee', 2.5, 'rgba(30,20,40,0.7)', 0.7);
-    textInBox(c, hotelTxt.split(' ')[0], x0 + 52, y0 + 40.2, hotelSchild - 2, 5, 5, { col: '#6a3f2a', ausr: 'center', min: 5, maxZeilen: 1 });
-    textInBox(c, hotelTxt.split(' ')[1], x0 + 52, y0 + 45, hotelSchild - 2, 4.5, 5, { col: '#6a3f2a', ausr: 'center', min: 5, maxZeilen: 1 });
+    r(c, x0 - 1, y0 + 17, w + 2, 1, 'rgba(60,40,80,0.35)');                       // Dachrinne
+    // Gesims-Band: Koordinaten aus plan.schildNeben (eine Quelle)
+    var hotelSchild = p.schildNeben;
+    if (hotelSchild) {
+      rr(c, hotelSchild.x, hotelSchild.y, hotelSchild.w, hotelSchild.h, '#fff8ee', 2, 'rgba(30,20,40,0.7)', 0.6);
+      textInBox(c, hotelSchild.text, hotelSchild.x + 1, hotelSchild.y + 0.3, hotelSchild.w - 2, hotelSchild.h - 0.6, 5.5, { col: '#6a3f2a', ausr: 'center', min: 5.5, maxZeilen: 1 });
+    }
   }
   function restaurantFassade(c, p) {
     var x0 = p.x0, y0 = p.y0, w = p.w, h = p.h, i;
@@ -403,6 +430,7 @@
     poly(c, [[x0 - 5, y0 + 17], [x0 + 6, y0 - 9], [x0 + w - 6, y0 - 9], [x0 + w + 5, y0 + 17]], P.dach2, '#8a3a2e', 0.9);
     dachziegel(c, x0 - 1, y0 - 8, w + 2, 22, P.dach2, '#b9553f', false);
     r(c, x0 - 5, y0 + 15, w + 10, 2.4, '#7a2a24');
+    r(c, x0 - 1, y0 + 17, w + 2, 1, 'rgba(60,40,80,0.35)');                       // Dachrinne
     r(c, x0 + 14, y0 - 17, 6, 12, '#b9553f'); r(c, x0 + 13, y0 - 18, 8, 2, '#8a3a2e');
     p.fenster.forEach(function (f, k) { fensterV(c, f, null, k % 2 ? '#e0504a' : '#fff8ee', f.y > 50 || k === 1); });
     // Haengeschild, Tonnen, Laterne
@@ -424,6 +452,7 @@
     c.fillStyle = sg; c.fillRect(x0 + w - 10, y0 + 10, 10, h - 10);
     rr(c, x0 - 3, y0 - 8, w + 6, 20, '#5c4a6e', 3, P.kontur, 0.9);       // Flachdach-Blende
     r(c, x0 - 3, y0 - 8, w + 6, 3, '#7a6690');
+    dachziegel(c, x0 - 1, y0 - 6, w + 2, 14, '#5c4a6e', '#4a3a5e', false);
     for (i = 0; i < 6; i++) r(c, x0 + 6 + i * 18, y0 - 4, 10, 1, 'rgba(255,255,255,0.14)');
     p.fenster.forEach(function (f) {
       rr(c, f.x - 1.4, f.y - 1.4, f.w + 2.8, f.h + 2.8, '#5a3a2a', 4, '#3a2a30', 0.7);
@@ -447,11 +476,9 @@
     // Kreidetafel
     rr(c, d.x + d.w + 4, d.y + 3, 9, 12, '#3a3a40', 1, '#8a5a3a', 0.9); linie(c, d.x + d.w + 6, d.y + 7, d.x + d.w + 11, d.y + 7, '#fff8ee', 0.5); linie(c, d.x + d.w + 6, d.y + 10, d.x + d.w + 10, d.y + 10, '#fff8ee', 0.5);
     schildGeb(c, x0 + w / 2, y0 + 8, Math.min(w - 8, 108), 14, '#2f6a3f', '#ffe9a8', 'ZUM DURSTIGEN DACHS', 11, '#d9b86a');
-    // Bandstreifen oben an der Markise — ausserhalb der NPC-Schlange vor der Tuer
-    var kneipeSchild = Math.min(60, w - 8), kneipeTxt = kneipeSchild >= 60 ? 'Feinstaub drin' : 'Feinstaub';
-    var kneipeSchildY = my - 9; // y0+38; endet y0+48, npcZone ab ty+2 = y0+50
-    // Dunkler Grund, helle Schrift (Kontrast ≥ 4:1) — auch nachts lesbar
-    schild(c, x0 + w / 2, kneipeSchildY, kneipeSchild, 10, '#2a2a30', '#fff8ee', kneipeTxt, 7);
+    // Bandstreifen: Koordinaten aus plan.schildNeben
+    var kneipeSchild = p.schildNeben;
+    if (kneipeSchild) schild(c, kneipeSchild.x + kneipeSchild.w / 2, kneipeSchild.y, kneipeSchild.w, kneipeSchild.h, '#2a2a30', '#fff8ee', kneipeSchild.text, 7);
   }
   function diskoFassade(c, p) {
     var x0 = p.x0, y0 = p.y0, w = p.w, h = p.h, i;
@@ -459,6 +486,7 @@
     for (i = 0; i < 6; i++) r(c, x0 + 3, y0 + 14 + i * 8, w - 6, 0.5, 'rgba(255,255,255,0.08)');
     rr(c, x0 - 3, y0 - 8, w + 6, 20, '#2a2342', 3, P.kontur, 0.9);
     r(c, x0 - 3, y0 - 8, w + 6, 2.5, '#4a3d72');
+    dachziegel(c, x0 - 1, y0 - 6, w + 2, 14, '#2a2342', '#1a1530', false);
     // Lautsprecher-Tuerme
     [x0 + 3, x0 + w - 16].forEach(function (lx) {
       rr(c, lx, y0 + 28, 13, 24, '#1a1530', 2, '#0e0a1e', 0.6);
@@ -501,17 +529,18 @@
   // ---------- Props ----------
   function baumBild(c, hs) {
     var v = hs % 3;
-    ellipse(c, 0, -1, 5, 1.6, 'rgba(60,40,40,0.18)');
+    ellipse(c, 0.4, -0.4, 6.2, 2.0, 'rgba(40,50,30,0.28)');
     G.poly(c, [[-1.8, 0], [1.8, 0], [1.1, -9], [-1.1, -9]], '#8a5a3a'); r(c, -0.6, -9, 1.2, 8, 'rgba(255,220,180,0.25)');
     var d = v === 2 ? ['#4f9a6a', '#5fae78', '#7cc890'] : (v ? ['#5f9e64', '#78b874', '#a4d890'] : ['#5aa05a', '#74b86a', '#a6dc8e']);
     kreis(c, -4.3, -13, 5, d[0]); kreis(c, 4.3, -13, 5, d[0]); kreis(c, 0, -17.5, 6.6, d[0]); kreis(c, 0, -12, 6.8, d[1]);
-    kreis(c, -2.2, -17.5, 4, d[1]); kreis(c, 2.6, -14.6, 3.6, d[1]); kreis(c, -3, -18.6, 2.2, d[2]); kreis(c, 1.4, -19.6, 1.6, d[2]);
+    kreis(c, -2.2, -17.5, 4, d[1]); kreis(c, 2.6, -14.6, 3.6, d[1]);
+    kreis(c, -3.2, -18.8, 2.4, d[2]); kreis(c, 1.0, -19.8, 2.0, d[2]);             // Licht oben links
     if (v === 1) { [[-4, -13], [3, -10], [2, -17], [-1, -9]].forEach(function (q) { kreis(c, q[0], q[1], 0.9, '#e0504a'); }); }
-    ellipse(c, 0, -7, 7, 2.2, 'rgba(40,70,50,0.28)');
   }
   function buschBild(c, hs) {
-    ellipse(c, 0, -1, 7, 2, 'rgba(60,40,40,0.18)');
+    ellipse(c, 0.3, -0.3, 7.5, 2.2, 'rgba(40,50,30,0.28)');
     kreis(c, -3.2, -4.5, 4.2, '#5f9e64'); kreis(c, 3.2, -4.5, 4.2, '#5f9e64'); kreis(c, 0, -6.4, 4.8, '#6fae6a'); kreis(c, -1.4, -7.4, 2.4, '#9ad88c');
+    kreis(c, -2.5, -3.2, 0.7, '#8a2a4a'); kreis(c, 1.8, -5.2, 0.65, '#a03050'); kreis(c, 0.2, -4.0, 0.55, '#c04060');
     if (hs % 2) { kreis(c, -3, -4, 0.9, '#ff8fb4'); kreis(c, 2.5, -6, 0.9, '#ffe066'); kreis(c, 0.5, -3.4, 0.9, '#fff'); }
   }
   function laterneBild(c) {
