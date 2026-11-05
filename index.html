@@ -77,6 +77,9 @@
   #rahmen.touch #stick { display: block; }
   #rahmen.touch:not(.overlay) #stick { pointer-events: auto; }
   #rahmen.overlay #stick { pointer-events: none; }
+  /* Menü/Sheet liegt auf dem Spielfeld. Die Daumenknöpfe dürfen es nicht zudecken. */
+  #rahmen.touch.overlay #touch,
+  #rahmen.touch.overlay #stick { visibility: hidden; pointer-events: none; }
   /* Querformat: Bedien als Overlay ueber der Canvas-Unterkante (kein eigener Streifen) */
   #rahmen.touch:not(.hoch) #bedien {
     position: absolute; left: 0; right: 0; bottom: 0; height: 46%; pointer-events: none; background: transparent; }
