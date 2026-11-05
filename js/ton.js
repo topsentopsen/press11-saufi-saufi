@@ -25,8 +25,7 @@
     var u = (m - 480) / (1680 - 480);
     var bpm = 96 + u * (150 - 96);
     var gain = Math.min(0.6, 0.25 + u * (0.55 - 0.25));
-    var schichten = Math.min(4, Math.floor(1 + u * 3 + 1e-9));
-    if (m >= 1680) schichten = 4;
+    var schichten = Math.min(4, 1 + Math.floor(u * 4 + 1e-9));   // Lead (4) ab 23:00
     return { bpm: bpm, gain: gain, schichten: schichten };
   }
 
@@ -187,14 +186,14 @@
       // schichten 1..4 → alte ebene 0..3 (Disko/Boost bleibt separat bei Ebene 3)
       var s = Math.max(0, Math.min(4, t.schichten));
       t.ebene = s <= 0 ? 0 : Math.min(3, s - 1);
+      var g = Math.min(0.6, i.gain != null ? i.gain : 0.55); t.intGain = g;   // auch bei Musik aus merken, fuer Wiedereinschalten
       if (musikBus && !t.musikAus) {
-        var g = Math.min(0.6, i.gain != null ? i.gain : 0.55);
         try { musikBus.gain.setTargetAtTime(g, now(), 0.2); } catch (e2) { musikBus.gain.value = g; }
       }
     };
     t.setzeTief = function (an) { t.tief = !!an; if (filter) filter.frequency.setTargetAtTime(an ? 650 : 20000, now(), 0.15); };
     t.setzeBoost = function (an) { t.boost = !!an; };
-    t.setzeMusikAus = function (aus) { t.musikAus = !!aus; if (musikBus) musikBus.gain.setTargetAtTime(aus ? 0 : 0.55, now(), 0.03); };
+    t.setzeMusikAus = function (aus) { t.musikAus = !!aus; if (musikBus) musikBus.gain.setTargetAtTime(aus ? 0 : (t.intGain != null ? t.intGain : 0.55), now(), 0.03); };
     t.setzeStumm = function (s) { t.stumm = !!s; if (master) master.gain.setTargetAtTime(s ? 0 : 0.7, now(), 0.03); };
     // Ist gerade ein Beat? Mit laufender Musik am Audio-Takt, sonst an der Echtzeit (t = Sekunden).
     t.aufBeat = function (zeit) {

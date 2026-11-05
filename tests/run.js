@@ -3799,6 +3799,7 @@ test('177 Intensitaet: monoton bpm/gain/schichten, setzeIntensitaet ok', functio
   nah(start.bpm, 96, 0.01); nah(ende.bpm, 150, 0.01);
   nah(start.gain, 0.25, 0.01); nah(ende.gain, 0.55, 0.01);
   gleich(start.schichten, 1); gleich(ende.schichten, 4);
+  gleich(D.Ton.intensitaet(23 * 60).schichten, 4, 'Lead ab 23:00'); wahr(D.Ton.intensitaet(22 * 60 + 50).schichten < 4, 'vor 23 Uhr ohne Lead');
   var t = D.Ton.erstelle(null);
   t.setzeIntensitaet(start);
   t.setzeIntensitaet(ende);
