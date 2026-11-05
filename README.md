@@ -4,6 +4,13 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v25
+
+- Eigene Feedback-Seite, nicht im Spiel: [press11-saufi-saufi/feedback/](https://topsentopsen.github.io/press11-saufi-saufi/feedback/). Name optional, Text Pflicht. Absenden öffnet einen vorausgefüllten GitHub-Issue-Entwurf. Ein Klick auf GitHub erstellt das Issue. Kein Schlüssel im Repo.
+- Schwinki-Startkarte: Schwäche „keine Schwäche“. Nachschub und Heimgeh-Zeit bleiben.
+- Tobi-Startkarte, Plus-Zeile: „Elon-Sprüche, neu dabei“. Die Rolle bleibt „Tesla-Tobi, Elon-Fanboy“.
+- Die wählbare Karte (id `raphael`, bisher Raphi/Raphael) heißt sichtbar Probst. Die andere Figur mit id `probst` heißt ebenfalls Probst und ist nicht wählbar.
+
 ## Neu in v24
 
 - Teilen zeigt das PRESSELF-Wappen: `assets/og-presself.png`.
@@ -254,7 +261,7 @@ Die Scooter-Titelliste im Spiel ist nur Text (Hyper Hyper, Move Your Ass!, How M
 
 - `?tempo=N`: die Uhr läuft N-mal schneller (zum Beispiel `?tempo=10`).
 - `?seed=N`: fester Zufall (Karte, Heimlich-Tausch).
-- `?start`: ohne Startbildschirm (nur für Tests). `?figur=raphael` spielt Raphael (hat ein zweites Leben).
+- `?start`: ohne Startbildschirm (nur für Tests). `?figur=raphael` spielt die wählbare Figur, die auf der Karte Probst heißt (hat ein zweites Leben).
 - `Saufi.debug()` in der Konsole liefert den Zustand: Uhrzeit (`zeit`), `ort`, `pegel`, `standfestigkeit`, `phase` (start, spiel, umgefallen, ende), `team`, `punkte`, nächste Runde, Musik. Dazu `Saufi.debug.setze({pegel, stand, minute, team, punkte, flaschen, boost, joint})`, `Saufi.debug.tippe('aktion')`, `Saufi.debug.geheZu(ort, station)`, `Saufi.debug.schritte(sekunden)`, `Saufi.debug.musik()`. Die Taste `^` blendet den Zustand live ein.
 
 ## Tests
@@ -269,6 +276,7 @@ Eigener Runner ohne Abhängigkeiten (lädt die Dateien per `vm`). Er prüft unte
 
 ```
 index.html          Rahmen, Canvas, Knöpfe, YouTube-Fenster, Script-Tags
+feedback/           Mini-Seite für Rückmeldungen (Issue-Entwurf auf GitHub)
 music/playlist.js   Saufi.MUSIK, Tobis eigene MP3s (standardmäßig leer)
 js/                 rng, uhr, charaktere, getraenke, essen, pegel, cheats, runden, ereignisse, punkte,
                     hinweise, speicher, karte, pfad, kamera, eingabe, spieler, npcs, ton, musik, render, main
