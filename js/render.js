@@ -31,6 +31,9 @@
   // Laternenkegel-Radius (Weltpixel); v06 war 44 → v08 kleiner/weicher
   var LATERNE_RADIUS = 22;
   var SCHILD_NACHT_ALPHA = 0.35;
+  // Blasen-Skala (Bildschirm-Logikpx je Blasen-px). Aussen = Welt-Zoom wie bisher. Innen kleiner (BLASE_INNEN),
+  // aber die 8-px-Blasenschrift bleibt mindestens BLASE_MIN_CSS CSS-px gross und nie groesser als draussen.
+  var BLASE_INNEN = 0.85, BLASE_MIN_CSS = 8.5, BLASE_SCHRIFT = 8;
   var W = BASE_W, H = BASE_H, VW = BASE_W / WELT_ZOOM, VH = BASE_H / WELT_ZOOM;
   var SH = { dx: 0, lang: 0.6, a: 0 };           // Schatten der aktuellen Uhrzeit
   function weltView() { return { w: VW, h: VH, zoom: WELT_ZOOM, flaeche: WELT_FLAECHE }; }
@@ -483,7 +486,7 @@
   }
   // safe: { rects, minX, minY, maxX, maxY } in denselben Koordinaten wie die Blase (Kamerabild, vor dem Zoom).
   function blase(c, x, y, s, vermeide, belegt, safe) {
-    var pad = 8, maxW = Math.min(VW - 10, 150), ziel = 8;
+    var pad = 8, maxW = Math.min((safe && safe.sichtW > 0 ? safe.sichtW : VW) - 10, 150), ziel = BLASE_SCHRIFT;
     var mess = textInBox(c, s, 0, 0, maxW - pad, 48, ziel, { ausr: 'center', mess: true });
     var tw = Math.max(28, Math.min(maxW - pad, mess.w));
     var lay = textInBox(c, s, 0, 0, tw, 48, ziel, { ausr: 'center', mess: true });
@@ -548,23 +551,25 @@
     textInBox(c, s, bx + 3, by + 1, bw - 6, bh - 2, ziel, { col: P.uiTinte, ausr: 'center' });
   }
   // Sichtfenster der Blase: HUD, Zoom, Knöpfe, Crew. Koordinaten wie die Blase (durch Zoom geteilt).
-  function blasenRahmen(R) {
-    var z = R.aktuellerWeltZoom > 0 ? R.aktuellerWeltZoom : 1;
+  // Koordinaten in Blasen-Pixeln (Bildschirm durch R.blasenSkala); Sichtfenster = Weltausschnitt am Bildschirm.
+  function blasenRahmen(R, z) {
     function v(r) { return { x: r.x / z, y: r.y / z, w: r.w / z, h: r.h / z }; }
     var rects = bedienRects(R).map(v);
     if (!rects.length) rects.push(v({ x: 0, y: 0, w: 108, h: 68 }));
-    return { rects: rects, minX: 2, minY: 2, maxX: VW - 2, maxY: VH - 2 };
+    var sichtW = VW * WELT_ZOOM / z, sichtH = VH * WELT_ZOOM / z;
+    return { rects: rects, minX: 2, minY: 2, maxX: sichtW - 2, maxY: sichtH - 2, sichtW: sichtW };
   }
   function zeichneBlasen(R) {
     var list = R.blasen || [];
     if (!list.length) { R.blasenBoxen = []; return; }
     var c = R.ctx, zoom = R.aktuellerWeltZoom > 0 ? R.aktuellerWeltZoom : 1;
-    var belegt = [], safe = blasenRahmen(R);
+    var s = R.blasenSkala > 0 ? R.blasenSkala : zoom, um = zoom / s;
+    var belegt = [], safe = blasenRahmen(R, s);
     c.save();
-    c.scale(zoom, zoom);
-    list.forEach(function (b) { blase(c, b.x, b.y, b.text, b.vermeide, belegt, safe); });
+    c.scale(s, s);
+    list.forEach(function (b) { blase(c, b.x * um, b.y * um, b.text, b.vermeide ? { x: b.vermeide.x * um, y: b.vermeide.y * um, w: b.vermeide.w * um, h: b.vermeide.h * um } : null, belegt, safe); });
     c.restore();
-    R.blasenBoxen = belegt.map(function (r) { return { x: r.x * zoom, y: r.y * zoom, w: r.w * zoom, h: r.h * zoom }; });
+    R.blasenBoxen = belegt.map(function (r) { return { x: r.x * s, y: r.y * s, w: r.w * s, h: r.h * s }; });
   }
   // Aktionspopup: weißer Text mit Kontur, 64×12. Weck-Hinweis und „Joint erhalten“ teilen sich das.
   function zeichneAktionsPopup(c, x, y, text) {
@@ -2023,24 +2028,41 @@
     if (S.uebergang) { var u = S.uebergang, a = u.t < u.dauer / 2 ? u.t / (u.dauer / 2) : 1 - (u.t - u.dauer / 2) / (u.dauer / 2); R.ctx.globalAlpha = Math.max(0, Math.min(1, a)); r(R.ctx, 0, 0, W, H, '#14102a'); R.ctx.globalAlpha = 1; }
   }
 
-  // Innenraum: Zoom so, dass der Raum die Weltflaeche fuellt (kein grosser Schwarzstreifen)
+  // Blasen-Skala innen: siehe BLASE_INNEN oben.
+  function blasenSkalaFuer(aussenZoom, innen, cssSk) {
+    if (!innen) return aussenZoom;
+    var min = BLASE_MIN_CSS / (BLASE_SCHRIFT * (cssSk > 0 ? cssSk : 1));
+    return Math.min(aussenZoom, Math.max(aussenZoom * BLASE_INNEN, min));
+  }
+  // Zoom je Ort: draussen WELT_ZOOM, innen 0.9 davon bzw. ganzer Raum + Rand (Kamera.innenZoom). Nutzer-Zoom ist in beiden ein Faktor,
+  // die Zoomfahrt (S.zoomFahrt) ein weiterer. Bei jeder Aenderung bleibt der Spieler Bezugspunkt (Kamera.sofort).
   function weltZoomFuer(R, S, weltH) {
-    var kam = S.kamera, prevW = kam ? kam.viewW : 0, prevH = kam ? kam.viewH : 0, zoom;
-    if (!S.karte || !S.karte.innen) {
-      R.aktuellerWeltZoom = WELT_ZOOM;
-      if (kam) { kam.viewW = R.VW || VW; kam.viewH = R.VH || VH; }
+    var Ka = Saufi.Kamera, kam = S.kamera, prevW = kam ? kam.viewW : 0, prevH = kam ? kam.viewH : 0, zoom;
+    var faktor = Ka.fahrtFaktor(S.zoomFahrt), innen = !!(S.karte && S.karte.innen);
+    if (!innen) {
       zoom = WELT_ZOOM;
+      if (faktor !== 1 && S.karte) {
+        // Weiter raus nur so weit, wie die Stadt das Bild noch fuellt (kein Rand neben der Karte)
+        var decke = Math.max(MIN_WELT_ZOOM, W / Math.max(1, S.karte.pxW), weltH / Math.max(1, S.karte.pxH));
+        zoom = Math.max(Math.min(WELT_ZOOM, decke), WELT_ZOOM * faktor);
+      }
+      if (kam) {
+        if (zoom === WELT_ZOOM) { kam.viewW = R.VW || VW; kam.viewH = R.VH || VH; }
+        else { kam.viewW = W / zoom; kam.viewH = weltH / zoom; }
+        kam.raumHalten = false;
+      }
     } else {
-      zoom = Math.max(W / Math.max(1, S.karte.pxW), weltH / Math.max(1, S.karte.pxH));
-      zoom = Math.max(MIN_WELT_ZOOM, zoom * ((R.userZoom > 0) ? R.userZoom : 1));
+      zoom = Ka.innenZoom(W, weltH, S.karte.pxW, S.karte.pxH, Math.max(MIN_WELT_ZOOM, 1 / Math.sqrt(WELT_FLAECHE)), R.userZoom) * faktor;
       kam.viewW = W / zoom;
       kam.viewH = weltH / zoom;
       kam.weltW = S.karte.pxW;
       kam.weltH = S.karte.pxH;
-      R.aktuellerWeltZoom = zoom;
+      kam.raumHalten = true;
     }
-    if (kam && S.spieler && (Math.abs(prevW - kam.viewW) > 1 || Math.abs(prevH - kam.viewH) > 1)) {
-      Saufi.Kamera.sofort(kam, S.spieler.x, S.spieler.y - 8);
+    R.aktuellerWeltZoom = zoom;
+    R.blasenSkala = blasenSkalaFuer(WELT_ZOOM, innen, cssSkal(R));
+    if (kam && S.spieler && (S.zoomFahrt || Math.abs(prevW - kam.viewW) > 1 || Math.abs(prevH - kam.viewH) > 1)) {
+      Ka.sofort(kam, S.spieler.x, S.spieler.y - 8);
     }
     return zoom;
   }
@@ -2117,6 +2139,7 @@
     get WELT_FLAECHE() { return WELT_FLAECHE; }, get WELT_ZOOM() { return WELT_ZOOM; },
     WELT_FLAECHE_HOCH: WELT_FLAECHE_HOCH, WELT_FLAECHE_QUER: WELT_FLAECHE_QUER, MIN_WELT_ZOOM: MIN_WELT_ZOOM,
     HUD_SK_HOCH_TOUCH: HUD_SK_HOCH_TOUCH, ZOOM_STUFEN: ZOOM_STUFEN, clampZoomFaktor: clampZoomFaktor, zoomStufe: zoomStufe,
+    BLASE_INNEN: BLASE_INNEN, BLASE_MIN_CSS: BLASE_MIN_CSS, BLASE_SCHRIFT: BLASE_SCHRIFT, blasenSkalaFuer: blasenSkalaFuer,
     btnBandCss: btnBandCss, bedienRects: bedienRects, CREW_CSS: CREW_CSS, KNOPF_CSS: KNOPF_CSS, KNOPF_LUFT: KNOPF_LUFT, pfeilBob: pfeilBob
   };
 })(globalThis);
