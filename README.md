@@ -4,6 +4,13 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v33
+
+- Der schwebende Hinweis „E: …“ über der Welt ist weg. Der Aktionsknopf bleibt, im Leerlauf als Hand.
+- Die Crew-Leiste sitzt ganz unten. Wasser und Hand sind gleich groß, auf einer Grundlinie, mit Abstand darüber. Die Safe-Area zieht weiter der Body ab.
+- Sprechblasen werden nach dem HUD gezeichnet und weichen neben Knöpfe, Zoom, Stick und Crew aus.
+- Jeder Aktionspunkt hat einen wippenden Pfeil nach unten. Die Gruppe im Südpark (Jule, Samir, Nico) ist neu anquatschbar.
+
 ## Neu in v32
 
 - Ab 3,0 Promille kotzt eine Figur, zusätzlich zum Einschlafen: vornüber, Sprechblase, ein Fleck am Boden, der liegen bleibt und verblasst.

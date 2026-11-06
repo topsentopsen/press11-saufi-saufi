@@ -102,11 +102,13 @@
   #stick-basis { display: none; position: absolute; width: 80px; height: 80px; margin: -40px 0 0 -40px; border-radius: 50%; background: rgba(255,248,238,.22); box-shadow: 0 0 0 2px rgba(74,53,96,.6); pointer-events: none; }
   #stick-dau { position: absolute; left: 25px; top: 25px; width: 30px; height: 30px; border-radius: 50%; background: rgba(255,248,238,.85); box-shadow: 0 0 0 2px #4a3560; }
   /* Hochformat-Spiel: Geist an der Standardposition, ohne Daumenpunkt, bis der Finger aufsetzt. */
-  #rahmen.touch.hoch.spiel:not(.overlay) #stick-basis { display: block; left: 72px; top: auto; bottom: 72px; margin: 0 0 -52px -52px; opacity: 0.18; }
+  /* Crew-Höhe. Safe-Area bleibt am Body, damit sie nicht zweimal abgezogen wird. */
+  #rahmen.touch.hoch.spiel { --crew: 36px; }
+  #rahmen.touch.hoch.spiel:not(.overlay) #stick-basis { display: block; left: 72px; top: auto; bottom: calc(72px + var(--crew, 0px)); margin: 0 0 -52px -52px; opacity: 0.18; }
   #rahmen.touch.hoch.spiel:not(.overlay) #stick-basis #stick-dau { opacity: 0; }
   #rahmen.touch.hoch.spiel #stick-basis.aktiv { opacity: 1; margin: -52px 0 0 -52px; bottom: auto; }
   #rahmen.touch.hoch.spiel #stick-basis.aktiv #stick-dau { opacity: 1; }
-  #stick-ziehen { display: none; position: absolute; left: 72px; bottom: 8px; transform: translateX(-50%); pointer-events: none;
+  #stick-ziehen { display: none; position: absolute; left: 72px; bottom: calc(8px + var(--crew, 0px)); transform: translateX(-50%); pointer-events: none;
     font: bold 11px ui-rounded, "Trebuchet MS", system-ui, sans-serif; color: #fff8ee; opacity: 0.5; }
   #rahmen.touch.hoch.spiel.ziehen-hinweis:not(.overlay) #stick-ziehen { display: block; }
   #touch { display: none; position: absolute; right: max(8px, env(safe-area-inset-right, 0px)); bottom: max(8px, env(safe-area-inset-bottom, 0px)); z-index: 2; pointer-events: auto; }
@@ -191,7 +193,7 @@
   #debug[hidden] { display: none; }
   /* Handy hochkant: Daumenbogen unten rechts. E und Wasser groß in der Ecke, F und Item höher. Desktop ohne .daumen. */
   #rahmen.touch.hoch.spiel.daumen #touch {
-    top: auto; bottom: 10px; right: 6px; width: 196px; height: 176px;
+    top: auto; bottom: calc(var(--crew, 36px) + 8px); right: 6px; width: 200px; height: 176px;
     flex-direction: column; align-items: flex-end; gap: 0; }
   #rahmen.touch.hoch.spiel.daumen #knopf-reihe,
   #rahmen.touch.hoch.spiel.daumen #knopf-haupt { display: block; }
@@ -199,7 +201,7 @@
     position: absolute; right: 0; bottom: 0; width: 96px; height: 96px; min-width: 96px; min-height: 96px;
     border-radius: 50% !important; font-size: 18px !important; }
   #rahmen.touch.hoch.spiel.daumen #knopf-wasser {
-    position: absolute; right: 100px; bottom: 8px; width: 88px; height: 88px; min-width: 88px; min-height: 88px;
+    position: absolute; right: 104px; bottom: 0; width: 96px; height: 96px; min-width: 96px; min-height: 96px;
     border-radius: 50% !important; font-size: 14px; line-height: 1.1; }
   #rahmen.touch.hoch.spiel.daumen #knopf-item {
     position: absolute; right: 20px; bottom: 100px; width: 64px; height: 64px; min-width: 64px; min-height: 64px; }
@@ -257,40 +259,40 @@
 </div>
 <div id="ton-hinweis" hidden>Tippen für Ton</div>
 <pre id="debug" hidden></pre>
-<script src="js/rng.js?v=0.32"></script>
-<script src="js/uhr.js?v=0.32"></script>
-<script src="js/charaktere.js?v=0.32"></script>
-<script src="js/getraenke.js?v=0.32"></script>
-<script src="js/essen.js?v=0.32"></script>
-<script src="js/pegel.js?v=0.32"></script>
-<script src="js/cheats.js?v=0.32"></script>
-<script src="js/runden.js?v=0.32"></script>
-<script src="js/ereignisse.js?v=0.32"></script>
-<script src="js/minispiele.js?v=0.32"></script>
-<script src="js/punkte.js?v=0.32"></script>
-<script src="js/hinweise.js?v=0.32"></script>
-<script src="js/speicher.js?v=0.32"></script>
-<script src="js/karte.js?v=0.32"></script>
-<script src="js/motocross.js?v=0.32"></script>
-<script src="js/mxevent.js?v=0.32"></script>
-<script src="js/s21.js?v=0.32"></script>
-<script src="js/elon.js?v=0.32"></script>
-<script src="js/frech.js?v=0.32"></script>
-<script src="js/motiv.js?v=0.32"></script>
-<script src="js/pfad.js?v=0.32"></script>
-<script src="js/kamera.js?v=0.32"></script>
-<script src="js/eingabe.js?v=0.32"></script>
-<script src="js/spieler.js?v=0.32"></script>
-<script src="js/npcs.js?v=0.32"></script>
-<script src="js/stadtvolk.js?v=0.32"></script>
-<script src="js/ton.js?v=0.32"></script>
-<script src="music/playlist.js?v=0.32"></script>
-<script src="js/musik.js?v=0.32"></script>
-<script src="js/gfx.js?v=0.32"></script>
-<script src="js/szene.js?v=0.32"></script>
-<script src="js/innen.js?v=0.32"></script>
-<script src="js/partikel.js?v=0.32"></script>
-<script src="js/render.js?v=0.32"></script>
-<script src="js/main.js?v=0.32"></script>
+<script src="js/rng.js?v=0.33"></script>
+<script src="js/uhr.js?v=0.33"></script>
+<script src="js/charaktere.js?v=0.33"></script>
+<script src="js/getraenke.js?v=0.33"></script>
+<script src="js/essen.js?v=0.33"></script>
+<script src="js/pegel.js?v=0.33"></script>
+<script src="js/cheats.js?v=0.33"></script>
+<script src="js/runden.js?v=0.33"></script>
+<script src="js/ereignisse.js?v=0.33"></script>
+<script src="js/minispiele.js?v=0.33"></script>
+<script src="js/punkte.js?v=0.33"></script>
+<script src="js/hinweise.js?v=0.33"></script>
+<script src="js/speicher.js?v=0.33"></script>
+<script src="js/karte.js?v=0.33"></script>
+<script src="js/motocross.js?v=0.33"></script>
+<script src="js/mxevent.js?v=0.33"></script>
+<script src="js/s21.js?v=0.33"></script>
+<script src="js/elon.js?v=0.33"></script>
+<script src="js/frech.js?v=0.33"></script>
+<script src="js/motiv.js?v=0.33"></script>
+<script src="js/pfad.js?v=0.33"></script>
+<script src="js/kamera.js?v=0.33"></script>
+<script src="js/eingabe.js?v=0.33"></script>
+<script src="js/spieler.js?v=0.33"></script>
+<script src="js/npcs.js?v=0.33"></script>
+<script src="js/stadtvolk.js?v=0.33"></script>
+<script src="js/ton.js?v=0.33"></script>
+<script src="music/playlist.js?v=0.33"></script>
+<script src="js/musik.js?v=0.33"></script>
+<script src="js/gfx.js?v=0.33"></script>
+<script src="js/szene.js?v=0.33"></script>
+<script src="js/innen.js?v=0.33"></script>
+<script src="js/partikel.js?v=0.33"></script>
+<script src="js/render.js?v=0.33"></script>
+<script src="js/main.js?v=0.33"></script>
 </body>
 </html>
