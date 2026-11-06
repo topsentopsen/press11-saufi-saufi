@@ -3,6 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Press11">
+<meta name="theme-color" content="#1b1530">
+<link rel="manifest" href="manifest.webmanifest">
 <title>Press11 - Stuttgart Edition (18+)</title>
 <meta name="description" content="Fiktives Spaß-Spiel für Erwachsene (ab 18).">
 <meta property="og:type" content="website">
@@ -23,6 +28,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
 <style>
+  @keyframes knopf-puls { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
   html { height: 100%; height: 100vh; height: 100dvh; height: -webkit-fill-available; }
   html, body { margin: 0; background: #1b1530; overflow: hidden;
     touch-action: none; overscroll-behavior: none; -webkit-text-size-adjust: 100%;
@@ -53,11 +59,19 @@
     width: auto; transform: none; max-width: none; font-size: 11px; }
   .knopf:focus-visible { outline: 3px solid #ffd36e; outline-offset: 1px; }
   /* Oben-rechts: 44px Touchziel, sichtbarer Kreis ≥36px (inset 4px) */
+  /* Im Hochformat-Spiel kein Neon-Rahmen. Die Auswahl behält ihn. */
+  #rahmen.touch.hoch.spiel { box-shadow: none; border-radius: 0; }
   #oben { position: absolute; top: calc(var(--s, 3) * 1px); right: calc(var(--s, 3) * 1px); display: flex; gap: 2px; z-index: 2; }
+  #rahmen.spiel #oben { gap: 6px; right: 6px; }
+  #rahmen.spiel #oben .wahl-knopf { display: none; }
+  #rahmen:not(.spiel) #oben .spiel-knopf { display: none; }
+  #oben .knopf[hidden] { display: none !important; }
   #oben .knopf { width: 44px; height: 44px; border-radius: 50%; background: transparent; box-shadow: none;
     font-size: 12px; position: relative; color: #4a3560; isolation: isolate; }
   #oben .knopf::before { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: #fff8ee;
     box-shadow: 0 0 0 1.5px #4a3560; z-index: -1; pointer-events: none; }
+  #rahmen.spiel #oben .knopf::before { background: #fff8ee; box-shadow: 0 0 0 3px #4a3560, 0 3px 0 #4a3560; }
+  #rahmen.spiel #oben .knopf:active::before { box-shadow: 0 0 0 3px #4a3560; transform: translateY(3px); }
   #ton-knopf.aus::before { background: #e3dbea; }
   #ton-knopf.aus { text-decoration: line-through; }
   #musik-knopf.aus { text-decoration: line-through; opacity: .55; }
@@ -87,6 +101,14 @@
   #rahmen.touch:not(.hoch) #touch { bottom: calc(var(--s, 3) * 2px); right: calc(var(--s, 3) * 2px); }
   #stick-basis { display: none; position: absolute; width: 80px; height: 80px; margin: -40px 0 0 -40px; border-radius: 50%; background: rgba(255,248,238,.22); box-shadow: 0 0 0 2px rgba(74,53,96,.6); pointer-events: none; }
   #stick-dau { position: absolute; left: 25px; top: 25px; width: 30px; height: 30px; border-radius: 50%; background: rgba(255,248,238,.85); box-shadow: 0 0 0 2px #4a3560; }
+  /* Hochformat-Spiel: Geist an der Standardposition, ohne Daumenpunkt, bis der Finger aufsetzt. */
+  #rahmen.touch.hoch.spiel:not(.overlay) #stick-basis { display: block; left: 72px; top: auto; bottom: 72px; margin: 0 0 -52px -52px; opacity: 0.18; }
+  #rahmen.touch.hoch.spiel:not(.overlay) #stick-basis #stick-dau { opacity: 0; }
+  #rahmen.touch.hoch.spiel #stick-basis.aktiv { opacity: 1; margin: -52px 0 0 -52px; bottom: auto; }
+  #rahmen.touch.hoch.spiel #stick-basis.aktiv #stick-dau { opacity: 1; }
+  #stick-ziehen { display: none; position: absolute; left: 72px; bottom: 8px; transform: translateX(-50%); pointer-events: none;
+    font: bold 11px ui-rounded, "Trebuchet MS", system-ui, sans-serif; color: #fff8ee; opacity: 0.5; }
+  #rahmen.touch.hoch.spiel.ziehen-hinweis:not(.overlay) #stick-ziehen { display: block; }
   #touch { display: none; position: absolute; right: max(8px, env(safe-area-inset-right, 0px)); bottom: max(8px, env(safe-area-inset-bottom, 0px)); z-index: 2; pointer-events: auto; }
   #rahmen.touch #touch { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
   #rahmen.ende #knopf-aktion, #rahmen.ende #knopf-wasser, #rahmen.ende #knopf-item, #rahmen.ende #knopf-f { display: none !important; }
@@ -115,11 +137,23 @@
   #zoom { display: none; position: absolute; left: 8px; right: auto; top: 156px; z-index: 4; flex-direction: column; gap: 8px; }
   #rahmen.spiel:not(.overlay):not(.ende) #zoom { display: flex; }
   #zoom .knopf { width: 56px; height: 56px; border-radius: 16px; background: #fff8ee; color: #4a3560; box-shadow: 0 0 0 3px #4a3560; font-size: 28px; }
+  /* Hochformat-Spiel: schlanke Pille, links unter der Promille-Karte. Querformat bleibt 56 px. */
+  #rahmen.touch.hoch.spiel #zoom { left: 6px; top: 120px; gap: 4px; width: 44px; height: 92px; padding: 0; box-sizing: border-box;
+    border-radius: 22px; background: rgba(255,248,238,.75); box-shadow: 0 0 0 2px #4a3560, 0 3px 0 #4a3560; overflow: hidden; }
+  #rahmen.touch.hoch.spiel #zoom .knopf { width: 44px; height: 44px; min-width: 44px; min-height: 44px; border-radius: 0;
+    background: transparent; box-shadow: none; font-size: 22px; color: #4a3560; }
+  #rahmen.touch.hoch.spiel #zoom:active { transform: translateY(3px); box-shadow: 0 0 0 2px #4a3560; }
   #touch .knopf { border-radius: 50%; background: #fff8ee; box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 5px #ffb037; min-width: 44px; min-height: 44px; }
+  #rahmen.spiel #touch .knopf { box-shadow: 0 0 0 3px #4a3560, 0 3px 0 #4a3560, inset 0 0 0 5px #ffb037; }
+  #rahmen.spiel #touch .knopf:active { transform: translateY(3px); box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 5px #ffb037; }
   .knopf.aus { opacity: .45; }
+  #rahmen.touch.spiel #knopf-aktion.leer { font-size: 26px !important; color: rgba(74,53,96,.6); }
+  #rahmen.touch.spiel #knopf-aktion.puls { animation: knopf-puls 180ms ease; }
   #knopf-aktion, #knopf-wasser, #knopf-item { border-radius: 14px !important; line-height: 1.05; padding: 2px 4px; overflow: hidden; white-space: normal; word-break: break-word; }
   #knopf-aktion { min-width: 72px; font-size: 13px !important; width: max(56px, calc(var(--s, 3) * 18px)); height: max(56px, calc(var(--s, 3) * 18px)); font-size: 16px; }
   #knopf-wasser { width: max(44px, calc(var(--s, 3) * 13px)); height: max(44px, calc(var(--s, 3) * 13px)); box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 4px #7ec8e3 !important; font-size: 12px; min-width: 56px; }
+  #rahmen.spiel #knopf-wasser { box-shadow: 0 0 0 3px #4a3560, 0 3px 0 #4a3560, inset 0 0 0 4px #7ec8e3 !important; }
+  #rahmen.spiel #knopf-wasser:active { box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 4px #7ec8e3 !important; }
   #knopf-item, #knopf-f { display: none; width: max(44px, calc(var(--s, 3) * 13px)); height: max(44px, calc(var(--s, 3) * 13px)); box-shadow: 0 0 0 3px #4a3560, inset 0 0 0 4px #ff4fa0 !important; font-size: 12px; }
   #touch .knopf:active { transform: translateY(3px); }
   /* YouTube-Fenster (Einbettung, ein-/ausklappbar, API mind. 200x113); Desktop unten links */
@@ -142,6 +176,17 @@
   #yt-fenster.zu #yt-rahmen { display: none; }
   #yt-rahmen iframe { width: 220px; height: 124px; display: block; }
   #rahmen.touch ~ #yt-fenster #yt-rahmen, #rahmen.touch ~ #yt-fenster #yt-rahmen iframe { width: 160px; height: 90px; }
+  #sound-pop, #spiel-menu { position: absolute; top: calc(var(--s, 3) * 1px + 48px); right: 6px; width: 200px; z-index: 8;
+    display: flex; flex-direction: column; background: #fff8ee; border-radius: 12px; overflow: hidden;
+    box-shadow: 0 0 0 3px #4a3560, 0 3px 0 #4a3560; }
+  #sound-pop[hidden], #spiel-menu[hidden], #rahmen:not(.spiel) #sound-pop, #rahmen:not(.spiel) #spiel-menu { display: none; }
+  .pop-zeile { display: flex; align-items: center; width: 100%; min-height: 44px; height: 44px; margin: 0; padding: 0 12px; border: 0;
+    border-bottom: 1px solid rgba(74,53,96,.18); border-radius: 0; background: #fff8ee; color: #4a3560;
+    font: bold 15px ui-rounded, "Trebuchet MS", system-ui, sans-serif; text-align: left; box-sizing: border-box; }
+  .pop-zeile.statisch { cursor: default; }
+  .pop-zeile[hidden] { display: none !important; }
+  #rahmen.spiel #oben .spiel-knopf { font-size: 18px; }
+  .pop-hinweis { height: auto; min-height: 44px; padding: 8px 12px; line-height: 1.25; white-space: normal; }
   #debug { position: fixed; right: 4px; top: 4px; margin: 0; padding: 4px 6px; background: rgba(0,0,0,.75); color: #9f9; font: 10px ui-monospace, monospace; line-height: 1.2; z-index: 30; pointer-events: none; }
   #debug[hidden] { display: none; }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
@@ -155,14 +200,28 @@
     <button id="zoom-minus" class="knopf" type="button" title="Weiter" aria-label="Weiter zoomen">−</button>
   </div>
   <div id="oben">
-    <button id="playlist-knopf" class="knopf" type="button" title="Scooter-Playlist (Taste P)" aria-label="Scooter-Playlist">&#9835;</button>
-    <button id="musik-knopf" class="knopf" type="button" title="Musik an oder aus (Taste N)" aria-label="Musik an oder aus">&#9836;</button>
-    <button id="ton-knopf" class="knopf" type="button" title="Ton an oder aus (Taste M)" aria-label="Ton an oder aus">&#9834;</button>
-    <button id="vollbild-knopf" class="knopf" type="button" title="Vollbild" aria-label="Vollbild">&#9974;</button>
-    <button id="info-knopf" class="knopf" type="button" title="Hinweis 18+" aria-label="Hinweis 18 plus">i</button>
+    <button id="playlist-knopf" class="knopf wahl-knopf" type="button" title="Scooter-Playlist (Taste P)" aria-label="Scooter-Playlist">&#9835;</button>
+    <button id="musik-knopf" class="knopf wahl-knopf" type="button" title="Musik an oder aus (Taste N)" aria-label="Musik an oder aus">&#9836;</button>
+    <button id="ton-knopf" class="knopf wahl-knopf" type="button" title="Ton an oder aus (Taste M)" aria-label="Ton an oder aus">&#9834;</button>
+    <button id="vollbild-knopf" class="knopf wahl-knopf" type="button" title="Vollbild" aria-label="Vollbild">&#9974;</button>
+    <button id="info-knopf" class="knopf wahl-knopf" type="button" title="Hinweis 18+" aria-label="Hinweis 18 plus">i</button>
+    <button id="sound-knopf" class="knopf spiel-knopf" type="button" title="Ton" aria-label="Ton an" aria-haspopup="true">&#128266;</button>
+    <button id="menu-knopf" class="knopf spiel-knopf" type="button" title="Menü" aria-label="Menü" aria-haspopup="true">&#9776;</button>
+  </div>
+  <div id="sound-pop" hidden>
+    <button id="pop-musik" class="pop-zeile" type="button">Musik an</button>
+    <button id="pop-effekte" class="pop-zeile" type="button">Effekte an</button>
+    <button id="pop-playlist" class="pop-zeile" type="button">Scooter-Playlist &#9654;</button>
+  </div>
+  <div id="spiel-menu" hidden>
+    <button id="menu-info" class="pop-zeile" type="button">Info, 18+</button>
+    <button id="menu-voll" class="pop-zeile" type="button">Vollbild</button>
+    <div id="menu-home" class="pop-zeile pop-hinweis statisch">Vollbild auf dem iPhone: Teilen, dann Zum Home-Bildschirm.</div>
+    <div id="menu-version" class="pop-zeile statisch">Version</div>
+    <button id="menu-yt" class="pop-zeile" type="button">Playlist-Fenster</button>
   </div>
   <div id="bedien">
-    <div id="stick" aria-hidden="true"><div id="stick-basis"><div id="stick-dau"></div></div></div>
+    <div id="stick" aria-hidden="true"><div id="stick-basis"><div id="stick-dau"></div></div><div id="stick-ziehen">ziehen</div></div>
     <div id="touch">
       <div id="knopf-reihe">
         <button id="knopf-f" class="knopf" type="button" aria-label="Press F">F</button>
@@ -182,40 +241,40 @@
 </div>
 <div id="ton-hinweis" hidden>Tippen für Ton</div>
 <pre id="debug" hidden></pre>
-<script src="js/rng.js?v=0.29"></script>
-<script src="js/uhr.js?v=0.29"></script>
-<script src="js/charaktere.js?v=0.29"></script>
-<script src="js/getraenke.js?v=0.29"></script>
-<script src="js/essen.js?v=0.29"></script>
-<script src="js/pegel.js?v=0.29"></script>
-<script src="js/cheats.js?v=0.29"></script>
-<script src="js/runden.js?v=0.29"></script>
-<script src="js/ereignisse.js?v=0.29"></script>
-<script src="js/minispiele.js?v=0.29"></script>
-<script src="js/punkte.js?v=0.29"></script>
-<script src="js/hinweise.js?v=0.29"></script>
-<script src="js/speicher.js?v=0.29"></script>
-<script src="js/karte.js?v=0.29"></script>
-<script src="js/motocross.js?v=0.29"></script>
-<script src="js/mxevent.js?v=0.29"></script>
-<script src="js/s21.js?v=0.29"></script>
-<script src="js/elon.js?v=0.29"></script>
-<script src="js/frech.js?v=0.29"></script>
-<script src="js/motiv.js?v=0.29"></script>
-<script src="js/pfad.js?v=0.29"></script>
-<script src="js/kamera.js?v=0.29"></script>
-<script src="js/eingabe.js?v=0.29"></script>
-<script src="js/spieler.js?v=0.29"></script>
-<script src="js/npcs.js?v=0.29"></script>
-<script src="js/stadtvolk.js?v=0.29"></script>
-<script src="js/ton.js?v=0.29"></script>
-<script src="music/playlist.js?v=0.29"></script>
-<script src="js/musik.js?v=0.29"></script>
-<script src="js/gfx.js?v=0.29"></script>
-<script src="js/szene.js?v=0.29"></script>
-<script src="js/innen.js?v=0.29"></script>
-<script src="js/partikel.js?v=0.29"></script>
-<script src="js/render.js?v=0.29"></script>
-<script src="js/main.js?v=0.29"></script>
+<script src="js/rng.js?v=0.30"></script>
+<script src="js/uhr.js?v=0.30"></script>
+<script src="js/charaktere.js?v=0.30"></script>
+<script src="js/getraenke.js?v=0.30"></script>
+<script src="js/essen.js?v=0.30"></script>
+<script src="js/pegel.js?v=0.30"></script>
+<script src="js/cheats.js?v=0.30"></script>
+<script src="js/runden.js?v=0.30"></script>
+<script src="js/ereignisse.js?v=0.30"></script>
+<script src="js/minispiele.js?v=0.30"></script>
+<script src="js/punkte.js?v=0.30"></script>
+<script src="js/hinweise.js?v=0.30"></script>
+<script src="js/speicher.js?v=0.30"></script>
+<script src="js/karte.js?v=0.30"></script>
+<script src="js/motocross.js?v=0.30"></script>
+<script src="js/mxevent.js?v=0.30"></script>
+<script src="js/s21.js?v=0.30"></script>
+<script src="js/elon.js?v=0.30"></script>
+<script src="js/frech.js?v=0.30"></script>
+<script src="js/motiv.js?v=0.30"></script>
+<script src="js/pfad.js?v=0.30"></script>
+<script src="js/kamera.js?v=0.30"></script>
+<script src="js/eingabe.js?v=0.30"></script>
+<script src="js/spieler.js?v=0.30"></script>
+<script src="js/npcs.js?v=0.30"></script>
+<script src="js/stadtvolk.js?v=0.30"></script>
+<script src="js/ton.js?v=0.30"></script>
+<script src="music/playlist.js?v=0.30"></script>
+<script src="js/musik.js?v=0.30"></script>
+<script src="js/gfx.js?v=0.30"></script>
+<script src="js/szene.js?v=0.30"></script>
+<script src="js/innen.js?v=0.30"></script>
+<script src="js/partikel.js?v=0.30"></script>
+<script src="js/render.js?v=0.30"></script>
+<script src="js/main.js?v=0.30"></script>
 </body>
 </html>

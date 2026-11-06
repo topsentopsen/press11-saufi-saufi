@@ -15,6 +15,13 @@
   // HUD_SK_HOCH_TOUCH: linkes HUD im Handy-Hochformat. Vorher (54/62)*0.85 ≈ 0.74, jetzt +30 % → 0.96.
   var WELT_FLAECHE_HOCH = 1.0, WELT_FLAECHE_QUER = 4.0, MIN_WELT_ZOOM = 0.5, UI_RESERVE_HOCH = 80, UI_RESERVE_HOCH_TOUCH = 0, STADT_PX_H = 960;
   var HUD_SK_HOCH_TOUCH = 0.96;
+  // Sichtbare #oben-Knoepfe: n * 44 + (n - 1) * Abstand + 8 CSS-px Luft vor der Uhr.
+  function btnBandCss(n, gap) {
+    n = n | 0;
+    if (n < 1) return 0;
+    if (gap == null || !(gap >= 0)) gap = 2;
+    return n * 44 + (n - 1) * gap + 8;
+  }
   // Nutzer-Zoom als Faktor auf den Layout-Default (1 = WELT_FLAECHE_HOCH 1.0 bzw. Quer 0.5). Nicht die Welt kaputtzoomen.
   var ZOOM_STUFEN = [0.75, 0.88, 1, 1.15, 1.30, 1.45];
   var WELT_FLAECHE = WELT_FLAECHE_QUER, WELT_ZOOM = 1 / Math.sqrt(WELT_FLAECHE);
@@ -475,11 +482,12 @@
     var minY = 2, maxY = VH - 2;
     if (R.hochkant && R.touch) {
       rects.push(v({ x: 0, y: 0, w: Math.min(W, 210), h: 40 }));
-      rects.push(v({ x: 0, y: 44, w: 112, h: 72 }));
+      rects.push(v({ x: 0, y: 44, w: 112, h: 50 }));
       rects.push(v({ x: Math.max(0, W - 176), y: Math.max(0, H - 168), w: 176, h: 168 }));
       rects.push(v({ x: 0, y: Math.max(0, H - 140), w: 128, h: 140 }));
       var sCss = (R.cssW > 0 && W > 0) ? (R.cssW / W) : 1;
-      rects.push(v({ x: 2 / sCss, y: 148 / sCss, w: 70 / sCss, h: 140 / sCss }));
+      var zoomY = 50 + Math.round(40 * HUD_SK_HOCH_TOUCH) + 10 / sCss;
+      rects.push(v({ x: 6 / sCss, y: zoomY, w: 52 / sCss, h: 92 / sCss }));
       minY = 4;
       maxY = VH - 2;
     } else rects.push(v({ x: 0, y: 0, w: 108, h: 68 }));
@@ -1004,27 +1012,64 @@
   }
 
   // ---------- HUD ----------
-  function zeichneTeamleiste(R, S, x, y, w, h) {
-    var c = R.ctx, npcs = S.npcs || [], team = S.runden ? S.runden.team : 0, i;
-    panel(c, x, y, w, h, 'rgba(255,248,238,0.94)', 8);
-    textInBox(c, 'Team', x + 4, y + 2, 26, h - 4, 8, { col: P.uiTinte, ausr: 'left', maxZeilen: 2, min: 7 });
-    for (i = 0; i < 5; i++) rr(c, x + 30 + i * 11, y + h / 2 - 4, 9, 8, i < team ? '#5ec8b8' : P.herzLeer, 2, P.kontur, 0.5);
-    var x0 = x + 90, avail = Math.max(20, w - 96), n = Math.max(1, npcs.length);
-    var slot = Math.min(26, Math.floor(avail / n));
-    npcs.forEach(function (npc, idx) {
-      var cx = x0 + idx * slot + slot / 2;
+  // Anzeige, kein Knopf: Creme 88 %, 1 px Rand, kein Schatten.
+  function anzeigePanel(c, x, y, w, h, rad) {
+    rr(c, x, y, w, h, 'rgba(255,248,238,0.88)', rad == null ? 5 : rad, 'rgba(74,53,96,0.5)', 1);
+  }
+  function miniKrug(c, x, y, w, h, voll) {
+    var rand = voll ? '#4a3560' : 'rgba(255,248,238,0.75)';
+    var col = voll ? '#e0a020' : 'rgba(255,248,238,0.28)';
+    var rad = Math.max(0.6, Math.min(1.4, w * 0.22));
+    rr(c, x, y + h * 0.16, w * 0.7, h * 0.8, col, rad, rand, 0.8);
+    rr(c, x + w * 0.58, y + h * 0.32, Math.max(1.2, w * 0.28), h * 0.38, 'rgba(0,0,0,0)', rad, rand, 0.7);
+  }
+  function hausKlein(c, x, y, s) {
+    poly(c, [[x, y + s * 0.42], [x + s * 0.5, y], [x + s, y + s * 0.42]], '#fff8ee');
+    r(c, x + s * 0.22, y + s * 0.42, s * 0.56, s * 0.48, '#fff8ee');
+  }
+  // Crew-Streifen: Stimmung als Krüge, Köpfe ≥ 16 CSS-px. Kein zweites „Team“.
+  function zeichneCrew(R, S, x, y, w, h) {
+    var c = R.ctx;
+    var sCss = (R.cssW > 0 && W > 0) ? (R.cssW / W) : 1;
+    if (!(sCss > 0)) sCss = 1;
+    rr(c, x, y, w, h, 'rgba(27,21,48,0.55)', Math.min(8, h / 2));
+    var pad = Math.max(3, 6 / sCss);
+    var labelSz = Math.max(8, 12 / sCss);
+    var labelW = Math.min(w * 0.24, Math.ceil(breite(c, 'Crew', labelSz) + 4));
+    textInBox(c, 'Crew', x + pad, y + 1, labelW, Math.max(8, h - 2), labelSz, { col: '#fff8ee', ausr: 'left', maxZeilen: 1, min: 7 });
+    var team = (S.runden && S.runden.team) || 0;
+    var mugW = 12 / sCss, mugH = Math.min(Math.max(6, h - 4), 14 / sCss), mugGap = 2 / sCss;
+    var mx = x + pad + labelW + 4 / sCss;
+    var my = y + Math.max(0, (h - mugH) / 2);
+    var mi;
+    for (mi = 0; mi < 5; mi++) miniKrug(c, mx + mi * (mugW + mugGap), my, mugW, mugH, mi < team);
+    var kopfD = 16 / sCss;
+    var luecke = 2 / sCss;
+    var x0 = mx + 5 * (mugW + mugGap) + 6 / sCss;
+    var avail = Math.max(0, x + w - pad - x0);
+    var npcs = S.npcs || [];
+    var slot = kopfD + luecke;
+    var maxN = slot > 1 ? Math.floor((avail + luecke) / slot) : 0;
+    var show = npcs.length, extra = 0;
+    if (maxN < 1) { show = 0; extra = npcs.length; }
+    else if (show > maxN) { extra = show - Math.max(0, maxN - 1); show = Math.max(0, maxN - 1); }
+    var cy = y + h / 2, j;
+    for (j = 0; j < show; j++) {
+      var npc = npcs[j];
+      var cx = x0 + j * slot + kopfD / 2;
       var heim = !!(npc.weg || npc.heim || (npc.fig && npc.fig.verloren && !npc.aktiv));
-      var col = (npc.aktiv && !heim) ? ((npc.char && npc.char.shirt) || '#d8222a') : '#b7adbe';
-      kreis(c, cx, y + h / 2 + 1, Math.max(4, Math.min(8, slot / 2 - 1)), col, P.kontur, 0.6);
-      var buchst = (npc.char && npc.char.name) ? npc.char.name.charAt(0) : '?';
-      textInBox(c, buchst, cx - 6, y + 8, 12, 12, 8, { col: '#fff8ee', ausr: 'center', maxZeilen: 1, min: 6, kontur: 'rgba(30,20,50,0.45)' });
-      if (heim) {
-        var hx = cx + 3, hy = y + 3;
-        poly(c, [[hx, hy + 3], [hx + 3, hy], [hx + 6, hy + 3]], '#fff8ee', P.kontur, 0.4);
-        r(c, hx + 1.2, hy + 3, 3.6, 3, '#fff8ee');
+      var col = (npc.aktiv && !heim) ? ((npc.char && npc.char.shirt) || '#d8222a') : '#8d8498';
+      kreis(c, cx, cy, Math.max(1, kopfD / 2 - 0.5), col, 'rgba(255,248,238,0.9)', Math.max(0.8, 1 / sCss));
+      if (heim) hausKlein(c, cx + kopfD * 0.02, cy - kopfD * 0.46, Math.max(4, kopfD * 0.45));
+    }
+    if (extra > 0 && maxN >= 1) {
+      var cx2 = x0 + show * slot + kopfD / 2;
+      if (cx2 + kopfD / 2 <= x + w - pad + 1) {
+        kreis(c, cx2, cy, Math.max(1, kopfD / 2 - 0.5), 'rgba(255,248,238,0.18)', 'rgba(255,248,238,0.85)', 1);
+        textInBox(c, '+' + extra, cx2 - kopfD / 2, cy - kopfD / 2, kopfD, kopfD, Math.max(7, 9 / sCss), { col: '#fff8ee', ausr: 'center', maxZeilen: 1, min: 6, kontur: 'rgba(27,21,48,0.85)' });
       }
-    });
-    R.teamLeiste = { x: x, y: y, w: w, h: h };
+    }
+    R.teamLeiste = { x: x, y: y, w: w, h: h, koepfe: show, extra: extra, kopfD: kopfD };
   }
   function krug(c, x, y, pegel) {
     var f = Math.max(0, Math.min(1, pegel / 4)), col = pegel < 1.5 ? P.bier : (pegel < 3 ? P.bierOrange : P.bierRot);
@@ -1039,23 +1084,38 @@
     var kompakt = !R.hochkant, sk = kompakt ? 0.72 : (R.touch ? HUD_SK_HOCH_TOUCH : 54 / 62);
     var topBand = !!(R.hochkant && R.touch);
     // Oben-Knöpfe reichen im Test bis y≈44–48. Pegel-Panel darunter, Uhr und Banner darüber.
-    var lpW = Math.round(96 * sk), lpH = Math.round(62 * sk), lx = 3, ly = topBand ? 50 : 3;
-    panel(c, lx, ly, lpW, lpH, '#fff8ee', kompakt ? 4 : 5);
+    // Hochformat-Touch: nur Krug und Herzen. Teamstimmung und Wasser stehen woanders.
+    var pegelInnen = topBand ? 40 : 62;
+    var lpW = Math.round(96 * sk), lpH = Math.round(pegelInnen * sk), lx = 3, ly = topBand ? 50 : 3;
+    if (topBand) anzeigePanel(c, lx, ly, lpW, lpH, 5);
+    else panel(c, lx, ly, lpW, lpH, '#fff8ee', kompakt ? 4 : 5);
     c.save(); c.translate(lx, ly); c.scale(sk, sk);
-    krug(c, 8, 7, fig.pegel);
+    krug(c, 8, topBand ? 3 : 7, fig.pegel);
     var pt = S.joint && Saufi.Ereignisse.Joint.schwammig(S.joint) ? '~' + Saufi.Pegel.anzeige(fig.pegel + Math.sin(S.t * 5) * 0.4) : Saufi.Pegel.anzeige(fig.pegel);
-    textInBox(c, pt + ' ‰', 28, 7, 66, 16, 9, { col: fig.pegel >= 3 ? P.bierRot : P.uiTinte, ausr: 'left' });
+    var promilleSz = topBand ? (11 / sk) : 9;
+    textInBox(c, pt + ' ‰', 28, topBand ? 1 : 7, 66, topBand ? 20 : 16, promilleSz, { col: fig.pegel >= 3 ? P.bierRot : P.uiTinte, ausr: 'left', maxZeilen: 1 });
     var herzen = Math.ceil(fig.stand / 20);
-    for (i = 0; i < 5; i++) { var voll = fig.stand >= (i + 1) * 20 - 0.01; herz(c, 8 + i * 11, 28, voll ? P.herzVoll : (i < herzen ? P.herzLicht : P.herzLeer)); }
-    textInBox(c, 'Team', 6, 38, 28, 12, 7, { col: P.uiTinteWeich });
-    for (i = 0; i < 5; i++) rr(c, 36 + i * 11, 39.4, 9, 7.6, i < S.runden.team ? '#5ec8b8' : P.herzLeer, 2.4, P.kontur, 0.7);
-    r(c, 8, 52.4, 3.6, 8.4, '#8fd4f0'); rr(c, 7.4, 51.4, 4.8, 3, '#4fb0d6', 1.2);
-    textInBox(c, 'x' + S.flaschen, 14, 50, 22, 12, 7, { col: P.uiTinte });
-    if (S.joint && (S.joint.hat || S.joint.doppelt)) textInBox(c, S.joint.doppelt ? 'x2!' : 'R: Tüte', 36, 50, 56, 12, 7, { col: '#d9701a' });
+    var herzY = topBand ? 23 : 28;
+    for (i = 0; i < 5; i++) { var voll = fig.stand >= (i + 1) * 20 - 0.01; herz(c, 8 + i * 11, herzY, voll ? P.herzVoll : (i < herzen ? P.herzLicht : P.herzLeer)); }
+    if (!topBand) {
+      textInBox(c, 'Team', 6, 38, 28, 12, 7, { col: P.uiTinteWeich });
+      for (i = 0; i < 5; i++) rr(c, 36 + i * 11, 39.4, 9, 7.6, i < S.runden.team ? '#5ec8b8' : P.herzLeer, 2.4, P.kontur, 0.7);
+      r(c, 8, 52.4, 3.6, 8.4, '#8fd4f0'); rr(c, 7.4, 51.4, 4.8, 3, '#4fb0d6', 1.2);
+      textInBox(c, 'x' + S.flaschen, 14, 50, 22, 12, 7, { col: P.uiTinte });
+      if (S.joint && (S.joint.hat || S.joint.doppelt)) textInBox(c, S.joint.doppelt ? 'x2!' : 'R: Tüte', 36, 50, 56, 12, 7, { col: '#d9701a' });
+    } else if (S.joint && S.joint.doppelt) {
+      textInBox(c, 'x2', 66, 22, 26, 14, 8, { col: '#d9701a', ausr: 'left', maxZeilen: 1 });
+    }
     c.restore();
     R.hudLinks = { x: lx, y: ly, w: lpW, h: lpH };
     var sCss = (R.cssW > 0 && W > 0) ? (R.cssW / W) : 1;
-    var btnBand = R.touch ? Math.ceil((4 * 44 + 8) / Math.max(0.5, sCss)) : 40;
+    var btnBand;
+    if (topBand) {
+      var nOben = (R.obenKnopfN >= 1 && R.obenKnopfN <= 4) ? R.obenKnopfN : 2;
+      var gapOben = (R.obenGap === 2 || R.obenGap === 6) ? R.obenGap : 6;
+      btnBand = Math.ceil(btnBandCss(nOben, gapOben) / Math.max(0.5, sCss));
+    } else if (R.touch) btnBand = Math.ceil((4 * 44 + 8) / Math.max(0.5, sCss));
+    else btnBand = 40;
     var freiL = lx + lpW + 4, freiR = W - btnBand - 2;
     var weltH = (R.weltH != null && R.hochkant) ? R.weltH : H;
     var resTop = R.hochkant && weltH < H ? weltH : null;
@@ -1067,7 +1127,7 @@
       ph = 16;
       pw = Math.max(88, W - btnBand - 10);
       px = 4; py = 2;
-      panel(c, px, py, pw, ph, 'rgba(255,248,238,0.94)', 4);
+      anzeigePanel(c, px, py, pw, ph, 4);
       Sz.himmelIcon(c, px + 8, py + ph / 2, 5, uhr.minute / 60, S.t);
       var uhrTxtT = Saufi.Uhr.text(uhr);
       var sternWT = Math.min(36, Math.max(16, Math.ceil(breite(c, sternTxt, 8) + 2)));
@@ -1212,14 +1272,16 @@
     var cursorY;
     if (topBand) {
       // Daumenzone rechts (E/Trinken plus die Reihe darüber) und Stick links bleiben frei.
+      // Crew liegt über der ganzen Breite, 8 CSS-px über dem Wasser-Knopf (unten 20 + Höhe 80).
       var band = Math.round(Math.min(156, Math.max(112, H * 0.2)));
-      var stripH = S.overlay ? 0 : 34;
-      var cursorBottom = H - band - 4 - (stripH ? stripH + 4 : 0);
+      var stripCss = 36, knopfTopCss = 100, lueckeCss = 8;
+      var scBand = Math.max(0.5, sCss);
+      var stripH = S.overlay ? 0 : (stripCss / scBand);
+      var stripTop = H - (knopfTopCss + lueckeCss + stripCss) / scBand;
+      var bandTop = H - band;
+      var cursorBottom = Math.min(bandTop, stripH ? stripTop : bandTop) - 4;
       R.teamLeiste = null;
-      if (stripH && S.npcs) {
-        var stripR = 118;
-        zeichneTeamleiste(R, S, 8, cursorBottom + 4, Math.max(80, W - 8 - stripR), stripH);
-      }
+      if (stripH > 8) zeichneCrew(R, S, 0, stripTop, W, stripH);
       function card(text2, hochK, farbe, sz) {
         var cw = Math.min(W - 16, Math.round(W * 0.92));
         var cx = Math.round((W - cw) / 2);
@@ -1500,12 +1562,9 @@
       textInBox(c, txt, W - 44, H - 10, 40, 8, 6, { col: '#fff8ee', ausr: 'right', kontur: P.kontur, maxZeilen: 1 });
       return;
     }
-    // Handy im Spiel: kleine Versionszeile ganz unten rechts, auf der Welt, nicht in einer Leiste.
+    // Handy im Spiel: keine Kapsel in der Daumenzone. Die Version steht im Menü und im Hinweis.
     if (imSpiel && R.hochkant && R.touch) {
-      var vw = 52, vh = 12, vx = W - vw - 3, vy = H - vh - 2;
-      rr(c, vx, vy, vw, vh, 'rgba(27,21,48,0.78)', 4);
-      R.hudVersion = { x: vx, y: vy, w: vw, h: vh };
-      textInBox(c, txt, vx, vy, vw, vh, 7, { col: '#fff8ee', ausr: 'center', kontur: P.kontur, maxZeilen: 1 });
+      R.hudVersion = null;
       return;
     }
     if (R.hochkant && R.touch && R.panel && R.panel.y > H * 0.25) {
@@ -1860,6 +1919,13 @@
     return zoom;
   }
 
+  function infoAbsaetze() {
+    var z = [Saufi.Hinweise.HINWEIS_VOLL];
+    var v = (Saufi.Spiel && Saufi.Spiel.VERSION) ? Saufi.Spiel.VERSION : '';
+    if (v) z.push('Version ' + v);
+    return z;
+  }
+
   // ---------- Ganzes Bild ----------
   function zeichne(R, S) {
     var c = R.ctx, sk = R.sk;
@@ -1867,7 +1933,7 @@
     glaettung(R);
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
     R.treffer = []; R.panel = null;
-    if (S.zustand === 'start') { startBild(R, S); if (S.overlay && S.overlay.art === 'info') textFeld(R, 'Hinweis 18+', [Saufi.Hinweise.HINWEIS_VOLL], [{ label: 'Zurück' }], 0); if (S.overlay && S.overlay.art === 'playlist') playlistBild(R, S); return; }
+    if (S.zustand === 'start') { startBild(R, S); if (S.overlay && S.overlay.art === 'info') textFeld(R, 'Hinweis 18+', infoAbsaetze(), [{ label: 'Zurück' }], 0); if (S.overlay && S.overlay.art === 'playlist') playlistBild(R, S); return; }
     // Ende: nur endeBild (keine Welt darunter — sonst viele große arcs / doppelte Sonne)
     if (S.zustand === 'ende') { endeBild(R, S); return; }
     var wackel = !S.ruhig && S.fig.pegel >= 1.5, amp = Math.min(2, (S.fig.pegel - 1) * 0.8);
@@ -1899,7 +1965,7 @@
     if (S.zustand === 'umgefallen') pressFBild(R, S);
     if (S.overlay) {
       if (S.overlay.art === 'playlist') playlistBild(R, S);
-      else if (S.overlay.art === 'info') textFeld(R, 'Hinweis 18+', [Saufi.Hinweise.HINWEIS_VOLL], [{ label: 'Zurück' }], 0);
+      else if (S.overlay.art === 'info') textFeld(R, 'Hinweis 18+', infoAbsaetze(), [{ label: 'Zurück' }], 0);
       else if (S.overlay.art === 'minispiel') {
         var mg = S.overlay, kopf = [mg.untertitel || '', mg.hinweis || '', mg.feedback || '', (mg.score != null ? 'Treffer: ' + mg.score + (mg.ziel ? '/' + mg.ziel : '') : '')];
         if (mg.restSek != null) kopf.push('Noch ' + Math.max(0, mg.restSek).toFixed(1) + ' s');
@@ -1923,6 +1989,7 @@
     LATERNE_RADIUS: LATERNE_RADIUS, LATERNE_RADIUS_V06: 44, SCHILD_NACHT_ALPHA: SCHILD_NACHT_ALPHA, UI_DUNKEL: '#1b1530',
     get WELT_FLAECHE() { return WELT_FLAECHE; }, get WELT_ZOOM() { return WELT_ZOOM; },
     WELT_FLAECHE_HOCH: WELT_FLAECHE_HOCH, WELT_FLAECHE_QUER: WELT_FLAECHE_QUER, MIN_WELT_ZOOM: MIN_WELT_ZOOM,
-    HUD_SK_HOCH_TOUCH: HUD_SK_HOCH_TOUCH, ZOOM_STUFEN: ZOOM_STUFEN, clampZoomFaktor: clampZoomFaktor, zoomStufe: zoomStufe
+    HUD_SK_HOCH_TOUCH: HUD_SK_HOCH_TOUCH, ZOOM_STUFEN: ZOOM_STUFEN, clampZoomFaktor: clampZoomFaktor, zoomStufe: zoomStufe,
+    btnBandCss: btnBandCss
   };
 })(globalThis);
