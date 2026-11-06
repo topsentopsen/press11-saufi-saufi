@@ -251,7 +251,7 @@
     var text = (Saufi.Hinweise && Saufi.Hinweise.spruch)
       ? Saufi.Hinweise.spruch(rng, { id: n.id, ort: karteId, pegel: pegel || 0 })
       : n.char.spruch;
-    n.blase = { text: text, rest: Saufi.Hinweise.BLASE_SEK }; return n;
+    n.blase = { text: text, rest: Saufi.Hinweise.blaseDauer(text) }; return n;
   }
 
   // Hände hoch nur in der Stadt und nur im Lauf. Versetzt je Name, kein Objekt und kein rng (Handy bleibt ruhig).

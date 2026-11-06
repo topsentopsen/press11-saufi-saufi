@@ -6,7 +6,7 @@
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
   var K = 16;
-  var NAH_PX = 56, REDE_PX = 40, PAUSE = 9, BLASE_SEK = Saufi.Hinweise.BLASE_SEK;
+  var NAH_PX = 56, REDE_PX = 40, PAUSE = 9;
   // Südpark: Jule, Samir, Nico. Kein Konsum, nur der Fleck, an dem sie stehen.
   var PARK_SPRUECHE = [
     'Jule: Des isch unser Fleck.',
@@ -124,7 +124,7 @@
     var pool = poolFuer(v, art);
     var text = pool[v.n % pool.length];
     v.n += 1;
-    v.blase = { text: text, rest: BLASE_SEK };
+    v.blase = { text: text, rest: Saufi.Hinweise.blaseDauer(text) };
     v.pause = PAUSE;
     return text;
   }
@@ -238,6 +238,39 @@
       }),
       strecke([[12, 52], [16, 52], [20, 52], [24, 52]], {
         id: 'rad_sued', art: 'rad', speed: 32, farbe: '#2f6a3f', dir: 'rechts'
+      }),
+      // v35: mehr Leben, nur zu Fuß. Wege liegen auf freiem Gras, Gehweg oder Weg. Kein Auto.
+      strecke([[4, 31], [5, 31], [6, 31], [5, 31]], {
+        id: 'kind_mira', name: 'Mira', modus: 'loop', speed: 22, scale: 0.67, dir: 'rechts',
+        look: { id: 'kind_mira', shirt: '#e85a8a', hose: '#f2d36b', haar: '#3a2418' }
+      }),
+      strecke([[0, 34], [1, 34], [2, 34], [2, 35]], {
+        id: 'kind_noa', name: 'Noa', modus: 'loop', speed: 29, scale: 0.64, start: 2, dir: 'links',
+        look: { id: 'kind_noa', shirt: '#7d5cff', hose: '#2a2a32', haar: '#e8c070' }
+      }),
+      strecke([[4, 6], [14, 6], [24, 6], [34, 6]], {
+        id: 'jogger_lina', name: 'Lina', speed: 38, pauseAmEnde: 0.4, dir: 'rechts',
+        look: { id: 'jogger_lina', shirt: '#ff4fa0', hose: '#1a1a22', haar: '#c4c4cc', extra: 'kurz' }
+      }),
+      strecke([[25, 32], [25, 38], [25, 44], [25, 52]], {
+        id: 'jogger_cem', name: 'Cem', speed: 42, pauseAmEnde: 0.3, dir: 'unten',
+        look: { id: 'jogger_cem', shirt: '#3ad07a', hose: '#2a2a32', haar: '#3a2418' }
+      }),
+      strecke([[24, 21], [30, 21], [36, 21]], {
+        id: 'paar_anna', name: 'Anna', speed: 17, pauseAmEnde: 0.8, dir: 'rechts',
+        look: { id: 'paar_anna', shirt: '#f2d36b', hose: '#6a3a62', haar: '#e4e4ea', extra: 'kurz' }
+      }),
+      strecke([[24, 21], [30, 21], [36, 21]], {
+        id: 'paar_jonas', name: 'Jonas', speed: 17, pauseAmEnde: 0.8, start: 1, dir: 'rechts',
+        look: { id: 'paar_jonas', shirt: '#4a7ad8', hose: '#3a3a4a', haar: '#5a3a28' }
+      }),
+      strecke([[14, 38], [18, 38], [22, 38]], {
+        id: 'opa_ernst', name: 'Ernst', speed: 9, pauseAmEnde: 2.2, dir: 'rechts',
+        look: { id: 'opa_ernst', shirt: '#8a8a8a', hose: '#4a3a2a', haar: '#d8d8de', extra: 'kurz' }
+      }),
+      strecke([[20, 13], [26, 13], [32, 13], [36, 13]], {
+        id: 'bote_leila', name: 'Leila', speed: 28, pauseAmEnde: 0.6, dir: 'rechts',
+        look: { id: 'bote_leila', shirt: '#e07030', hose: '#2a3a6a', haar: '#3a2418', extra: 'cap' }
       })
     ];
     return list;
@@ -247,7 +280,7 @@
     if (!gruppe.length) return '';
     var i = (n | 0) % gruppe.length;
     var text = PARK_SPRUECHE[i % PARK_SPRUECHE.length];
-    gruppe[i].blase = { text: text, rest: BLASE_SEK };
+    gruppe[i].blase = { text: text, rest: Saufi.Hinweise.blaseDauer(text) };
     return text;
   }
   function bewege(list, dt) {
