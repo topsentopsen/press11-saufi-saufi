@@ -1251,7 +1251,10 @@
     // Oben-Knöpfe reichen im Test bis y≈44–48. Pegel-Panel darunter, Uhr und Banner darüber.
     // Hochformat-Touch: nur Krug und Herzen. Teamstimmung und Wasser stehen woanders.
     var pegelInnen = topBand ? 40 : 62;
-    var lpW = Math.round(96 * sk), lpH = Math.round(pegelInnen * sk), lx = 3, ly = topBand ? 60 : 3;
+    var lpW = Math.round(96 * sk), lpH = Math.round(pegelInnen * sk), lx = 3;
+    // Uhr, dann die kürzere Rundenleiste, dann der Pegel. Die Lücke für die Leiste bleibt reserviert.
+    var uhrY = 2, uhrH = 16, rundeH = 10, rundeLuecke = 2;
+    var ly = topBand ? (uhrY + uhrH + rundeLuecke + rundeH + 4) : 3;
     if (topBand) anzeigePanel(c, lx, ly, lpW, lpH, 5);
     else panel(c, lx, ly, lpW, lpH, '#fff8ee', kompakt ? 4 : 5);
     c.save(); c.translate(lx, ly); c.scale(sk, sk);
@@ -1284,14 +1287,14 @@
     var freiL = lx + lpW + 4, freiR = W - btnBand - 2;
     var weltH = (R.weltH != null && R.hochkant) ? R.weltH : H;
     var resTop = R.hochkant && weltH < H ? weltH : null;
-    var PHASE_KURZ = { Morgen: 'Mo', Mittag: 'Mi', Nachmittag: 'Nm', Abend: 'Ab', Nacht: 'Na', 'Tiefe Nacht': 'TN' };
-    var phName = Saufi.Uhr.phase(uhr), phaseTxt = Saufi.Uhr.tag(uhr).slice(0, 2) + ' · ' + (PHASE_KURZ[phName] || phName);
+    // Tag ausgeschrieben. „Sa · Mo“ las sich wie Samstag und Montag; Mo war nur die Kürzel für Morgen.
+    var phaseTxt = Saufi.Uhr.tag(uhr);
     var sternTxt = '★' + S.punkte.punkte;
     var pw, ph, px, py;
     if (topBand) {
-      ph = 16;
+      ph = uhrH;
       pw = Math.max(88, W - btnBand - 10);
-      px = 4; py = 2;
+      px = 4; py = uhrY;
       anzeigePanel(c, px, py, pw, ph, 4);
       Sz.himmelIcon(c, px + 8, py + ph / 2, 5, uhr.minute / 60, S.t);
       var uhrTxtT = Saufi.Uhr.text(uhr);
@@ -1330,20 +1333,19 @@
     function bannerLabel(aktiv, nrOrt, nrZeit, boxW, mx) {
       if (mx) {
         var mRest = Math.max(0, Math.ceil(Saufi.MxEvent.rest(uhr.minute)));
-        var labMx = 'Motocross 18:30 · noch ' + mRest + ' min · Tribüne';
-        var messMx = textInBox(c, labMx, 0, 0, boxW, 8, 7, { ausr: 'center', mess: true, maxZeilen: 1, min: 6 });
+        var labMx = 'Motocross 18:30 · ' + mRest + ' min';
+        var messMx = textInBox(c, labMx, 0, 0, boxW, 8, 6, { ausr: 'center', mess: true, maxZeilen: 1, min: 5 });
         if (messMx.lines && messMx.lines.some(function (z) { return z.indexOf('…') >= 0; }) || messMx.w > boxW) {
-          labMx = 'Motocross 18:30 · ' + mRest + ' min';
+          labMx = 'Motocross 18:30';
         }
         return labMx;
       }
       var kurz = (Saufi.Karte.KURZ && Saufi.Karte.KURZ[nrOrt]) || Saufi.Karte.NAMEN[nrOrt] || nrOrt;
-      var pref = aktiv ? 'RUNDE! ' : ('Runde ' + Saufi.Uhr.zeitText(nrZeit) + ': ');
-      var lab = pref + kurz;
-      var mess = textInBox(c, lab, 0, 0, boxW, 8, 7, { ausr: 'center', mess: true, maxZeilen: 1, min: 6 });
+      var zeit = Saufi.Uhr.zeitText(nrZeit);
+      var lab = (aktiv ? 'RUNDE ' : ('Runde ' + zeit + ' ')) + kurz;
+      var mess = textInBox(c, lab, 0, 0, boxW, 8, 6, { ausr: 'center', mess: true, maxZeilen: 1, min: 5 });
       if (mess.lines && mess.lines.some(function (z) { return z.indexOf('…') >= 0; }) || mess.w > boxW) {
-        pref = aktiv ? 'RUNDE ' : ('Runde ' + Saufi.Uhr.zeitText(nrZeit) + ': ');
-        lab = pref + kurz;
+        lab = (aktiv ? 'RUNDE ' : 'Runde ') + kurz;
       }
       return lab;
     }
@@ -1360,46 +1362,20 @@
       var rest = aktiv ? nr.zeit + Saufi.Runden.FRIST_MIN - uhr.minute : (mxBan ? Saufi.MxEvent.rest(uhr.minute) : nr.zeit - uhr.minute);
       var vorlauf = mxBan ? 30 : Saufi.Runden.VORLAUF_MIN;
       var blink = aktiv && Math.floor(S.t * 3) % 2 === 0;
-      var balkenH = 3, label;
-      if (topBand) {
-        // Volle Breite, direkt unter den Oben-Knöpfen (die reichen bis y=44). Text über die ganze Zeile.
-        rundenH = 14; rx = 0; rw = W; ry = 44;
-        label = bannerLabel(aktiv, nr.ort, nr.zeit, rw - 8, mxBan);
-        panel(c, rx, ry, rw, rundenH, aktiv ? (blink ? '#ff9fb0' : '#ffd1da') : '#fff0c8', 5);
-        textInBox(c, label, rx + 4, ry + 1, rw - 8, 8, 7, { col: P.uiTinte, ausr: 'center', maxZeilen: 1, min: 6 });
-        var fracT = Math.max(0, Math.min(1, rest / (aktiv ? Saufi.Runden.FRIST_MIN : vorlauf)));
-        rr(c, rx + 8, ry + rundenH - balkenH - 1, rw - 16, balkenH, 'rgba(74,53,96,0.25)', 2);
-        if (fracT > 0.01) rr(c, rx + 8, ry + rundenH - balkenH - 1, (rw - 16) * fracT, balkenH, aktiv ? '#e0504a' : '#f0b030', 2);
-        R.hudRunde = { x: rx, y: ry, w: rw, h: rundenH };
-      } else if (R.hochkant && resTop != null) {
-        // Hoch: Banner unter Uhr in Reserve
-        rundenH = 14; rw = Math.min(Math.round(W * 0.85), W - 16);
-        rx = Math.round((W - rw) / 2); ry = py + ph + 2;
-        label = bannerLabel(aktiv, nr.ort, nr.zeit, rw - 8, mxBan);
-        panel(c, rx, ry, rw, rundenH, aktiv ? (blink ? '#ff9fb0' : '#ffd1da') : '#fff0c8', 5);
-        textInBox(c, label, rx + 4, ry + 1, rw - 8, 8, 7, { col: P.uiTinte, ausr: 'center', maxZeilen: 1, min: 6 });
-        var frac = Math.max(0, Math.min(1, rest / (aktiv ? Saufi.Runden.FRIST_MIN : vorlauf)));
-        rr(c, rx + 8, ry + rundenH - balkenH - 1, rw - 16, balkenH, 'rgba(74,53,96,0.25)', 2); if (frac > 0.01) rr(c, rx + 8, ry + rundenH - balkenH - 1, (rw - 16) * frac, balkenH, aktiv ? '#e0504a' : '#f0b030', 2);
-        R.hudRunde = { x: rx, y: ry, w: rw, h: rundenH };
-      } else if (!R.hochkant) {
-        // Quer: Anhang direkt unter Uhr, gleiche Breite, Höhe ≤ 11, Gesamt ≤ 38
-        rundenH = Math.min(11, Math.max(1, 38 - ph));
-        rw = pw; rx = px; ry = py + ph;
-        label = bannerLabel(aktiv, nr.ort, nr.zeit, rw - 4, mxBan);
-        panel(c, rx, ry, rw, rundenH, aktiv ? (blink ? '#ff9fb0' : '#ffd1da') : '#fff0c8', 4);
-        textInBox(c, label, rx + 2, ry + 0.5, rw - 4, 7, 6.5, { col: P.uiTinte, ausr: 'center', maxZeilen: 1, min: 6 });
-        var fracQ = Math.max(0, Math.min(1, rest / (aktiv ? Saufi.Runden.FRIST_MIN : vorlauf)));
-        rr(c, rx + 4, ry + rundenH - 3, rw - 8, 2, 'rgba(74,53,96,0.25)', 1.5); if (fracQ > 0.01) rr(c, rx + 4, ry + rundenH - 3, (rw - 8) * fracQ, 2, aktiv ? '#e0504a' : '#f0b030', 1.5);
-        R.hudRunde = { x: rx, y: ry, w: rw, h: rundenH };
-      } else {
-        // Hoch ohne Touch-Reserve (Dunkelstreifen): Banner trotzdem unten in Reserve-Zone
-        rundenH = 14; rw = Math.min(Math.round(W * 0.85), W - 16);
-        rx = Math.round((W - rw) / 2); ry = Math.max(weltH + 2, H - 70);
-        label = bannerLabel(aktiv, nr.ort, nr.zeit, rw - 8, mxBan);
-        panel(c, rx, ry, rw, rundenH, aktiv ? (blink ? '#ff9fb0' : '#ffd1da') : '#fff0c8', 5);
-        textInBox(c, label, rx + 4, ry + 1, rw - 8, 8, 7, { col: P.uiTinte, ausr: 'center', maxZeilen: 1, min: 6 });
-        R.hudRunde = { x: rx, y: ry, w: rw, h: rundenH };
-      }
+      // Kürzer und flacher als die Uhr, direkt darunter, mittig zur Uhr.
+      rundenH = R.hochkant ? rundeH : Math.min(9, Math.max(7, 38 - ph));
+      rw = R.hochkant ? Math.min(pw - 8, 124) : Math.min(pw - 12, 74);
+      if (rw > pw) rw = pw;
+      rx = px + Math.round((pw - rw) / 2);
+      ry = py + ph + (R.hochkant ? rundeLuecke : 1);
+      var label = bannerLabel(aktiv, nr.ort, nr.zeit, Math.max(20, rw - 6), mxBan);
+      var balkenH = 2;
+      panel(c, rx, ry, rw, rundenH, aktiv ? (blink ? '#ff9fb0' : '#ffd1da') : '#fff0c8', 4);
+      textInBox(c, label, rx + 3, ry + 0.5, rw - 6, Math.max(5, rundenH - balkenH - 2), 6, { col: P.uiTinte, ausr: 'center', maxZeilen: 1, min: 5 });
+      var fracB = Math.max(0, Math.min(1, rest / (aktiv ? Saufi.Runden.FRIST_MIN : vorlauf)));
+      rr(c, rx + 4, ry + rundenH - balkenH - 1, Math.max(2, rw - 8), balkenH, 'rgba(74,53,96,0.25)', 1);
+      if (fracB > 0.01) rr(c, rx + 4, ry + rundenH - balkenH - 1, Math.max(2, rw - 8) * fracB, balkenH, aktiv ? '#e0504a' : '#f0b030', 1);
+      R.hudRunde = { x: rx, y: ry, w: rw, h: rundenH };
     } else R.hudRunde = null;
     // Safe-Zone / Knöpfe Quer (E-Basis 48, Abstand 4 CSS-px)
     var stickZone = R.touch && !R.hochkant ? Math.ceil(120 / Math.max(0.5, sCss)) : 0;
