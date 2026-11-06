@@ -20,15 +20,17 @@ Shuffle-Bag je RNG und Pool (Scooter, Elon). Die Mischung läuft über einen eig
 
 ## Prost
 
-In `Minispiele.update` setzte ein Treffer die Phase auf `warte` und wurde danach als Fehlstart überschrieben. Derselbe Frame, der das Fenster öffnete, hat den Druck geschluckt, weil der `else if` nicht mehr lief. Beides ist getrennt: Treffer schreibt den Ortsruf und zählt, Fehlstart nur wenn das Fenster noch zu ist.
+In `Minispiele.update` für `prost` setzte ein Treffer die Phase auf `warte` und wurde danach als Fehlstart überschrieben. Derselbe Frame, der das Fenster öffnete, hat den Druck geschluckt, weil der `else if` nicht mehr lief. Beides ist getrennt: Treffer schreibt den Ortsruf und zählt, Fehlstart nur wenn das Fenster noch zu ist.
+
+Drei von zehn Fenstern (`istProbstFalle`) zeigen `PROBST!`. Ein Druck darauf zieht einen Punkt ab und setzt die Blase „Des war dr Probst, ned s'Prost!“.
 
 ## Probst
 
-Die Chance bleibt 25 % plus 15 %. Das Menü zeigt beide Prozente und die Folge (doppelte Runde, Team −2, `PROBST_STAND` 25), bevor der Tausch passiert. Ohne ihn am Tisch bleibt der Wirt und der Standfestigkeits-Abzug fällt weg.
+Die Chance bleibt 25 % plus 15 %, solange er zuschaut. Das Menü zeigt beide Prozente und die Folge (doppelte Runde, Team -2, `PROBST_STAND` 25). Solange `Hecke.aktiv` ist, geht `tausche` mit `probstDa = false` raus. Die Einblendung heißt: „Probst steckt in der Hecke. Himmelsbach filmt. Jetzt tauschen, für die Gruppe.“
 
 ## Mäxle
 
-Kein Alias mehr. Rang: Mäxle 21, dann Pasche 66…11, dann 65…31. Siebold zweifelt Mäxle immer und sonst, wenn die Ansage über `70 + Wurf * 30` liegt. Verlieren gibt 0,15 Promille Trinkstrafe. Dampfhammer und Sinnlos bleiben Aliase und sagen das.
+Kein Alias mehr. Rang: 31…65, dann Pasch 11…66, dann Mäxle 21. Menü: ansagen, bluffen, anzweifeln. Wer beim Aufdecken falschliegt, trinkt. Ein gewürfeltes Mäxle lässt alle trinken. `bluffRate`: Siebold 0, Himmelsbach 1, Probst behauptet Mäxle und guckt auf den Boden. Dampfhammer und Sinnlos bleiben Aliase.
 
 ## Handy
 

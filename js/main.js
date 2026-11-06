@@ -122,6 +122,10 @@
     return X;
   }
   function probstDa(S) { return S.npcs.some(function (n) { return n.id === 'probst' && n.aktiv && !n.liegt; }); }
+  function probstAbgelenkt(S) {
+    return !!(S && S.hecke && Saufi.Ereignisse.Hecke && Saufi.Ereignisse.Hecke.aktiv(S.hecke, S.spielSek));
+  }
+  function probstSchaut(S) { return probstAbgelenkt(S) ? false : probstDa(S); }
 
   // ---------------------------------------------------------------- Ende
   function beende(S, sieg, grund, X) {
@@ -251,13 +255,14 @@
       sagProst(S, T, '+' + res.punkte, 2.2);
       nachRunde(S, res);
     } else if (art === 'runde_frei') {
-      res = Saufi.Runden.tausche(rs, r, S.cheats, S.rng, minute(S), probstDa(S));
+      var schaut = probstSchaut(S);
+      res = Saufi.Runden.tausche(rs, r, S.cheats, S.rng, minute(S), schaut);
       if (!res.erlaubt) { sag(S, 'Der Wirt wird misstrauisch: höchstens 3 Tauschgeschäfte pro Runde.', 3, 'schlecht'); return; }
       S.stats.getauscht += 1;
       if (res.erwischt) {
         Saufi.Pegel.trinke(S.fig, r.getraenk, res.nachtrunk * gasFaktor(S));
         npcsTrinken(); Saufi.Punkte.add(S.punkte, res.punkte, 'Alkoholfrei erwischt');
-        if (probstDa(S)) {
+        if (schaut) {
           Saufi.Pegel.schaden(S.fig, Saufi.Cheats.PROBST_STAND || 25);
           S.npcs.forEach(function (n) {
             if (n.id === 'probst' && n.aktiv) n.blase = { text: 'Ich sehe alles.', rest: Saufi.Hinweise.BLASE_SEK };
@@ -318,14 +323,16 @@
       return;
     }
     var frei = Saufi.Cheats.MAX_PRO_RUNDE - S.cheats.rundeTricks, gl = Saufi.Getraenke.LISTE[r.getraenk].label;
-    var falle = probstDa(S);
+    var abgelenkt = probstAbgelenkt(S);
+    var falle = !abgelenkt && probstDa(S);
     var tauschLabel = falle ? 'Alkoholfrei tauschen — Probst passt auf' : 'Alkoholfrei tauschen (heimlich)';
     var zeilen = [{ label: 'Mittrinken (' + r.rest + ' × ' + gl + ')', id: 'runde_trinken' },
       { label: tauschLabel, rechts: frei + ' frei', id: 'runde_frei', aktiv: frei > 0 },
       { label: 'Ablehnen (Team -1, Standf. -15)', id: 'runde_ablehnen' }];
     if (r.ort === 'disko' && r.getraenk === 'kurzer' && r.rest === 2) zeilen.push({ label: 'Shot-Train: zwei Kurze in 5 s', id: 'minispiel', daten: 'shottrain', anRunde: true });
     var kopf = ['Noch ' + r.rest + ' Glas: ' + gl];
-    if (falle) {
+    if (abgelenkt) kopf.push('Probst steckt in der Hecke. Himmelsbach filmt. Jetzt tauschen, für die Gruppe.');
+    else if (falle) {
       var mit = Math.round(Saufi.Cheats.chance(S.cheats, minute(S), true) * 100);
       var ohne = Math.round(Saufi.Cheats.chance(S.cheats, minute(S), false) * 100);
       kopf.push('Probst-Falle: er sitzt mit. Entdeckung ' + mit + ' % statt ' + ohne + ' %. Fällt es auf: doppelte Runde, Team -2, Standfestigkeit -' + (Saufi.Cheats.PROBST_STAND || 25) + '.');
@@ -421,6 +428,7 @@
     var bel = Saufi.Minispiele.belohnung(mg);
     Saufi.Punkte.add(S.punkte, bel.punkte || 0, 'Minispiel');
     if (bel.pegel) S.fig.pegel = Math.max(0, Math.min(4, S.fig.pegel + bel.pegel));
+    if (bel.alle) S.npcs.forEach(function (n) { if (n.aktiv && !n.liegt) Saufi.Pegel.addPegel(n.fig, 0.08); });
     if (bel.stand) S.fig.stand = Math.max(0, Math.min(100, S.fig.stand + bel.stand));
     if (bel.team) Saufi.Runden.teamAendern(S.runden, bel.team);
     sag(S, bel.text || 'Minispiel Ende', 3, mg.erfolg ? 'gut' : 'info');
@@ -1343,7 +1351,7 @@
   Saufi.Spiel = {
     VERSION: VERSION, neu: neuesSpiel, update: update, beende: beende, aktion: aktion, waehle: waehle, runde: runde, wasserTrinken: wasserTrinken, itemNutzen: itemNutzen, kontext: kontext, hilfeText: hilfeText, toggleMusik: toggleMusik, spontanePruefen: spontanePruefen, tippeWelt: tippeWelt, weltPunkt: weltPunkt, tippZiel: tippZiel, spontanWahl: spontanWahl, betreten: betreten,
     wasserAnzeige: wasserAnzeige, aktionAnzeige: aktionAnzeige, tonIcon: tonIcon,
-    betreten: betreten, verlassen: verlassen, schnappschuss: schnappschuss, geheZuStation: geheZuStation, setze: setze, starteSpiel: starteSpiel, stationDe: stationDe, waehleFigur: waehleFigur, djAktualisieren: djAktualisieren,
+    betreten: betreten, verlassen: verlassen, schnappschuss: schnappschuss, geheZuStation: geheZuStation, setze: setze, starteSpiel: starteSpiel, stationDe: stationDe, waehleFigur: waehleFigur, djAktualisieren: djAktualisieren, probstAbgelenkt: probstAbgelenkt, probstSchaut: probstSchaut,
     pauseMenue: pauseMenue, playlistOverlay: playlistOverlay, infoOverlay: infoOverlay, stammtisch: stammtisch, tanzen: tanzen, stub: stub,
     schliesse: schliesse, minispielMenue: minispielMenue
   };
