@@ -275,6 +275,8 @@
       textInBox(c, 'zZz', x - 12, y - 20 + Math.sin(t * 3), 16, 10, 8, { col: '#ffffff', ausr: 'center', kontur: P.kontur, min: 7 });
       return;
     }
+    var kotzPose = !!o.kotz;
+    if (kotzPose) { c.save(); c.translate(x, y); c.rotate(0.62); c.translate(-x, -y); }
     var torkelAng = 0, torkelOn = pegel >= 1.5;
     if (torkelOn) {
       var krit = Math.min(1, Math.max(0, (pegel - 1.5) / 1.7));
@@ -329,7 +331,18 @@
     if (o.glas && o.prost != null && o.prost > 0) glasLift = Math.sin(Math.PI * (1 - Math.min(1.4, o.prost) / 1.4)) * 5;
     else if (o.glas) glasLift = 0;
     var armTanzL = o.tanzt ? -tanztArm : 0, armTanzR = o.tanzt ? tanztArm : 0;
-    if (!seite) {
+    var haende = !!o.haende && !o.sitzt && !o.tanzt && !kotzPose;
+    if (haende) {
+      if (!seite) {
+        rr(c, tx - 2.2, ay - 8, 2.6, 7.2, shirt, 1.3, KONT, 0.65);
+        rr(c, tx + tw - 0.4, ay - 8, 2.6, 7.2, shirt, 1.3, KONT, 0.65);
+        kreis(c, tx - 0.9, ay - 8.2, 1.3, P.haut, KONT, 0.45);
+        kreis(c, tx + tw + 0.9, ay - 8.2, 1.3, P.haut, KONT, 0.45);
+      } else {
+        rr(c, x - 1.2, ay - 8, 2.6, 7.2, shirt, 1.3, KONT, 0.65);
+        kreis(c, x + 0.1, ay - 8.2, 1.3, P.haut, KONT, 0.45);
+      }
+    } else if (!seite) {
       rr(c, tx - 2.2, ay + armSw * 0.45 + armIdle + armTanzL - (o.tanzt ? 3 : 0), 2.6, o.tanzt ? 5 : 6.2, shirt, 1.3, KONT, 0.65);
       rr(c, tx + tw - 0.4, ay - armSw * 0.45 - armIdle + armTanzR - (o.tanzt ? 3 : 0) - glasLift, 2.6, o.tanzt ? 5 : 6.2, shirt, 1.3, KONT, 0.65);
       kreis(c, tx - 0.9, ay + 6 + armSw * 0.45 + armIdle + armTanzL - (o.tanzt ? 6 : 0), 1.3, P.haut, KONT, 0.45);
@@ -366,11 +379,13 @@
       if (!ohneHaar) haare(c, ch, hx, hy, dir, extra);
       if (seite) {
         kreis(c, hx + sg * 2.4, hy + 0.6, 0.75, '#3a2a40'); kreis(c, hx + sg * 4.8, hy + 1.2, 0.8, dunkler(P.haut, 0.08));
-        if (mundKrit) textInBox(c, 'o', hx + sg * 1.2, hy + 0.6, 6, 6, 6, { col: '#7a2a3a', ausr: 'center', min: 5 });
+        if (kotzPose) ellipse(c, hx + sg * 1.6, hy + 1.8, 1.5, 1.15, '#5a8a32');
+        else if (mundKrit) textInBox(c, 'o', hx + sg * 1.2, hy + 0.6, 6, 6, 6, { col: '#7a2a3a', ausr: 'center', min: 5 });
         else mund(c, hx + sg * 1.6, hy + 0.2, o.schwips, false);
       } else {
         kreis(c, hx - 1.8, hy + 0.7, 0.8, '#3a2a40'); kreis(c, hx + 1.8, hy + 0.7, 0.8, '#3a2a40');
-        if (mundKrit) textInBox(c, 'o', hx - 3, hy + 0.8, 6, 6, 6, { col: '#7a2a3a', ausr: 'center', min: 5 });
+        if (kotzPose) ellipse(c, hx, hy + 2.1, 1.7, 1.2, '#5a8a32');
+        else if (mundKrit) textInBox(c, 'o', hx - 3, hy + 0.8, 6, 6, 6, { col: '#7a2a3a', ausr: 'center', min: 5 });
         else mund(c, hx, hy + 0.4, o.schwips, o.tanzt);
       }
     }
@@ -421,6 +436,12 @@
       kreis(c, hx, hy - 5.8, 2.15, ch.haar || '#e4e4ea', KONT, 0.4);
     }
     if (torkelOn) c.restore();
+    if (kotzPose) {
+      var spuck = 1.15 + Math.sin(t * 14) * 0.35;
+      ellipse(c, x + (seite ? sg * 7 : 0.4), y - 6, 2.1, spuck, 'rgba(110,160,50,0.92)');
+      ellipse(c, x + (seite ? sg * 10 : 2.2), y - 2.5, 3.2, 1.35, 'rgba(80,120,40,0.78)');
+      c.restore();
+    }
   }
 
   function blaseSchneidet(a, b) { return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y); }
@@ -561,6 +582,19 @@
   }
 
   // ---------- Welt zeichnen (in Kamerakoordinaten VW×VH; wird mit WELT_ZOOM auf W×H skaliert) ----------
+  function zeichneBoombox(c, x, y, t, name) {
+    rr(c, x - 9, y - 5, 18, 11, '#2a2342', 2.2, '#ff4fa0', 0.7);
+    kreis(c, x - 3.2, y + 0.6, 2.3, '#1a1530', '#4fe6ff', 0.55);
+    kreis(c, x + 3.4, y + 0.6, 2.3, '#1a1530', '#ffe84f', 0.55);
+    r(c, x - 1, y - 3.2, 2, 3.2, '#c9c3d6');
+    var noten = (Saufi.Musik && Saufi.Musik.noten) ? Saufi.Musik.noten(t, 3) : [];
+    var i;
+    for (i = 0; i < noten.length; i++) {
+      textInBox(c, noten[i].z, x + noten[i].x - 4, y - 18 + noten[i].y, 8, 8, 7, { col: i % 2 ? '#ffe84f' : '#4fe6ff', ausr: 'center', min: 6 });
+    }
+    textInBox(c, name || '', x - 22, y - 18, 44, 8, 6, { col: '#fff8ee', ausr: 'center', kontur: '#2a2342', min: 5, maxZeilen: 1 });
+  }
+
   function zeichneWelt(R, S) {
     var c = R.ctx, karte = S.karte, cam = S.kamera, T = Saufi.Karte.T, sk = R.sk;
     var viewW = cam.viewW || VW, viewH = cam.viewH || VH;
@@ -618,6 +652,14 @@
       dinge.push({ y: pose.film.y + 0.3, art: 'heckeFilm', pose: pose });
     }
     if (S.zustand !== 'start') dinge.push({ y: S.spieler.y + 0.1, art: 'spieler' });
+    function schiebeFlecke(wer) {
+      var list = wer && wer.kotz && wer.kotz.flecke, fi;
+      if (!list) return;
+      for (fi = 0; fi < list.length; fi++) dinge.push({ y: list[fi].y - 1, art: 'fleck', f: list[fi] });
+    }
+    schiebeFlecke(S.spieler);
+    S.npcs.forEach(function (n) { if (n.karteId === karte.id) schiebeFlecke(n); });
+    if (S.dj && S.dj.name && S.dj.karteId === karte.id && !S.musikAus) dinge.push({ y: S.dj.y - 0.2, art: 'boombox', dj: S.dj });
     if (karte.id === 'stadt' && Saufi.Motocross && Saufi.Motocross.stand) {
       Saufi.Motocross.stand(t).forEach(function (b) {
         dinge.push({ y: b.y, art: 'motorrad', b: b, x: b.x });
@@ -689,14 +731,28 @@
         r(c, fx + 5.4, fy - 22.2, 2.6, 3.2, '#9fd4f0');
         R.blasen.push({ x: fx, y: fy - 25, text: 'Himmelsbach: ' + d.pose.text, vermeide: null });
       }
+      else if (d.art === 'fleck') {
+        var fl = d.f, fa = fl.dauer > 0 ? Math.max(0, fl.rest / fl.dauer) : 0;
+        if (fa > 0.02) {
+          var gaF = c.globalAlpha;
+          c.globalAlpha = gaF * (0.22 + 0.7 * fa);
+          ellipse(c, fl.x - cx, fl.y - cy, 7.2, 3.1, '#6a8a32');
+          ellipse(c, fl.x - cx + 2.2, fl.y - cy + 0.5, 3.6, 1.5, '#9ab84a');
+          c.globalAlpha = gaF;
+        }
+      }
+      else if (d.art === 'boombox') zeichneBoombox(c, d.dj.x - cx + 14, d.dj.y - cy - 8, t, d.dj.name);
       else if (d.art === 'npc') {
         var n = d.n;
+        var kotzN = n.kotz && n.kotz.aktiv;
         figur(c, n.char, n.x - cx, n.y - cy, {
           dir: n.dir, schritt: n.schritt, phase: n.anim % 4, laeuft: n.laeuft, liegt: n.liegt, t: t,
           schwips: n.fig.pegel > 1.5, tanzt: S.tanzBeat && !n.liegt, glas: S.prost > 0 && !n.liegt,
-          pegel: n.fig.pegel, prost: S.prost
+          pegel: n.fig.pegel, prost: S.prost, kotz: !!kotzN && !n.liegt,
+          haende: Saufi.NPCs.haendeHoch(n.id, t, n.laeuft && !kotzN && !n.liegt, S.ort)
         });
-        if (n.blase && !n.liegt) {
+        if (kotzN) R.blasen.push({ x: n.x - cx, y: n.y - cy - 25, text: n.char.name + ': ' + kotzN.text, vermeide: null });
+        else if (n.blase && !n.liegt) {
           var vermeide = null;
           if (!karte.innen) karte.gebaeude.forEach(function (b) {
             if (b.id !== 'kneipe') return;
@@ -715,11 +771,14 @@
       }
       else if (d.art === 'spieler') {
         var sp = S.spieler, ch = S.char;
+        var kotzS = sp.kotz && sp.kotz.aktiv;
         figur(c, ch, sp.x - cx, sp.y - cy, {
           dir: sp.dir, schritt: sp.schritt, phase: sp.anim % 4, laeuft: sp.laeuft, liegt: sp.liegt, t: t,
           schwips: S.fig.pegel > 1.5, tanzt: sp.tanzt > 0, glas: S.prost > 0,
-          pegel: S.fig.pegel, prost: S.prost
+          pegel: S.fig.pegel, prost: S.prost, kotz: !!kotzS && !sp.liegt,
+          haende: Saufi.NPCs.haendeHoch(ch.id, t, sp.laeuft && !kotzS && !sp.liegt, S.ort)
         });
+        if (kotzS) R.blasen.push({ x: sp.x - cx, y: sp.y - cy - 28, text: ch.name + ': ' + kotzS.text, vermeide: null });
         if (!sp.liegt) {
           var mx = sp.x - cx, my = sp.y - cy - 31 + Math.sin(t * 5) * 1.2;
           poly(c, [[mx - 3.2, my], [mx + 3.2, my], [mx, my + 4]], P.gold, P.kontur, 0.7);
@@ -1086,7 +1145,7 @@
     // Oben-Knöpfe reichen im Test bis y≈44–48. Pegel-Panel darunter, Uhr und Banner darüber.
     // Hochformat-Touch: nur Krug und Herzen. Teamstimmung und Wasser stehen woanders.
     var pegelInnen = topBand ? 40 : 62;
-    var lpW = Math.round(96 * sk), lpH = Math.round(pegelInnen * sk), lx = 3, ly = topBand ? 50 : 3;
+    var lpW = Math.round(96 * sk), lpH = Math.round(pegelInnen * sk), lx = 3, ly = topBand ? 60 : 3;
     if (topBand) anzeigePanel(c, lx, ly, lpW, lpH, 5);
     else panel(c, lx, ly, lpW, lpH, '#fff8ee', kompakt ? 4 : 5);
     c.save(); c.translate(lx, ly); c.scale(sk, sk);
@@ -1197,10 +1256,11 @@
       var blink = aktiv && Math.floor(S.t * 3) % 2 === 0;
       var balkenH = 3, label;
       if (topBand) {
-        rundenH = 16; rw = pw; rx = px; ry = py + ph + 2;
+        // Volle Breite, direkt unter den Oben-Knöpfen (die reichen bis y=44). Text über die ganze Zeile.
+        rundenH = 14; rx = 0; rw = W; ry = 44;
         label = bannerLabel(aktiv, nr.ort, nr.zeit, rw - 8, mxBan);
         panel(c, rx, ry, rw, rundenH, aktiv ? (blink ? '#ff9fb0' : '#ffd1da') : '#fff0c8', 5);
-        textInBox(c, label, rx + 4, ry + 1, rw - 8, 9, 8, { col: P.uiTinte, ausr: 'center', maxZeilen: 1, min: 6 });
+        textInBox(c, label, rx + 4, ry + 1, rw - 8, 8, 7, { col: P.uiTinte, ausr: 'center', maxZeilen: 1, min: 6 });
         var fracT = Math.max(0, Math.min(1, rest / (aktiv ? Saufi.Runden.FRIST_MIN : vorlauf)));
         rr(c, rx + 8, ry + rundenH - balkenH - 1, rw - 16, balkenH, 'rgba(74,53,96,0.25)', 2);
         if (fracT > 0.01) rr(c, rx + 8, ry + rundenH - balkenH - 1, (rw - 16) * fracT, balkenH, aktiv ? '#e0504a' : '#f0b030', 2);
@@ -1274,7 +1334,7 @@
       // Daumenzone rechts (E/Trinken plus die Reihe darüber) und Stick links bleiben frei.
       // Crew liegt über der ganzen Breite, 8 CSS-px über dem Wasser-Knopf (unten 20 + Höhe 80).
       var band = Math.round(Math.min(156, Math.max(112, H * 0.2)));
-      var stripCss = 36, knopfTopCss = 100, lueckeCss = 8;
+      var stripCss = 36, knopfTopCss = R.daumen ? 176 : 100, lueckeCss = 8;
       var scBand = Math.max(0.5, sCss);
       var stripH = S.overlay ? 0 : (stripCss / scBand);
       var stripTop = H - (knopfTopCss + lueckeCss + stripCss) / scBand;

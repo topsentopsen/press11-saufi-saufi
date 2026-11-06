@@ -4,6 +4,17 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v32
+
+- Ab 3,0 Promille kotzt eine Figur, zusätzlich zum Einschlafen: vornüber, Sprechblase, ein Fleck am Boden, der liegen bleibt und verblasst.
+- Eine Boombox mit tanzenden Noten zeigt, wer gerade auflegt. An der Jukebox oder an der Disko-Bar ist das der NPC dort, sonst die Spielfigur. Name und Figur sind sichtbar. Musik aus, Boombox aus.
+- In der Stadt werfen laufende Figuren versetzt die Hände hoch. Kein Extra-Objekt und kein zusätzlicher Zufall, damit das Handy ruhig bleibt.
+- Sprechblasen kommen aus einem Shuffle-Bag: jede Zeile einmal, dann neu gemischt, ohne Naht-Wiederholung. Der Spiel-Zufall bleibt bei zwei Zügen pro Spruch.
+- Reaktions-Prost: ein Treffer bleibt ein Treffer und zeigt den Ortsruf. Ein Druck vor dem Fenster ist ein Fehlstart und zählt nicht. Der Druck im Frame, in dem das Fenster aufgeht, zählt.
+- Probst-Falle: sitzt er mit am Tisch, sagt das Menü die höhere Entdeckungschance, bevor man tauscht. Fliegt es auf, gibt es die doppelte Runde, Team −2 und 25 Standfestigkeit weniger. Ohne ihn bleibt es der Wirt, ohne den Extra-Abzug.
+- Mäxle ist ein Würfelspiel mit zwei Würfeln. Mäxle 21 schlägt alles, dann die Pasche, dann der Rest. Ansagen, lügen und anzweifeln gegen Siebold. Wer verliert, hat eine Trinkstrafe. Dampfhammer und Sinnlos bleiben Gag-Aliase.
+- Auf dem Handy (Touch, grober Zeiger oder Telefon-Format) liegen E und Wasser als großer Daumenbogen unten rechts. Das Rundenbanner geht über die volle Breite, unter den Knöpfen oben. Desktop bleibt, wie er war.
+
 ## Neu in v30
 
 - Handy hochkant: die Uhr rechnet mit den echten Knöpfen oben. Im Spiel sind das zwei, Ton und Menü. Ton öffnet Musik, Effekte und die Scooter-Playlist. Das Menü hat Info, die Version und das Playlist-Fenster. Auf dem iPhone gibt es keinen toten Vollbild-Knopf, dafür den Hinweis „Zum Home-Bildschirm“. Die Auswahl behält ihre fünf Knöpfe.

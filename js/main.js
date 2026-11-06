@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.30', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.32', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function wendeCharStats(S, char) {
@@ -159,6 +159,30 @@
     T.setzeTief(S.ort === 'kneipe');
     if (T.beatDauer) S.beat = T.beatDauer();
   }
+  // Wer die Musik macht: NPC an der Jukebox oder an der Disko-Bar, sonst die Spielfigur. Kein rng.
+  function djAktualisieren(S) {
+    if (!S || S.musikAus) { if (S) S.dj = null; return null; }
+    var npc = null, i, n;
+    for (i = 0; i < S.npcs.length && !npc; i++) {
+      n = S.npcs[i];
+      if (n.aktiv && !n.liegt && n.karteId === S.ort && n.schwarm && n.schwarm.typ === 'jukebox' && !n.laeuft) npc = n;
+    }
+    if (!npc && S.ort === 'disko') {
+      for (i = 0; i < S.npcs.length && !npc; i++) {
+        n = S.npcs[i];
+        if (n.aktiv && !n.liegt && n.karteId === S.ort && n.schwarm && n.schwarm.typ === 'bar_disko' && !n.laeuft) npc = n;
+      }
+    }
+    var wer = npc
+      ? { id: npc.id, name: npc.char.name, x: npc.x, y: npc.y, karteId: S.ort, aktiv: true, liegt: false }
+      : { id: S.char.id, name: S.char.name, x: S.spieler.x, y: S.spieler.y, karteId: S.ort, aktiv: true, liegt: !!S.spieler.liegt };
+    S.dj = (Saufi.Musik && Saufi.Musik.macher) ? (function () {
+      var m = Saufi.Musik.macher({ aus: false, ort: S.ort, dj: npc ? wer : null, spieler: npc ? null : wer });
+      return m ? wer : null;
+    })() : wer;
+    if (S.dj && S.dj.liegt) S.dj = null;
+    return S.dj;
+  }
   function betreten(S, ort, X) {
     X = stub(X);
     S.ort = ort; S.karte = S.welt.innen[ort]; stelleHin(S, S.karte.spawn.x, S.karte.spawn.y);
@@ -233,7 +257,14 @@
       if (res.erwischt) {
         Saufi.Pegel.trinke(S.fig, r.getraenk, res.nachtrunk * gasFaktor(S));
         npcsTrinken(); Saufi.Punkte.add(S.punkte, res.punkte, 'Alkoholfrei erwischt');
-        sag(S, 'ERWISCHT! Probst: "Ich sehe alles." Pflichtrunde nachträglich, Team -2.', 4, 'schlecht'); T.umfall();
+        if (probstDa(S)) {
+          Saufi.Pegel.schaden(S.fig, Saufi.Cheats.PROBST_STAND || 25);
+          S.npcs.forEach(function (n) {
+            if (n.id === 'probst' && n.aktiv) n.blase = { text: 'Ich sehe alles.', rest: Saufi.Hinweise.BLASE_SEK };
+          });
+          sag(S, 'PROBST-FALLE! Er hat den Tausch gesehen. Pflichtrunde doppelt, Team -2, Standfestigkeit -' + (Saufi.Cheats.PROBST_STAND || 25) + '.', 4.5, 'schlecht');
+        } else sag(S, 'ERWISCHT! Der Wirt hat den Tausch gesehen. Pflichtrunde nachträglich, Team -2.', 4, 'schlecht');
+        T.umfall();
         if (Saufi.Runden.verloren(rs)) beende(S, false, 'Teamstimmung 0: alle gehen heim.', X);
       } else if (res.fertig) {
         npcsTrinken(); Saufi.Punkte.add(S.punkte, res.punkte, 'Mittrunde (Alkoholfrei)');
@@ -287,11 +318,19 @@
       return;
     }
     var frei = Saufi.Cheats.MAX_PRO_RUNDE - S.cheats.rundeTricks, gl = Saufi.Getraenke.LISTE[r.getraenk].label;
+    var falle = probstDa(S);
+    var tauschLabel = falle ? 'Alkoholfrei tauschen — Probst passt auf' : 'Alkoholfrei tauschen (heimlich)';
     var zeilen = [{ label: 'Mittrinken (' + r.rest + ' × ' + gl + ')', id: 'runde_trinken' },
-      { label: 'Alkoholfrei tauschen (heimlich)', rechts: frei + ' frei', id: 'runde_frei', aktiv: frei > 0 },
+      { label: tauschLabel, rechts: frei + ' frei', id: 'runde_frei', aktiv: frei > 0 },
       { label: 'Ablehnen (Team -1, Standf. -15)', id: 'runde_ablehnen' }];
     if (r.ort === 'disko' && r.getraenk === 'kurzer' && r.rest === 2) zeilen.push({ label: 'Shot-Train: zwei Kurze in 5 s', id: 'minispiel', daten: 'shottrain', anRunde: true });
-    oeffneMenue(S, 'RUNDE! Alle mittrinken!', ['Noch ' + r.rest + ' Glas: ' + gl], zeilen);
+    var kopf = ['Noch ' + r.rest + ' Glas: ' + gl];
+    if (falle) {
+      var mit = Math.round(Saufi.Cheats.chance(S.cheats, minute(S), true) * 100);
+      var ohne = Math.round(Saufi.Cheats.chance(S.cheats, minute(S), false) * 100);
+      kopf.push('Probst-Falle: er sitzt mit. Entdeckung ' + mit + ' % statt ' + ohne + ' %. Fällt es auf: doppelte Runde, Team -2, Standfestigkeit -' + (Saufi.Cheats.PROBST_STAND || 25) + '.');
+    }
+    oeffneMenue(S, 'RUNDE! Alle mittrinken!', kopf, zeilen);
   }
   function pauseMenue(S, X) {
     var M = X.M;
@@ -317,6 +356,10 @@
   function waehle(S, e, X) {
     X = stub(X);
     var T = X.T;
+    if (e && e.id && String(e.id).indexOf('mx_') === 0 && S.overlay && S.overlay.id === 'maexle') {
+      Saufi.Minispiele.wahl(S.overlay, e.id, e.daten);
+      return;
+    }
     switch (e.id) {
       case 'zurueck': schliesse(S); break;
       case 'weiter': S.overlay = null; break;
@@ -1041,6 +1084,7 @@
     // Standfestigkeit
     Saufi.Pegel.update(fig, dt, halbiert(S));
     var fall = Saufi.Pegel.pruefe(fig);
+    sp.kotz = Saufi.Pegel.kotzTick(sp.kotz, dt, fig.pegel, { x: sp.x, y: sp.y + 3, umfallen: !!fall });
     if (fall) {
       sp.liegt = true; sp.sitzt = false; sp.isst = 0; sp.tanzt = 0; S.tippWeg = null; S.marker = null; T.umfall();
       Saufi.Punkte.add(S.punkte, -200, 'Umgefallen');
@@ -1075,6 +1119,7 @@
     }
     S.tanzBeat = S.ort === 'disko' && (S.boostAktiv || sp.tanzt > 0);
     if (T.beatDauer) S.beat = T.beatDauer();
+    djAktualisieren(S);
     // Kamera, Hilfe, Pfeil, Musik (auch in der Disko, sonst bleibt das Tempo stehen)
     Saufi.Kamera.update(S.kamera, sp.x, sp.y - 8, dt);
     S.hilfe = S.overlay ? '' : hilfeText(S); S.pfeil = berechnePfeil(S);
@@ -1298,7 +1343,7 @@
   Saufi.Spiel = {
     VERSION: VERSION, neu: neuesSpiel, update: update, beende: beende, aktion: aktion, waehle: waehle, runde: runde, wasserTrinken: wasserTrinken, itemNutzen: itemNutzen, kontext: kontext, hilfeText: hilfeText, toggleMusik: toggleMusik, spontanePruefen: spontanePruefen, tippeWelt: tippeWelt, weltPunkt: weltPunkt, tippZiel: tippZiel, spontanWahl: spontanWahl, betreten: betreten,
     wasserAnzeige: wasserAnzeige, aktionAnzeige: aktionAnzeige, tonIcon: tonIcon,
-    betreten: betreten, verlassen: verlassen, schnappschuss: schnappschuss, geheZuStation: geheZuStation, setze: setze, starteSpiel: starteSpiel, stationDe: stationDe, waehleFigur: waehleFigur,
+    betreten: betreten, verlassen: verlassen, schnappschuss: schnappschuss, geheZuStation: geheZuStation, setze: setze, starteSpiel: starteSpiel, stationDe: stationDe, waehleFigur: waehleFigur, djAktualisieren: djAktualisieren,
     pauseMenue: pauseMenue, playlistOverlay: playlistOverlay, infoOverlay: infoOverlay, stammtisch: stammtisch, tanzen: tanzen, stub: stub,
     schliesse: schliesse, minispielMenue: minispielMenue
   };
@@ -1329,7 +1374,7 @@
     function melde(text) { if (S) sag(S, text, 5, 'info'); }
     M = Saufi.Musik.erstelle({ win: win, doc: doc, ton: T, speicher: speicher, melde: melde });
     function neuStarten() {
-      var isTouch = !!(E.touch || (win.matchMedia && win.matchMedia('(pointer: coarse)').matches));
+      var isTouch = mobilVon(win, E);
       var mobilHoch = isTouch && win.innerHeight > win.innerWidth;
       var padX0 = 0, padY0 = 0;
       if (win.getComputedStyle && doc.body) {
@@ -1370,7 +1415,7 @@
     // Groesse: Hochformat = Spielfeld oben + Bedienleiste unten, R.H aus Viewport-Seitenverhaeltnis;
     // Quer = 320x176. Safe-Area am Body abziehen.
     function groesse() {
-      var isTouch = !!(E.touch || (win.matchMedia && win.matchMedia('(pointer: coarse)').matches));
+      var isTouch = mobilVon(win, E);
       var hoch = isTouch && win.innerHeight > win.innerWidth;
       var padX = 0, padY = 0;
       if (win.getComputedStyle && doc.body) {
@@ -1403,10 +1448,12 @@
       var dpr = Saufi.Render.begrenzDpr(win.devicePixelRatio || 1);
       Saufi.Render.setzeAufloesung(R, cw, ch, dpr);
       R.touch = isTouch;
+      R.daumen = !!(isTouch && hoch && ingame);
       rahmen.style.setProperty('--s', String(s));
       rahmen.style.setProperty('--bedien', bedienCss + 'px');
       rahmen.classList.toggle('touch', isTouch);
       rahmen.classList.toggle('hoch', !!hoch);
+      rahmen.classList.toggle('daumen', !!R.daumen);
     }
     // iOS meldet innerHeight verspaetet — groesse sofort und nach 120/400 ms; Debounce gegen Doppel-Rechnung
     var groesseTimer = null, groesseDebounce = null, groesseAufrufe = 0;
@@ -1832,6 +1879,30 @@
   }
 
   // Pure Skalenrechnung (auch fuer Tests: 390x844, 375x667 Hochformat komplett sichtbar)
+  // Handy: Touch, grober Zeiger oder Telefon-Format. Desktop (breit, Maus) bleibt aus.
+  function mobilErkannt(opt) {
+    opt = opt || {};
+    var touch = !!opt.touch, coarse = !!opt.coarse;
+    var w = opt.w || 0, h = opt.h || 0;
+    var kurz = w > 0 && h > 0 ? Math.min(w, h) : 0;
+    var lang = w > 0 && h > 0 ? Math.max(w, h) : 0;
+    var phone = kurz > 0 && kurz <= 480 && lang <= 960;
+    return { mobil: touch || coarse || phone, phone: phone, touch: touch, coarse: coarse };
+  }
+  function mobilVon(win, E) {
+    var coarse = false;
+    try { coarse = !!(win && win.matchMedia && win.matchMedia('(pointer: coarse)').matches); } catch (e) { coarse = false; }
+    return mobilErkannt({ touch: !!(E && E.touch), coarse: coarse, w: win ? win.innerWidth : 0, h: win ? win.innerHeight : 0 }).mobil;
+  }
+  // Daumenbogen unten rechts: E in der Ecke, Wasser daneben, F und Item höher und kleiner.
+  function daumenBogen() {
+    return {
+      aktion: { x: 0, y: 0, w: 96, h: 96 },
+      wasser: { x: 100, y: 8, w: 88, h: 88 },
+      item: { x: 20, y: 100, w: 64, h: 64 },
+      f: { x: 92, y: 100, w: 60, h: 60 }
+    };
+  }
   function berechneSkala(availW, availH, logW, logH, touch, minSchrift) {
     logW = logW || 320; logH = logH || 176;
     var s = Math.min(availW / logW, availH / logH);
@@ -1863,7 +1934,7 @@
     return { x: (dx / rad) * (f / n), y: (dy / rad) * (f / n) };
   }
 
-  Saufi.Main = { parameter: parameter, starte: starte, berechneSkala: berechneSkala, berechneBedien: berechneBedien, stickAuslenkung: stickAuslenkung };
+  Saufi.Main = { parameter: parameter, starte: starte, berechneSkala: berechneSkala, berechneBedien: berechneBedien, stickAuslenkung: stickAuslenkung, mobilErkannt: mobilErkannt, daumenBogen: daumenBogen };
 
   if (g.document && g.document.getElementById && g.document.getElementById('spiel') && !g.__SAUFI_OHNE_START) {
     starte(g, g.document);

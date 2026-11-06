@@ -221,5 +221,25 @@
     return m;
   }
 
-  Saufi.Musik = { TITEL: TITEL, VIDEOS: VIDEOS, videoListe: videoListe, API_URL: API_URL, mp3Liste: mp3Liste, youtubeVerfuegbar: youtubeVerfuegbar, quelle: quelle, hinweisYoutube: hinweisYoutube, erstelle: erstelle };
+  // Drei Noten, nur Sinus. Kein Objekt-Cache nötig, die Liste ist drei Einträge.
+  function noten(t, n) {
+    var anzahl = n || 3, out = [], i, ph;
+    for (i = 0; i < anzahl; i++) {
+      ph = (t || 0) * 3.2 + i * 1.4;
+      out.push({ x: (i - (anzahl - 1) / 2) * 7, y: -4 - Math.sin(ph) * 4 - (i % 2) * 2, z: i % 2 ? '♩' : '♪' });
+    }
+    return out;
+  }
+  // Wer gerade auflegt. Ausgeschaltet: niemand. Sonst der DJ am Ort, sonst die Figur selbst.
+  function macher(o) {
+    o = o || {};
+    if (o.aus) return null;
+    if (o.dj && o.dj.name && o.dj.aktiv !== false && !o.dj.liegt && (o.dj.karteId == null || o.dj.karteId === o.ort)) {
+      return { id: o.dj.id || '', name: o.dj.name };
+    }
+    if (o.spieler && o.spieler.name && !o.spieler.liegt) return { id: o.spieler.id || '', name: o.spieler.name };
+    return null;
+  }
+
+  Saufi.Musik = { TITEL: TITEL, VIDEOS: VIDEOS, videoListe: videoListe, API_URL: API_URL, mp3Liste: mp3Liste, youtubeVerfuegbar: youtubeVerfuegbar, quelle: quelle, hinweisYoutube: hinweisYoutube, erstelle: erstelle, noten: noten, macher: macher };
 })(globalThis);
