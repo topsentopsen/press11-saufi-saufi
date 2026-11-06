@@ -73,7 +73,34 @@
 
   function pick(rng, arr) { return arr && arr.length ? (rng && rng.pick ? rng.pick(arr) : arr[Math.floor((rng ? rng.next() : Math.random()) * arr.length)]) : ''; }
 
-  // rng-Verbrauch: genau 2 Aufrufe (next fuer Poolwahl, pick fuer Spruch). Tobi nur Elon, Bundschuh gar kein Scooter.
+  // Shuffle-Bag je rng und Pool. Die Mischung läuft über einen eigenen Generator, damit spruch weiter genau 2 rng-Aufrufe verbraucht.
+  function mischeBag(pool, seed, runde, letzte) {
+    var next = Saufi.RNG.mulberry32(((seed || 1) + runde * 9973) >>> 0);
+    var a = pool.slice(), i, j, tmp;
+    for (i = a.length - 1; i > 0; i--) {
+      j = Math.floor(next() * (i + 1));
+      tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    if (letzte && a.length > 1 && a[0] === letzte) { tmp = a[0]; a[0] = a[1]; a[1] = tmp; }
+    return a;
+  }
+  function beutelZieh(rng, key, pool) {
+    if (!rng || !pool || !pool.length) return pool && pool.length ? pool[0] : '';
+    if (!rng._sprech) rng._sprech = {};
+    var st = rng._sprech[key];
+    if (!st || st.i >= st.reihenfolge.length || st.n !== pool.length) {
+      var runde = st ? st.runde + 1 : 1;
+      var letzte = st ? st.letzte : '';
+      st = { reihenfolge: mischeBag(pool, rng.seed, runde, letzte), i: 0, runde: runde, n: pool.length, letzte: '' };
+      rng._sprech[key] = st;
+    }
+    var text = st.reihenfolge[st.i++];
+    st.letzte = text;
+    return text;
+  }
+
+  // rng-Verbrauch: genau 2 Aufrufe (next, dann pick). Die Zeile kommt aus dem Beutel, nicht aus dem zweiten Wurf.
+  // Tobi nur Elon, Bundschuh gar kein Scooter.
   function spruch(rng, opt) {
     opt = opt || {};
     if (opt.id === 'bundschuh') {
@@ -82,10 +109,13 @@
       return '';
     }
     var basis = SCOOTER;
-    if (opt.id === 'tobi' && Saufi.Elon && Saufi.Elon.ALLGEMEIN && Saufi.Elon.ALLGEMEIN.length) basis = Saufi.Elon.ALLGEMEIN;
-    var pools = [basis];
-    var chosenPool = pools[Math.floor((rng && rng.next ? rng.next() : Math.random()) * pools.length)] || basis;
-    return lallen(pick(rng, chosenPool) || basis[0], opt.pegel || 0);
+    var key = 'scooter';
+    if (opt.id === 'tobi' && Saufi.Elon && Saufi.Elon.ALLGEMEIN && Saufi.Elon.ALLGEMEIN.length) { basis = Saufi.Elon.ALLGEMEIN; key = 'elon'; }
+    if (rng && rng.next) rng.next();
+    else Math.random();
+    var roh = beutelZieh(rng, key, basis) || basis[0];
+    pick(rng, [roh]);
+    return lallen(roh, opt.pegel || 0);
   }
 
   function erstelle() { return { liste: [], t: 0 }; }

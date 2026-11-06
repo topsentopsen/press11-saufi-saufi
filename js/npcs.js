@@ -143,16 +143,18 @@
         n.karteId = karte.id; n.x = pl.x * K + K / 2; n.y = pl.y * K + K / 2; n.pfad = null; n.zielKey = ''; n.laeuft = false; n.festSek = 0;
       }
       // Zustand der Figur (Standfestigkeit, Umfallen) laeuft auch fuer NPCs anderswo weiter
+      var fiel = false;
       if (!n.liegt) {
         Saufi.Pegel.update(f, dt, ctx.halbiert);
         var r = Saufi.Pegel.pruefe(f);
-        if (r) { n.liegt = true; n.liegtSeit = 0; n.pfad = null; ev.push({ typ: 'umgefallen', npc: n, verloren: r === 'verloren' }); }
+        if (r) { n.liegt = true; n.liegtSeit = 0; n.pfad = null; ev.push({ typ: 'umgefallen', npc: n, verloren: r === 'verloren' }); fiel = true; }
       } else {
         n.liegtSeit += dt;
         if (!f.verloren && f.umgefallen && n.liegtSeit >= AUFSTEH_SEK) {      // zweites Leben: steht von selbst wieder auf
           if (Saufi.Pegel.aufstehen(f)) { n.liegt = false; ev.push({ typ: 'aufgestanden', npc: n }); }
         }
       }
+      if (Saufi.Pegel.kotzTick) n.kotz = Saufi.Pegel.kotzTick(n.kotz, dt, f.pegel, { x: n.x, y: n.y + 3, umfallen: fiel });
       if (n.blase) { n.blase.rest -= dt; if (n.blase.rest <= 0) n.blase = null; }
       if (n.karteId !== karte.id || n.liegt) { n.laeuft = false; return; }
 
@@ -252,8 +254,18 @@
     n.blase = { text: text, rest: Saufi.Hinweise.BLASE_SEK }; return n;
   }
 
+  // Hände hoch nur in der Stadt und nur im Lauf. Versetzt je Name, kein Objekt und kein rng (Handy bleibt ruhig).
+  function haendeHoch(id, t, laeuft, ort) {
+    if (ort !== 'stadt' || !laeuft) return 0;
+    var h = 0, s = String(id || ''), i;
+    for (i = 0; i < s.length; i++) h = (h * 33 + s.charCodeAt(i)) >>> 0;
+    var phase = ((t || 0) + (h % 47) * 0.17) % 5.8;
+    return phase < 0.7 ? 1 : 0;
+  }
+
   Saufi.NPCs = {
     SPEED: SPEED, AUFSTEH_SEK: AUFSTEH_SEK, FEST_SEK: FEST_SEK, erstelle: erstelle, sichtbar: sichtbar, uebergang: uebergang, ausschwaermen: ausschwaermen, update: update, trinkeRunde: trinkeRunde,
+    haendeHoch: haendeHoch,
     stunde: stunde, abbau: abbau, naechsterLiegender: naechsterLiegender, WECK_REICHWEITE: WECK_REICHWEITE, wecke: wecke, ankommen: ankommen, sprechen: sprechen, nahKacheln: nahKacheln, tileOf: tileOf, geheZu: geheZu
   };
 })(globalThis);

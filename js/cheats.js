@@ -3,7 +3,7 @@
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
 
-  var BASIS = 0.25, PROBST = 0.15, SPAET_PRO_TAUSCH = 0.10, SPAET_AB = 26 * 60, MAX_PRO_RUNDE = 3, MAX_CHANCE = 0.95;
+  var BASIS = 0.25, PROBST = 0.15, SPAET_PRO_TAUSCH = 0.10, SPAET_AB = 26 * 60, MAX_PRO_RUNDE = 3, MAX_CHANCE = 0.95, PROBST_STAND = 25;
 
   function erstelle() { return { rundeTricks: 0, gesamt: 0, erwischt: 0 }; }
   function neueRunde(c) { c.rundeTricks = 0; }
@@ -20,5 +20,5 @@
     return { erlaubt: true, erwischt: erwischt, chance: p };
   }
 
-  Saufi.Cheats = { BASIS: BASIS, PROBST: PROBST, MAX_PRO_RUNDE: MAX_PRO_RUNDE, erstelle: erstelle, neueRunde: neueRunde, chance: chance, tausche: tausche };
+  Saufi.Cheats = { BASIS: BASIS, PROBST: PROBST, PROBST_STAND: PROBST_STAND, MAX_PRO_RUNDE: MAX_PRO_RUNDE, erstelle: erstelle, neueRunde: neueRunde, chance: chance, tausche: tausche };
 })(globalThis);

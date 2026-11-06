@@ -5,6 +5,9 @@
   var Saufi = g.Saufi = g.Saufi || {};
 
   var MAX = 4.0, ABBAU_PRO_STUNDE = 0.10, STAND_MAX = 100;
+  // Kotzen ab der kritischen Schwelle, zusätzlich zum Umfallen. Kein rng.
+  var KOTZ_AB = 3.0, KOTZ_DAUER = 1.7, FLECK_SEK = 12, KOTZ_PAUSE = 18;
+  var KOTZ_TEXTE = ['Bäh!', 'Würg…', 'Zu viel!'];
 
   function neu(char) {
     return { id: char.id, trink: char.trink, pegel: 0, stand: STAND_MAX, leben: char.leben, umgefallen: false, verloren: false,
@@ -63,9 +66,40 @@
   function bewegung(f, minute) { return minute < f.vollBis ? Saufi.Essen.VOLL_FAKTOR : 1; }
   function anzeige(p) { return rund1(p).toFixed(1).replace('.', ','); }
 
+  // st: { pause, aktiv, flecke, n }. opt.umfallen erzwingt einen Schub, auch in der Pause (neben dem Einschlafen).
+  function kotzTick(st, dt, pegel, opt) {
+    opt = opt || {};
+    if (!st) st = { pause: 0, aktiv: null, flecke: [], n: 0 };
+    if (!st.flecke) st.flecke = [];
+    if (st.pause > 0) st.pause -= dt;
+    if (st.aktiv) {
+      st.aktiv.t += dt;
+      if (st.aktiv.t >= KOTZ_DAUER) st.aktiv = null;
+    }
+    var i = st.flecke.length;
+    while (i--) {
+      st.flecke[i].rest -= dt;
+      if (st.flecke[i].rest <= 0) st.flecke.splice(i, 1);
+    }
+    var drueber = pegel >= KOTZ_AB;
+    var jetzt = drueber && !st.aktiv && (!!opt.umfallen || st.pause <= 0);
+    st.neu = false;
+    if (jetzt) {
+      st.n = (st.n || 0) + 1;
+      st.aktiv = { t: 0, text: KOTZ_TEXTE[(st.n - 1) % KOTZ_TEXTE.length] };
+      st.flecke.push({ x: opt.x || 0, y: opt.y || 0, rest: FLECK_SEK, dauer: FLECK_SEK });
+      if (st.flecke.length > 4) st.flecke.shift();
+      st.pause = KOTZ_PAUSE;
+      st.neu = true;
+    }
+    return st;
+  }
+
   Saufi.Pegel = {
     MAX: MAX, ABBAU_PRO_STUNDE: ABBAU_PRO_STUNDE, STAND_MAX: STAND_MAX,
+    KOTZ_AB: KOTZ_AB, KOTZ_DAUER: KOTZ_DAUER, FLECK_SEK: FLECK_SEK, KOTZ_PAUSE: KOTZ_PAUSE, KOTZ_TEXTE: KOTZ_TEXTE,
     neu: neu, addPegel: addPegel, trinke: trinke, abbau: abbau, schwelle: schwelle, heile: heile, schaden: schaden,
-    verlustProSekunde: verlustProSekunde, update: update, pruefe: pruefe, aufstehen: aufstehen, essen: essen, bewegung: bewegung, anzeige: anzeige
+    verlustProSekunde: verlustProSekunde, update: update, pruefe: pruefe, aufstehen: aufstehen, essen: essen, bewegung: bewegung, anzeige: anzeige,
+    kotzTick: kotzTick
   };
 })(globalThis);

@@ -1,6 +1,6 @@
 /* Trinkspiel-Minispiele: kurz (< 45 s), Tastatur+Touch, per Esc/X/Klick daneben abbrechbar.
-   Siebold-Aliase (Mäxle, Dampfhammer, Sinnlos) sind Gag-Namen fuer Prost, Krug und Deckel.
-   Sie starten dasselbe Spiel und sagen das im Titel. */
+   Mäxle ist ein eigenes Würfelspiel. Dampfhammer und Sinnlos bleiben Gag-Aliase
+   für Krug und Deckel und sagen das im Titel. */
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
@@ -14,14 +14,14 @@
     { id: 'rhytmus', name: 'Zapfhahn-Rhythmus', ort: ['kneipe'], dauer: 20 },
     { id: 'truth', name: 'Wahrheit oder Kurzer (soft)', ort: ['restaurant'], dauer: 30 },
     { id: 'shottrain', name: 'Disko Shot-Train', ort: ['disko'], dauer: 5 },
-    { id: 'maexle', name: 'Mäxle', gag: true, kern: 'prost', ort: ['kneipe', 'restaurant', 'disko'], dauer: 15 },
+    { id: 'maexle', name: 'Mäxle', ort: ['kneipe', 'restaurant', 'disko'], dauer: 40 },
     { id: 'dampfhammer', name: 'Dampfhammer', gag: true, kern: 'krug', ort: ['kneipe', 'disko'], dauer: 25 },
     { id: 'sinnlos', name: 'Sinnlos saufen', gag: true, kern: 'deckel', ort: ['kneipe', 'restaurant', 'disko'], dauer: 20 }
   ];
 
   // Gag-Alias: anderer Name, gleicher Kern. Kein stiller Fake.
-  var SIEBOLD_ALIAS = { maexle: 'prost', dampfhammer: 'krug', sinnlos: 'deckel' };
-  var SIEBOLD_TITEL = { maexle: 'Mäxle', dampfhammer: 'Dampfhammer', sinnlos: 'Sinnlos saufen' };
+  var SIEBOLD_ALIAS = { dampfhammer: 'krug', sinnlos: 'deckel' };
+  var SIEBOLD_TITEL = { dampfhammer: 'Dampfhammer', sinnlos: 'Sinnlos saufen' };
   var KERN_NAME = { prost: 'Reaktions-Prost', krug: 'Maßkrugstemmen', deckel: 'Bierdeckel-Flip' };
 
   // Krug: erst tippen bis der Krug steht, dann im engen Fenster halten.
@@ -34,19 +34,120 @@
     return { ruf: 'PROST!', prompt: '', ton: 'normal' };
   }
 
+  // Mäxle: 21 (2 und 1) schlägt alles, danach Pasche von 66 abwärts, danach der Rest (65 … 31).
+  function maexleWert(a, b) {
+    var hi = a > b ? a : b, lo = a < b ? a : b;
+    if (hi === 2 && lo === 1) return { a: 2, b: 1, name: 'Mäxle 21', rang: 100, art: 'maexle' };
+    if (hi === lo) return { a: hi, b: lo, name: 'Pasch ' + hi + hi, rang: 80 + hi, art: 'pasch' };
+    return { a: hi, b: lo, name: String(hi * 10 + lo), rang: hi * 10 + lo, art: 'zahl' };
+  }
+  var MAEXLE_LEITER = null;
+  function maexleLeiter() {
+    if (MAEXLE_LEITER) return MAEXLE_LEITER;
+    var list = [], a, b;
+    list.push(maexleWert(2, 1));
+    for (a = 1; a <= 6; a++) list.push(maexleWert(a, a));
+    for (a = 1; a <= 6; a++) for (b = a + 1; b <= 6; b++) {
+      if (!(a === 1 && b === 2)) list.push(maexleWert(b, a));
+    }
+    list.sort(function (p, q) { return p.rang - q.rang; });
+    MAEXLE_LEITER = list;
+    return list;
+  }
+  function maexleNaechstes(rang) {
+    var list = maexleLeiter(), i;
+    for (i = 0; i < list.length; i++) if (list[i].rang > rang) return list[i];
+    return null;
+  }
+  function wuerfelZahl(rng) {
+    var u = rng && rng.next ? rng.next() : Math.random();
+    return 1 + Math.floor(u * 6);
+  }
+  function npcZweifelt(rang, wurf) {
+    if (rang >= 100) return true;
+    return rang >= 70 + (wurf || 0) * 30;
+  }
+  function maexleStart(rng, ort) {
+    return {
+      id: 'maexle', art: 'minispiel', titel: 'Mäxle', t: 0, dauer: 40, score: 0, ziel: 1, phase: 'wurf',
+      rng: rng, ort: ort || '', wuerfel: null, wert: null, ansage: null, gelogen: false, npc: null, strafePegel: 0.15,
+      hinweis: 'Zwei Würfel. Mäxle 21 ist das höchste, dann Pasche, dann der Rest. Ansagen, lügen oder anzweifeln.',
+      index: 0,
+      eintraege: [{ label: 'Würfeln (E)', id: 'mx_wurf' }, { label: 'Abbrechen', id: 'zurueck' }]
+    };
+  }
+  function maexleEnde(mg, sieg, text) {
+    mg.fertig = true; mg.erfolg = !!sieg; mg.score = sieg ? 1 : 0; mg.phase = 'ende';
+    mg.feedback = text; mg.strafePegel = sieg ? 0 : 0.15;
+    return mg;
+  }
+  function maexleAnsagenMenue(mg) {
+    var e = [{ label: 'Wahrheit: ' + mg.wert.name, id: 'mx_ansage', daten: mg.wert }];
+    var nxt = maexleNaechstes(mg.wert.rang);
+    if (nxt) e.push({ label: 'Lügen: ' + nxt.name, id: 'mx_ansage', daten: nxt });
+    if (mg.wert.rang < 100 && (!nxt || nxt.rang < 100)) e.push({ label: 'Mäxle behaupten', id: 'mx_ansage', daten: maexleWert(2, 1) });
+    e.push({ label: 'Abbrechen', id: 'zurueck' });
+    mg.eintraege = e; mg.index = 0; mg.phase = 'ansage';
+    mg.hinweis = 'Du hast ' + mg.wuerfel[0] + ' und ' + mg.wuerfel[1] + ' (' + mg.wert.name + '). Hohe Ansagen zweifelt Siebold eher an.';
+  }
+  function maexleNpc(mg) {
+    var a = wuerfelZahl(mg.rng), b = wuerfelZahl(mg.rng), wert = maexleWert(a, b);
+    var ansage = wert.rang > mg.ansage.rang ? wert : maexleNaechstes(mg.ansage.rang);
+    if (!ansage) {
+      return maexleEnde(mg, !mg.gelogen, mg.gelogen ? 'Nichts ist höher. Siebold deckt die Lüge auf. Trinkstrafe.' : 'Nichts ist höher als Mäxle. Siebold trinkt.');
+    }
+    mg.npc = { wuerfel: [a, b], wert: wert, ansage: ansage, gelogen: ansage.rang > wert.rang };
+    mg.phase = 'gegen';
+    mg.hinweis = 'Siebold sagt „' + ansage.name + '“. Anzweifeln oder glauben?';
+    mg.feedback = 'Seine Würfel bleiben zu.';
+    mg.index = 0;
+    mg.eintraege = [
+      { label: 'Anzweifeln', id: 'mx_zweifel' },
+      { label: 'Glauben (du trinkst)', id: 'mx_glauben' },
+      { label: 'Abbrechen', id: 'zurueck' }
+    ];
+    return mg;
+  }
+  function maexleWahl(mg, id, daten) {
+    if (!mg || mg.id !== 'maexle' || mg.fertig) return mg;
+    if (id === 'mx_wurf' && mg.phase === 'wurf') {
+      var a = wuerfelZahl(mg.rng), b = wuerfelZahl(mg.rng);
+      mg.wuerfel = [a, b]; mg.wert = maexleWert(a, b);
+      maexleAnsagenMenue(mg);
+      return mg;
+    }
+    if (id === 'mx_ansage' && mg.phase === 'ansage' && daten) {
+      mg.ansage = daten;
+      mg.gelogen = daten.rang > mg.wert.rang;
+      var stimmung = mg.rng && mg.rng.next ? mg.rng.next() : Math.random();
+      if (npcZweifelt(daten.rang, stimmung)) {
+        if (mg.gelogen) return maexleEnde(mg, false, 'Siebold zweifelt. Gelogen — Trinkstrafe.');
+        return maexleEnde(mg, true, 'Siebold zweifelt. Wahrheit. Er trinkt.');
+      }
+      return maexleNpc(mg);
+    }
+    if (id === 'mx_zweifel' && mg.phase === 'gegen' && mg.npc) {
+      if (mg.npc.gelogen) return maexleEnde(mg, true, 'Siebold hat gelogen (' + mg.npc.wert.name + '). Er trinkt.');
+      return maexleEnde(mg, false, 'Siebold hatte ' + mg.npc.wert.name + '. Trinkstrafe.');
+    }
+    if (id === 'mx_glauben' && mg.phase === 'gegen') return maexleEnde(mg, false, 'Du glaubst Siebold. Trinkstrafe.');
+    return mg;
+  }
+
   function eintraegeFuerOrt(ort) {
     return [
       { id: 'deckel', label: 'Minispiel: Bierdeckel-Flip', ortOk: ort === 'kneipe' },
       { id: 'prost', label: 'Minispiel: Reaktions-Prost', ortOk: ort === 'kneipe' || ort === 'restaurant' || ort === 'disko' },
       { id: 'krug', label: 'Minispiel: Maßkrugstemmen', ortOk: ort === 'kneipe' || ort === 'disko' },
       { id: 'shottrain', label: 'Minispiel: Disko Shot-Train', ortOk: ort === 'disko' },
-      { id: 'maexle', label: 'Mäxle — Gag-Alias, eigentlich dasselbe', siebold: true, gag: true, kern: 'prost', ortOk: ort === 'kneipe' || ort === 'restaurant' || ort === 'disko' },
+      { id: 'maexle', label: 'Mäxle — zwei Würfel', siebold: true, ortOk: ort === 'kneipe' || ort === 'restaurant' || ort === 'disko' },
       { id: 'dampfhammer', label: 'Dampfhammer — Gag-Alias, eigentlich dasselbe', siebold: true, gag: true, kern: 'krug', ortOk: ort === 'kneipe' || ort === 'disko' },
       { id: 'sinnlos', label: 'Sinnlos saufen — Gag-Alias, eigentlich dasselbe', siebold: true, gag: true, kern: 'deckel', ortOk: ort === 'kneipe' || ort === 'restaurant' || ort === 'disko' }
     ].filter(function (e) { return e.ortOk; });
   }
 
   function starte(id, rng, ort) {
+    if (id === 'maexle') return maexleStart(rng, ort);
     if (SIEBOLD_ALIAS[id]) {
       var kern = SIEBOLD_ALIAS[id];
       var genannt = starte(kern, rng, ort);
@@ -150,21 +251,28 @@
       }
     } else if (mg.id === 'prost') {
       var ruf = mg.ruf || 'PROST!';
+      var getroffen = false;
       if (mg.phase === 'warte') {
         mg.next -= dt;
         if (mg.next <= 0) { mg.phase = 'jetzt'; mg.fenster = 0.7; mg.eintraege[0].label = ruf + ' JETZT (E)'; }
-      } else if (mg.phase === 'jetzt') {
-        mg.fenster -= dt;
+      }
+      if (mg.phase === 'jetzt') {
         if (aktion) {
-          mg.score += 1; mg.feedback = ruf; mg.phase = 'warte'; mg.next = 0.7 + Math.random() * 1.1;
+          mg.score += 1; mg.feedback = ruf; mg.phase = 'warte';
+          mg.next = 0.7 + ((mg.score * 37) % 100) / 100 * 1.1;
           mg.eintraege[0].label = 'Wart…';
+          getroffen = true;
           if (mg.score >= mg.ziel) { mg.fertig = true; mg.erfolg = true; }
-        } else if (mg.fenster <= 0) {
-          mg.feedback = 'Zu langsam!'; mg.phase = 'warte'; mg.next = 0.6 + Math.random() * 0.9;
-          mg.eintraege[0].label = 'Wart…';
+        } else {
+          mg.fenster -= dt;
+          if (mg.fenster <= 0) {
+            mg.feedback = 'Zu langsam!'; mg.phase = 'warte';
+            mg.next = 0.6 + ((mg.score * 53) % 100) / 100 * 0.9;
+            mg.eintraege[0].label = 'Wart…';
+          }
         }
       }
-      if (aktion && mg.phase === 'warte') mg.feedback = 'Zu früh – Fehlstart.';
+      if (aktion && !getroffen && mg.phase === 'warte') mg.feedback = 'Zu früh – Fehlstart.';
     } else if (mg.id === 'krug') {
       krugHalten(mg, dt, aktion, !!opt.halten);
       mg.balken = Math.max(0, Math.min(1, (mg.kraft || 0) / 1.15));
@@ -202,7 +310,11 @@
 
   function belohnung(mg) {
     var b;
-    if (!mg || !mg.erfolg) b = { punkte: 5, pegel: 0.02, team: 0, text: 'Abgebrochen/daneben. Trost-Schluck mental.' };
+    if (mg && mg.id === 'maexle') {
+      if (mg.erfolg) b = { punkte: 80, pegel: 0, team: 1, text: mg.feedback || 'Mäxle gewonnen. Der andere trinkt.' };
+      else b = { punkte: 10, pegel: mg.strafePegel || 0.15, team: 0, text: mg.feedback || 'Trinkstrafe.' };
+    }
+    else if (!mg || !mg.erfolg) b = { punkte: 5, pegel: 0.02, team: 0, text: 'Abgebrochen/daneben. Trost-Schluck mental.' };
     else if (mg.id === 'deckel') b = { punkte: 80, pegel: 0.05, team: 1, text: 'Bierdeckel-König! Team +1' };
     else if (mg.id === 'prost') b = { punkte: 70, pegel: 0.08, team: 1, text: 'Reaktions-Prost gemeistert!' };
     else if (mg.id === 'krug') b = { punkte: 90, pegel: 0.1, team: 0, stand: 3, text: 'Maßkrug gehalten. Arme aus Stahl(filz).' };
@@ -214,6 +326,7 @@
 
   Saufi.Minispiele = {
     IDEEN: IDEEN, KRUG: KRUG, SHOT: SHOT, GAG: SIEBOLD_ALIAS, KERN_NAME: KERN_NAME,
-    eintraegeFuerOrt: eintraegeFuerOrt, starte: starte, update: update, belohnung: belohnung
+    eintraegeFuerOrt: eintraegeFuerOrt, starte: starte, update: update, belohnung: belohnung, wahl: maexleWahl,
+    wert: maexleWert, naechstes: maexleNaechstes, leiter: maexleLeiter, npcZweifelt: npcZweifelt
   };
 })(globalThis);
