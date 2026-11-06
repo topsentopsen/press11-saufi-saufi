@@ -268,6 +268,10 @@
     if (karte.tile(x - 1, y) !== T.BRUECKE) { r(c, sx, sy, 2.2, K, '#7a4a3a'); r(c, sx + 0.4, sy, 0.8, K, '#a8705a'); }
     if (karte.tile(x + 1, y) !== T.BRUECKE) { r(c, sx + K - 2.2, sy, 2.2, K, '#7a4a3a'); r(c, sx + K - 1.6, sy, 0.8, K, '#a8705a'); }
   }
+  function aussenRand(c, sx, sy) {
+    r(c, sx, sy, K, K, '#241e32');
+    r(c, sx, sy, K, 1, '#1a1628');
+  }
   function mauer(c, sx, sy, hs) {
     vlauf(c, sx, sy, K, K, '#d8cde2', '#bdafcd');
     var reihen = [[0, 3], [3, 5], [8, 4], [12, 4]];
@@ -426,6 +430,7 @@
     else if (t === T.WASSER) wasser(c, sx, sy, hs);
     else if (t === T.BRUECKE) { wasser(c, sx, sy, hs); bruecke(c, karte, x, y, sx, sy); }
     else if (t === T.MAUER) mauer(c, sx, sy, hs);
+    else if (t === T.AUSSEN) aussenRand(c, sx, sy);
     else if (t === T.REBEN) reben(c, sx, sy, hs);
     else if (t === T.STAEFFELE) staeffele(c, sx, sy);
     else if (t === T.ERDE) erde(c, sx, sy, hs);
@@ -466,12 +471,13 @@
   // Hang: Licht von oben, Dunst, Halbhoehenhaeuser und Funkturm auf dem Kamm (nur Optik auf den gesperrten Reben-Kacheln)
   var KULISSEN = [[10.2, 1.2, 2.6, 0], [13.6, 0.5, 2.1, 1], [23.2, 1.0, 3.0, 2], [27.0, 1.6, 2.2, 3], [16.2, 2.2, 2.0, 4]];
   function hangKulisse(c, karte) {
-    // Hangschattierung: oben leicht heller und dunstig
-    var gr = c.createLinearGradient(0, 0, 0, 5 * K); gr.addColorStop(0, 'rgba(235,245,255,0.38)'); gr.addColorStop(1, 'rgba(235,245,255,0)');
-    c.fillStyle = gr; c.fillRect(0, 0, karte.pxW, 5 * K);
-    turm(c, 20.4 * K, 2.3 * K, 2.3 * K, 'rgba(120,132,160,0.85)', 0);
+    // Hangschattierung: oben leicht heller und dunstig. Liegt auf dem Rebenhang, nicht auf dem Randstreifen.
+    var o = (karte.rand || 0) * K, breit = (karte.stadt ? karte.stadt.w : karte.w) * K;
+    var gr = c.createLinearGradient(0, o, 0, o + 5 * K); gr.addColorStop(0, 'rgba(235,245,255,0.38)'); gr.addColorStop(1, 'rgba(235,245,255,0)');
+    c.fillStyle = gr; c.fillRect(o, o, breit, 5 * K);
+    turm(c, o + 20.4 * K, o + 2.3 * K, 2.3 * K, 'rgba(120,132,160,0.85)', 0);
     KULISSEN.forEach(function (k) {
-      var x = k[0] * K, y = k[1] * K, w = k[2] * K, h = 17 + (k[3] % 2) * 5;
+      var x = o + k[0] * K, y = o + k[1] * K, w = k[2] * K, h = 17 + (k[3] % 2) * 5;
       rr(c, x - 3, y + h - 1, w + 6, 8, '#cabfda', 1.5, 'rgba(110,95,140,0.6)', 0.5);    // Stuetzmauer
       for (var i = 0; i < 4; i++) r(c, x - 2 + i * (w + 4) / 4, y + h + 1, 0.5, 5, 'rgba(110,95,140,0.35)');
       ellipse(c, x + w / 2, y + h + 7.5, w * 0.6, 2, 'rgba(60,70,50,0.25)');

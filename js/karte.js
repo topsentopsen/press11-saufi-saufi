@@ -10,11 +10,17 @@
     STAEFFELE: 12, GEB: 13, TUER: 14, BUSCH: 15, GEHWEG: 16, ASPHALT: 17, HAUS: 18,
     BODEN: 20, WAND: 21, TRESEN: 22, TISCH: 23, SOFA: 24, BUFFET: 25, SPENDER: 26, TANZ: 27, DJ: 28, JUKEBOX: 29, PFLANZE: 30,
     TEPPICH: 31, KUECHE: 32, AUSGANG: 33, KICKER: 34, TERRASSE: 35,
-    ERDE: 36, HUEGEL: 37, TRIBUENE: 38, ABSPERR: 39, BAUZAUN: 40, BAUGRUBE: 41
+    ERDE: 36, HUEGEL: 37, TRIBUENE: 38, ABSPERR: 39, BAUZAUN: 40, BAUGRUBE: 41,
+    AUSSEN: 42
   };
   var BLOCK = {};
   [T.WASSER, T.MAUER, T.REBEN, T.BAUM, T.LATERNE, T.BRUNNEN, T.BANK, T.GEB, T.TUER, T.BUSCH, T.HAUS, T.WAND, T.TRESEN, T.TISCH, T.SOFA, T.BUFFET,
-    T.SPENDER, T.DJ, T.JUKEBOX, T.PFLANZE, T.KUECHE, T.AUSGANG, T.KICKER, T.TRIBUENE, T.ABSPERR, T.BAUZAUN, T.BAUGRUBE].forEach(function (t) { BLOCK[t] = true; });
+    T.SPENDER, T.DJ, T.JUKEBOX, T.PFLANZE, T.KUECHE, T.AUSGANG, T.KICKER, T.TRIBUENE, T.ABSPERR, T.BAUZAUN, T.BAUGRUBE, T.AUSSEN].forEach(function (t) { BLOCK[t] = true; });
+  // Rand um die 40×60-Stadt, in Kacheln. Die größte Außen-Sicht ist quer 640 px breit und hochkant
+  // (Zoom 0,75, Bildhöhe 720) 960 px hoch. Der Daumenversatz 0,12 schiebt die Figur nach oben, deshalb
+  // braucht die Unterkante 0,62×960 px Luft hinter den Füßen. 38×16 = 608 px. Die Figur bleibt dann
+  // auch an der Mauer auf der Kamera-Mitte, ohne dass die Sicht aus der Karte läuft.
+  var RAND = 38, STADT_W = 40, STADT_H = 60;
 
   // Gemeinsame Innenraum-Liste. Zoom und Blasen hängen an karte.innen bzw. an ORTE, nicht an einem einzelnen Haus.
   var ORTE = ['hotel', 'restaurant', 'kneipe', 'disko', 'apotheke'];
@@ -176,7 +182,41 @@
     bauwerk(k, 'apotheke', 2, 40, 6, 3, 4);
     // Versteckte Fundsachen und ein paar Joints auf der Straße. Eigener Zufall, der Karten-rng bleibt stehen.
     versteckeFundsachen(k, rng);
+    // Nach dem ganzen Zufall: Stadtinhalt bleibt, der Streifen kommt außen herum.
+    umranden(k);
     return k;
+  }
+
+  // Gesperrter Streifen rund um die Stadt. An der Innenkante eine Mauer, dahinter AUSSEN, beides blockiert.
+  // Spawn, Türen, Fundsachen und die 40×60-Kacheln rücken um RAND mit, sie landen nicht im Streifen.
+  function umranden(k) {
+    var r = RAND, altW = k.w, altH = k.h, w = altW + 2 * r, h = altH + 2 * r;
+    var tiles = new Uint8Array(w * h), belegt = new Uint8Array(w * h), x, y;
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+      var streifen = x < r || y < r || x >= altW + r || y >= altH + r;
+      var grenze = streifen && (x === r - 1 || y === r - 1 || x === altW + r || y === altH + r);
+      if (!streifen) {
+        tiles[y * w + x] = k.tiles[(y - r) * altW + (x - r)];
+        belegt[y * w + x] = k.belegt[(y - r) * altW + (x - r)];
+      } else tiles[y * w + x] = grenze ? T.MAUER : T.AUSSEN;
+    }
+    k.w = w; k.h = h; k.tiles = tiles; k.belegt = belegt;
+    k.pxW = w * K; k.pxH = h * K; k.rand = r;
+    k.stadt = { x: r, y: r, w: altW, h: altH };
+    k.tile = function (tx, ty) { return (tx < 0 || ty < 0 || tx >= k.w || ty >= k.h) ? T.MAUER : k.tiles[ty * k.w + tx]; };
+    k.setze = function (tx, ty, t) { if (tx >= 0 && ty >= 0 && tx < k.w && ty < k.h) k.tiles[ty * k.w + tx] = t; };
+    k.belege = function (tx, ty) { if (tx >= 0 && ty >= 0 && tx < k.w && ty < k.h) k.belegt[ty * k.w + tx] = 1; };
+    k.blockiert = function (tx, ty) {
+      return !!BLOCK[k.tile(tx, ty)] || (tx >= 0 && ty >= 0 && tx < k.w && ty < k.h && k.belegt[ty * k.w + tx] === 1);
+    };
+    function schiebe(p) { if (p && p.x != null) { p.x += r; p.y += r; } }
+    schiebe(k.spawn);
+    schiebe(k.s21);
+    k.stationen.forEach(schiebe);
+    k.tueren.forEach(function (t) { schiebe(t); });
+    k.gebaeude.forEach(function (b) { schiebe(b); schiebe(b.tuer); schiebe(b.aussen); });
+    k.stadtvolk.forEach(function (v) { schiebe(v); schiebe(v.vorne); });
+    k.deco.forEach(function (d) { d.x += r * K; d.y += r * K; });
   }
 
   function stationDa(k, x, y) {
@@ -265,7 +305,9 @@
   // Deterministischer Nachlauf: Gras, Baum und Busch in festen Zonen werden Gehweg, Asphalt oder Haus.
   // Suedpark, Suedhain, Rebenhang, Motocross-Innenfeld, Baumallee y47 und die Randzeile y59 bleiben gruen.
   function urbanisiere(k) {
+    var ox = k.stadt ? k.stadt.x : 0, oy = k.stadt ? k.stadt.y : 0;
     function u(x, y, t) {
+      x += ox; y += oy;
       var cur = k.tile(x, y);
       if (cur === T.GRAS || cur === T.BAUM || cur === T.BUSCH) k.setze(x, y, t);
     }
@@ -291,7 +333,8 @@
     bodenU(0, 39, 24, 46); bodenU(26, 30, 26, 46); bodenU(39, 30, 39, 46); bodenU(27, 45, 38, 46);
     bodenU(0, 49, 8, 58); bodenU(18, 49, 24, 58); bodenU(26, 49, 39, 58);
     [[9, 20], [13, 20], [25, 17], [10, 24], [13, 24], [24, 24], [12, 41], [24, 40], [0, 44], [26, 40], [0, 49], [26, 49], [33, 53], [24, 53]].forEach(function (p) {
-      if (k.tile(p[0], p[1]) === T.GEHWEG) k.setze(p[0], p[1], T.LATERNE);
+      var x = p[0] + ox, y = p[1] + oy;
+      if (k.tile(x, y) === T.GEHWEG) k.setze(x, y, T.LATERNE);
     });
     k.deco = k.deco.filter(function (d) { return k.tile(Math.floor(d.x / K), Math.floor(d.y / K)) === T.GRAS; });
     k.urban = true;
@@ -476,5 +519,5 @@
     return res;
   }
 
-  Saufi.Karte = { K: K, T: T, BLOCK: BLOCK, ORTE: ORTE, NAMEN: NAMEN, KURZ: KURZ, erstelleStadt: erstelleStadt, erstelleWelt: erstelleWelt, urbanisiere: urbanisiere, nahe: nahe, umgebung: umgebung, abstand: abstand };
+  Saufi.Karte = { K: K, T: T, BLOCK: BLOCK, RAND: RAND, STADT_W: STADT_W, STADT_H: STADT_H, ORTE: ORTE, NAMEN: NAMEN, KURZ: KURZ, erstelleStadt: erstelleStadt, erstelleWelt: erstelleWelt, urbanisiere: urbanisiere, nahe: nahe, umgebung: umgebung, abstand: abstand };
 })(globalThis);

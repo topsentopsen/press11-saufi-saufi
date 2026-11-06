@@ -168,10 +168,11 @@
       var u = Hecke.aktiv(h, spielSek) ? (spielSek - h.start) / HECKE_DAUER : 0;
       if (u < 0) u = 0;
       if (u > 1) u = 1;
+      var o = ((Saufi.Karte && Saufi.Karte.RAND) || 0) * 16, hx = HECKE_X + o, hy = HECKE_Y + o;
       return {
-        heckeX: HECKE_X, heckeY: HECKE_Y,
-        probst: { x: HECKE_X - 14 + u * 28, y: HECKE_Y, quetsch: Math.sin(Math.PI * u), dir: 'rechts', u: u },
-        film: { x: HECKE_X - 30, y: HECKE_Y + 1, dir: 'rechts' },
+        heckeX: hx, heckeY: hy,
+        probst: { x: hx - 14 + u * 28, y: hy, quetsch: Math.sin(Math.PI * u), dir: 'rechts', u: u },
+        film: { x: hx - 30, y: hy + 1, dir: 'rechts' },
         text: Hecke.TEXT
       };
     }

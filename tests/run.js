@@ -357,10 +357,11 @@ test('15 Karte: Tueren per A* erreichbar, keine eingesperrten Orte, alle vier Or
   var st1 = D.Karte.erstelleWelt(D.RNG.erstelle(1)).stadt, zaehl = {};
   for (var i = 0; i < st1.tiles.length; i++) zaehl[st1.tiles[i]] = (zaehl[st1.tiles[i]] || 0) + 1;
   wahr(zaehl[T.REBEN] > 40 && zaehl[T.WASSER] > 20 && zaehl[T.BRUNNEN] === 4 && zaehl[T.STAEFFELE] >= 4, 'Rebenhang, Fluss, Brunnen, Staeffele');
-  gleich(st1.w, 40); gleich(st1.h, 60);
+  gleich(st1.w, D.Karte.STADT_W + 2 * D.Karte.RAND); gleich(st1.h, D.Karte.STADT_H + 2 * D.Karte.RAND);
   // Nachbau der Begehbarkeit fuer die Truppe: A* findet den kuerzesten Weg um den Brunnen
-  var p = D.Pfad.suche(st1, 13, 10, 17, 10); wahr(p && p.length - 1 === 6, 'um 2x2-Brunnen herum');
-  gleich(D.Pfad.suche(st1, 25, 13, 5, 22), null, 'Ziel im Wasser');
+  var rd = D.Karte.RAND;
+  var p = D.Pfad.suche(st1, 13 + rd, 10 + rd, 17 + rd, 10 + rd); wahr(p && p.length - 1 === 6, 'um 2x2-Brunnen herum');
+  gleich(D.Pfad.suche(st1, 25 + rd, 13 + rd, 5 + rd, 22 + rd), null, 'Ziel im Wasser');
 });
 
 // ---------- 16 Ton ----------
@@ -789,7 +790,7 @@ test('39 Teamstimmung 0: eigener Titel statt Umgefallen/Press F', function () {
   gleich(t.S.zustand, 'ende'); gleich(t.S.ende.wertung.titel, 'Feierabend');
   wahr(/weitergezogen/.test(t.S.ende.wertung.kopf)); wahr(/Teamstimmung 0/.test(t.S.ende.grund));
   wahr(t.S.ende.wertung.kopf.indexOf('Press F') < 0);
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   wahr(D.Gfx.MIN_SCHRIFT <= 7);
 });
 
@@ -844,9 +845,9 @@ test('42 DPR-Begrenzung: MAX_DPR = 2, setzeAufloesung und begrenzDpr kappen', fu
   wahr(sk === R.canvas.width / R.W, 'Skala konsistent');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
   wahr(/begrenzDpr|MAX_DPR/.test(main), 'main nutzt DPR-Begrenzung');
-  wahr(/VERSION\s*=\s*['"]0\.36['"]/.test(main), 'VERSION 0.28');
+  wahr(/VERSION\s*=\s*['"]0\.37['"]/.test(main), 'VERSION 0.28');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  wahr(/main\.js\?v=0\.36/.test(html), 'Cache-Buster v=0.25');
+  wahr(/main\.js\?v=0\.37/.test(html), 'Cache-Buster v=0.25');
 });
 
 test('43 Hochformat-Layout: Playlist und Menues passen in PORT_H', function () {
@@ -1266,24 +1267,25 @@ test('66 Versionen: ?v= == VERSION; README v04; Bau-Bericht', function () {
 // ---------- v05: Karte 40x48, Hoch-Welt voll, UI-Reserve ----------
 test('67 Stadtkarte 40x60: Suedstreifen begehbar, Tueren/Stationen wie v04', function () {
   var D = lade(), T = D.Karte.T, st = D.Karte.erstelleWelt(D.RNG.erstelle(1)).stadt;
-  gleich(st.w, 40); gleich(st.h, 60); gleich(st.pxH, 960);
+  var rd = D.Karte.RAND;
+  gleich(st.w, D.Karte.STADT_W + 2 * rd); gleich(st.h, D.Karte.STADT_H + 2 * rd); gleich(st.pxH, st.h * 16);
   var begehbar = 0;
-  for (var y = 30; y < 60; y++) for (var x = 0; x < 40; x++) if (!st.blockiert(x, y)) begehbar++;
+  for (var y = 30 + rd; y < 60 + rd; y++) for (var x = rd; x < 40 + rd; x++) if (!st.blockiert(x, y)) begehbar++;
   wahr(begehbar > 40, 'Suedstreifen hat begehbare Kacheln');
-  wahr(!st.blockiert(25, 40), 'Suedweg (25,40) frei');
+  wahr(!st.blockiert(25 + rd, 40 + rd), 'Suedweg (25,40) frei');
   var tuere = { hotel: [25, 11], restaurant: [5, 12], kneipe: [33, 20], disko: [31, 28] };
   Object.keys(tuere).forEach(function (id) {
     var td = st.tueren.filter(function (t) { return t.id === id; })[0];
     wahr(td, id + ' Tuer vorhanden');
-    gleich(td.x, tuere[id][0], id + ' Tuer-x');
-    gleich(td.y, tuere[id][1], id + ' Tuer-y');
+    gleich(td.x - rd, tuere[id][0], id + ' Tuer-x');
+    gleich(td.y - rd, tuere[id][1], id + ' Tuer-y');
   });
   var geb = { hotel: [22, 7, 8, 5], restaurant: [2, 8, 7, 5], kneipe: [30, 17, 7, 4], disko: [27, 25, 9, 4], apotheke: [2, 40, 6, 3] };
   st.gebaeude.forEach(function (b) {
     var g = geb[b.id]; wahr(g, b.id + ' Gebaeude');
-    gleich(b.x, g[0]); gleich(b.y, g[1]); gleich(b.w, g[2]); gleich(b.h, g[3]);
+    gleich(b.x - rd, g[0]); gleich(b.y - rd, g[1]); gleich(b.w, g[2]); gleich(b.h, g[3]);
   });
-  wahr(st.tile(14, 10) === T.BRUNNEN && st.tile(25, 13) !== T.MAUER, 'Markt/Spawn unveraendert');
+  wahr(st.tile(14 + rd, 10 + rd) === T.BRUNNEN && st.tile(25 + rd, 13 + rd) !== T.MAUER, 'Markt/Spawn unveraendert');
 });
 
 test('68 Erreichbarkeit: Hotel-Aussentuer zu Orten und Suedkachel, Seeds 1..5', function () {
@@ -1296,7 +1298,7 @@ test('68 Erreichbarkeit: Hotel-Aussentuer zu Orten und Suedkachel, Seeds 1..5', 
       var td = st.tueren.filter(function (t) { return t.id === id; })[0];
       wahr(D.Pfad.suche(st, hotel.aussen.x, hotel.aussen.y, td.aussen.x, td.aussen.y), 'Seed ' + seed + ': Hotel→' + id);
     });
-    wahr(D.Pfad.suche(st, hotel.aussen.x, hotel.aussen.y, 25, 40), 'Seed ' + seed + ': Hotel→Sued (25,40)');
+    wahr(D.Pfad.suche(st, hotel.aussen.x, hotel.aussen.y, 25 + D.Karte.RAND, 40 + D.Karte.RAND), 'Seed ' + seed + ': Hotel→Sued (25,40)');
   }
 });
 
@@ -1361,11 +1363,11 @@ test('72 Quer BASE 320x176: VH == H/zoom, Flaeche >= 3', function () {
 
 test('73 Versionen: VERSION 0.13, ?v=0.13, README v10, Bau-Bericht v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster vorhanden');
-  vs.forEach(function (v) { gleich(v, '?v=0.36', 'Cache-Buster ' + v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.37', 'Cache-Buster ' + v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v13/.test(readme), 'README Neu in v13');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
@@ -1663,11 +1665,11 @@ test('82 Stick: Totzone, cancel=0, zweiter Finger ignoriert, E gleichzeitig', fu
 
 test('83 Versionen: VERSION 0.13, ?v=0.13, README v10, Bau-Bericht v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.36', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.37', v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v13/.test(readme), 'README Neu in v13');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
@@ -2037,10 +2039,10 @@ test('96 Durchspiel-Bot Seeds 1/7/42 Hoch-Touch und Quer', function () {
 
 test('97 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
-  vs.forEach(function (v) { gleich(v, '?v=0.36', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.37', v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v13/.test(readme), 'README Neu in v13');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
@@ -2152,10 +2154,11 @@ test('102 Nacht-Helligkeit: Tint 02:30 ≥ 0.10; 20 Uhr warm; Monotonie', functi
 
 test('103 Hoch-Zoom/Karte: 60/960, VW 350–420, Schrift ≥8 CSS', function () {
   var D = lade(), st = D.Karte.erstelleWelt(D.RNG.erstelle(1)).stadt;
-  gleich(st.h, 60); gleich(st.pxH, 960); gleich(D.Render.STADT_PX_H, 960);
+  gleich(st.h, D.Karte.STADT_H + 2 * D.Karte.RAND); gleich(st.pxH, st.h * 16); gleich(D.Render.STADT_PX_H, 960);
   var geb = { hotel: [22, 7, 8, 5], restaurant: [2, 8, 7, 5], kneipe: [30, 17, 7, 4], disko: [27, 25, 9, 4], apotheke: [2, 40, 6, 3] };
+  var rd = D.Karte.RAND;
   st.gebaeude.forEach(function (b) {
-    var g = geb[b.id]; gleich(b.x, g[0]); gleich(b.y, g[1]); gleich(b.w, g[2]); gleich(b.h, g[3]);
+    var g = geb[b.id]; gleich(b.x - rd, g[0]); gleich(b.y - rd, g[1]); gleich(b.w, g[2]); gleich(b.h, g[3]);
   });
   var hotel = st.tueren.filter(function (t) { return t.id === 'hotel'; })[0];
   ['hotel', 'restaurant', 'kneipe', 'disko'].forEach(function (id) {
@@ -2267,11 +2270,11 @@ test('106 Bot-Durchspiel Seeds 1/7/42 Hoch+Quer ohne Soft-Lock/…', function ()
 
 test('107 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0);
-  vs.forEach(function (v) { gleich(v, '?v=0.36', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.37', v); });
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
@@ -2629,12 +2632,12 @@ test('117 Bot Seeds 1/7/42 Hoch+Quer, Darstellung ändert Logik nicht', function
 
 test('118 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0);
-  vs.forEach(function (v) { gleich(v, '?v=0.36', v); });
-  wahr(/partikel\.js\?v=0\.36/.test(html), 'partikel eingebunden');
+  vs.forEach(function (v) { gleich(v, '?v=0.37', v); });
+  wahr(/partikel\.js\?v=0\.37/.test(html), 'partikel eingebunden');
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
@@ -3035,9 +3038,9 @@ test('132 Touch-Größen v10 ≥44 / Kreis ≥36', function () {
 
 test('133 Versionen v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.36', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.37', v); });
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
@@ -3184,8 +3187,8 @@ test('148 Touch: Joystick-Zone leitet kurzen Tipp an die Welt weiter (Handy-Ursa
 
 // ---------- v13: Version mittig, Raphael, Umbenennungen, Motocross, Tribüne ----------
 function tilesHashOber(st) {
-  var w = st.w, p = [];
-  for (var y = 0; y < 30; y++) for (var x = 0; x < w; x++) p.push(st.tiles[y * w + x]);
+  var r = st.rand || 0, w = st.w, p = [], breit = st.stadt ? st.stadt.w : w;
+  for (var y = r; y < r + 30; y++) for (var x = r; x < r + breit; x++) p.push(st.tiles[y * w + x]);
   return p.join(',');
 }
 function shirtPink(hex) {
@@ -3201,20 +3204,20 @@ function versionMitte(log, W) {
   if (!log.meta) return null;
   for (var i = 0; i < log.meta.length; i++) {
     var m = log.meta[i];
-    if (m.text === 'v0.36' && m.align === 'center' && Math.abs(m.x - W / 2) <= 1 && !m.stroke) return m;
+    if (m.text === 'v0.37' && m.align === 'center' && Math.abs(m.x - W / 2) <= 1 && !m.stroke) return m;
   }
   return null;
 }
 
 test('149 Versionen v14: VERSION, Cache-Buster, README, Bau-Bericht', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
-  wahr(/VERSION\s*=\s*['"]0\.36['"]/.test(main), 'main.js VERSION 0.28');
+  wahr(/VERSION\s*=\s*['"]0\.37['"]/.test(main), 'main.js VERSION 0.28');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.36', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.37', v); });
   wahr(/Neu in v14/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v14');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v14.md')), 'bau-bericht-v14.md');
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v13 bleibt');
@@ -3245,7 +3248,7 @@ test('150 Versionsanzeige mittig: Start/Spiel/Ende in drei Layouts', function ()
       else { t.S.zustand = 'start'; }
       D.Render.zeichne(R, t.S);
       if (z === 'start' && !lay.hoch) wahr(R.hudVersion && R.hudVersion.y > 20, 'v16: Version im Quer-Startbild nicht auf dem Titel');
-      else if (!(lay.hoch && lay.touch && z === 'spiel')) wahr(!!versionMitte(log, R.W), 'v0.36 mittig @ ' + z + ' hoch=' + lay.hoch + ' touch=' + !!lay.touch);
+      else if (!(lay.hoch && lay.touch && z === 'spiel')) wahr(!!versionMitte(log, R.W), 'v0.37 mittig @ ' + z + ' hoch=' + lay.hoch + ' touch=' + !!lay.touch);
       var hv = R.hudVersion;
       var schneidet = function (a, b) { return a && b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; };
       if (lay.hoch && lay.touch && z === 'spiel') {
@@ -3394,15 +3397,16 @@ test('157 Seed-Stabilität: Oberkarte hash, Motocross ohne Deko/Bäume', functio
   var st2 = D.Karte.erstelleWelt(D.RNG.erstelle(1)).stadt;
   var h1 = tilesHashOber(st1), h2 = tilesHashOber(st2);
   gleich(h1, h2, 'gleicher Seed, gleicher Ober-Hash');
-  for (var y = 0; y < 30; y++) for (var x = 0; x < st1.w; x++) {
+  var rd = D.Karte.RAND;
+  for (var y = rd; y < rd + 30; y++) for (var x = rd; x < rd + D.Karte.STADT_W; x++) {
     var t = st1.tile(x, y);
     wahr(t < T.ERDE, 'y<30 keine Motocross-Tiles @ ' + x + ',' + y);
   }
   st1.deco.forEach(function (d) {
-    var tx = Math.floor(d.x / 16), ty = Math.floor(d.y / 16);
+    var tx = Math.floor(d.x / 16) - rd, ty = Math.floor(d.y / 16) - rd;
     wahr(!(tx >= 27 && tx <= 38 && ty >= 31 && ty <= 44), 'keine Deko auf Piste');
   });
-  for (var yy = 31; yy <= 44; yy++) for (var xx = 27; xx <= 38; xx++) {
+  for (var yy = 31 + rd; yy <= 44 + rd; yy++) for (var xx = 27 + rd; xx <= 38 + rd; xx++) {
     var ti = st1.tile(xx, yy);
     wahr(ti !== T.BAUM && ti !== T.BUSCH, 'Piste ohne Baum/Busch ' + xx + ',' + yy);
   }
@@ -3543,10 +3547,11 @@ test('163 Render-Smoke: Motocross-Kamera, drei Layouts, Start/Spiel/Ende', funct
 test('164 Bank-Szenario: NPCs nicht auf blockiert, Abstand, Spieler kommt voran', function () {
   var D = lade(), K = 16, t = neuesSpielTest(D); erledigt(t.S);
   var S = t.S, sp = S.spieler;
-  sp.x = 36 * K + 8; sp.y = 3 * K + 8;
+  var rd = D.Karte.RAND;
+  sp.x = (36 + rd) * K + 8; sp.y = (3 + rd) * K + 8;
   var aktive = S.npcs.filter(function (n) { return n.aktiv; }).slice(0, 4);
   wahr(aktive.length >= 4, '4 aktive Freunde');
-  [[34, 4], [34, 5], [35, 3], [33, 3]].forEach(function (p, i) {
+  [[34 + rd, 4 + rd], [34 + rd, 5 + rd], [35 + rd, 3 + rd], [33 + rd, 3 + rd]].forEach(function (p, i) {
     var n = aktive[i]; n.karteId = 'stadt'; n.liegt = false; n.x = p[0] * K + 8; n.y = p[1] * K + 8; n.pfad = null; n.festSek = 0;
   });
   var x0 = sp.x;
@@ -3576,7 +3581,7 @@ test('164 Bank-Szenario: NPCs nicht auf blockiert, Abstand, Spieler kommt voran'
     wahr((n.festSek || 0) < D.NPCs.FEST_SEK, 'festSek unter Limit');
   });
   // Marktplatz und Rebenhang kurz
-  [[11, 9], [8, 2]].forEach(function (bank) {
+  [[11 + rd, 9 + rd], [8 + rd, 2 + rd]].forEach(function (bank) {
     var u = neuesSpielTest(D); erledigt(u.S);
     u.S.spieler.x = (bank[0] - 1) * K + 8; u.S.spieler.y = (bank[1] + 1) * K + 8;
     u.S.npcs.filter(function (n) { return n.aktiv; }).slice(0, 3).forEach(function (n, i) {
@@ -3597,7 +3602,8 @@ test('164 Bank-Szenario: NPCs nicht auf blockiert, Abstand, Spieler kommt voran'
 test('165 Freunde nicht solide: Spieler laeuft durch NPC', function () {
   var D = lade(), K = 16, t = neuesSpielTest(D); erledigt(t.S);
   var sp = t.S.spieler, n = t.S.npcs.filter(function (x) { return x.aktiv; })[0];
-  sp.x = 20 * K + 8; sp.y = 15 * K + 8;
+  var rd = D.Karte.RAND;
+  sp.x = (20 + rd) * K + 8; sp.y = (15 + rd) * K + 8;
   n.karteId = 'stadt'; n.x = sp.x + 20; n.y = sp.y; n.liegt = false; n.laeuft = false;
   var x0 = sp.x;
   t.X.E.setzeHalt('rechts', true);
@@ -3608,8 +3614,9 @@ test('165 Freunde nicht solide: Spieler laeuft durch NPC', function () {
 test('166 NPC auf blockierter Kachel wird binnen 5 s versetzt', function () {
   var D = lade(), K = 16, t = neuesSpielTest(D); erledigt(t.S);
   var n = t.S.npcs.filter(function (x) { return x.aktiv; })[0];
-  n.karteId = 'stadt'; n.liegt = false; n.x = 36 * K + 8; n.y = 2 * K + 8; // Bank
-  wahr(t.S.karte.blockiert(36, 2), 'Bank blockiert');
+  var rd = D.Karte.RAND;
+  n.karteId = 'stadt'; n.liegt = false; n.x = (36 + rd) * K + 8; n.y = (2 + rd) * K + 8; // Bank
+  wahr(t.S.karte.blockiert(36 + rd, 2 + rd), 'Bank blockiert');
   for (var i = 0; i < 5 * 30; i++) schritt(t.S, t.Sp, t.X, 1 / 30);
   var tl = D.NPCs.tileOf(n);
   wahr(!t.S.karte.blockiert(tl.x, tl.y), 'NPC wieder frei @' + tl.x + ',' + tl.y);
@@ -3617,9 +3624,10 @@ test('166 NPC auf blockierter Kachel wird binnen 5 s versetzt', function () {
 
 test('167 NPC-Wege schneiden keine Ecken: 30 s Marktplatz', function () {
   var D = lade(), K = 16, t = neuesSpielTest(D); erledigt(t.S);
-  t.S.spieler.x = 15 * K + 8; t.S.spieler.y = 11 * K + 8;
+  var rd = D.Karte.RAND;
+  t.S.spieler.x = (15 + rd) * K + 8; t.S.spieler.y = (11 + rd) * K + 8;
   t.S.npcs.filter(function (n) { return n.aktiv; }).forEach(function (n, i) {
-    n.karteId = 'stadt'; n.liegt = false; n.x = (12 + i) * K + 8; n.y = 12 * K + 8;
+    n.karteId = 'stadt'; n.liegt = false; n.x = (12 + rd + i) * K + 8; n.y = (12 + rd) * K + 8;
   });
   t.X.E.setzeHalt('rechts', true);
   for (var i = 0; i < 30 * 30; i++) {
@@ -3636,7 +3644,8 @@ test('167 NPC-Wege schneiden keine Ecken: 30 s Marktplatz', function () {
 test('168 Spieler-Stuck: nach ca. 1,5 s freieKachel und Hinweis', function () {
   var D = lade(), K = 16, t = neuesSpielTest(D); erledigt(t.S);
   var S = t.S, sp = S.spieler, karte = S.karte;
-  sp.x = 34 * K + 8; sp.y = 4 * K + 8;
+  var rd = D.Karte.RAND;
+  sp.x = (34 + rd) * K + 8; sp.y = (4 + rd) * K + 8;
   sp.festSek = 0; sp.letztPos = { x: sp.x, y: sp.y };
   var achse = { x: 0, y: -1 }, befreit = false;
   for (var i = 0; i < 60; i++) {
@@ -3671,7 +3680,7 @@ test('170 Motocross Piste: Positionen auf ERDE/HUEGEL, Abstand ≥ 4', function 
     bs.forEach(function (b, i) {
       var tx = Math.floor(b.x / 16), ty = Math.floor(b.y / 16);
       var tile = st.tile(tx, ty);
-      var dx = b.x / 16 - 32.5, dy = b.y / 16 - 37.5;
+      var dx = b.x / 16 - (32.5 + D.Karte.RAND), dy = b.y / 16 - (37.5 + D.Karte.RAND);
       var d2 = (dx / 5.2) * (dx / 5.2) + (dy / 5.8) * (dy / 5.8);
       // Kachelmitte oder geometrisch auf der Piste (Randkacheln koennen GRAS sein)
       var aufPiste = tile === T.ERDE || tile === T.HUEGEL;
@@ -3722,17 +3731,18 @@ test('173 S21 Karte: Ring/Grube blockiert, Stationen erreichbar, keine Deko, Obe
   for (var seed = 1; seed <= 20; seed++) {
     var st = D.Karte.erstelleWelt(D.RNG.erstelle(seed)).stadt;
     wahr(!!st.s21, 's21 meta');
-    gleich(st.s21.x, 14); gleich(st.s21.w, 10);
-    for (var y = 31; y <= 36; y++) for (var x = 14; x <= 23; x++) {
-      var rand = (x === 14 || x === 23 || y === 31 || y === 36);
+    var rd = D.Karte.RAND;
+    gleich(st.s21.x, 14 + rd); gleich(st.s21.w, 10);
+    for (var y = 31 + rd; y <= 36 + rd; y++) for (var x = 14 + rd; x <= 23 + rd; x++) {
+      var rand = (x === 14 + rd || x === 23 + rd || y === 31 + rd || y === 36 + rd);
       gleich(st.tile(x, y), rand ? T.BAUZAUN : T.BAUGRUBE, 'tile ' + x + ',' + y);
       wahr(st.blockiert(x, y), 'blockiert');
     }
     st.deco.forEach(function (d) {
-      var tx = Math.floor(d.x / 16), ty = Math.floor(d.y / 16);
+      var tx = Math.floor(d.x / 16) - rd, ty = Math.floor(d.y / 16) - rd;
       wahr(!(tx >= 14 && tx <= 23 && ty >= 31 && ty <= 36), 'keine Deko S21');
     });
-    for (var yy = 31; yy <= 36; yy++) for (var xx = 14; xx <= 23; xx++) {
+    for (var yy = 31 + rd; yy <= 36 + rd; yy++) for (var xx = 14 + rd; xx <= 23 + rd; xx++) {
       wahr(st.tile(xx, yy) !== T.BAUM && st.tile(xx, yy) !== T.BUSCH, 'kein Baum');
     }
     ['hotel', 'restaurant', 'kneipe', 'disko'].forEach(function (id) {
@@ -3747,7 +3757,7 @@ test('174 S21 Schild: Text im Zeichenlog und Quelltext', function () {
   var D = lade(), K = 16, log = [], cv = mockCanvas(log), R = D.Render.erstelle(cv, cv.ownerDocument);
   D.Render.setzeBildschirm(R, false);
   var t = neuesSpielTest(D); t.S.zustand = 'spiel';
-  D.Kamera.sofort(t.S.kamera, 18 * K, 34 * K - 8);
+  D.Kamera.sofort(t.S.kamera, (18 + D.Karte.RAND) * K, (34 + D.Karte.RAND) * K - 8);
   D.Render.zeichne(R, t.S);
   var joined = log.join('\n');
   wahr(/Fertigstellung: irgendwann in der Zukunft/.test(joined) || log.some(function (s) {
@@ -3789,12 +3799,13 @@ test('176 S21 Spruch: Abstand, Cooldown, Musk/Boring, kein rng', function () {
   gleich(rngA.next(), rngB.next(), 'rng unberuehrt von Spruch');
   var u = neuesSpielTest(D); erledigt(u.S);
   // weit weg: kein Spruch
-  u.S.spieler.x = 5 * K; u.S.spieler.y = 10 * K;
+  var rd = D.Karte.RAND;
+  u.S.spieler.x = (5 + rd) * K; u.S.spieler.y = (10 + rd) * K;
   u.S.s21.zuletzt = -999; u.S.spielSek = 100; u.S.s21.n = 0;
   schritt(u.S, u.Sp, u.X, 0.1);
   wahr(u.S.s21.zuletzt < 0, 'kein Spruch weit weg');
   // nah
-  u.S.spieler.x = 18 * K + 8; u.S.spieler.y = 37 * K + 4;
+  u.S.spieler.x = (18 + rd) * K + 8; u.S.spieler.y = (37 + rd) * K + 4;
   u.S.s21.zuletzt = -999; u.S.spielSek = 50;
   schritt(u.S, u.Sp, u.X, 0.2);
   var h1 = D.Hinweise.aktuell(u.S.hinweise);
@@ -3898,11 +3909,11 @@ test('181 Starship-Modell bei S21: Prop in propsFuer, Y-sortiert', function () {
 
 test('182 Versionstest v14', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   wahr(/Neu in v14/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v14.md')));
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  wahr(/motocross\.js\?v=0\.36/.test(html) && /s21\.js\?v=0\.36/.test(html), 'Module in index');
+  wahr(/motocross\.js\?v=0\.37/.test(html) && /s21\.js\?v=0\.37/.test(html), 'Module in index');
   wahr(!!D.Motocross && !!D.S21, 'Module geladen');
 });
 
@@ -3930,14 +3941,14 @@ test('183 Render-Smoke: Kamera S21 und Motocross, drei Layouts', function () {
 // ---------- v15: Elon, Maenner, Bierkasten ----------
 test('184 Version v15: VERSION, Cache-Buster, elon.js, README, Bau-Bericht', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
-  wahr(/VERSION\s*=\s*['"]0\.36['"]/.test(main), 'main.js VERSION 0.28');
+  wahr(/VERSION\s*=\s*['"]0\.37['"]/.test(main), 'main.js VERSION 0.28');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.36', v); });
-  wahr(/elon\.js\?v=0\.36/.test(html), 'elon.js in index');
+  vs.forEach(function (v) { gleich(v, '?v=0.37', v); });
+  wahr(/elon\.js\?v=0\.37/.test(html), 'elon.js in index');
   wahr(/Neu in v15/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v15');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v15.md')), 'bau-bericht-v15.md');
   wahr(!!D.Elon, 'Elon geladen');
@@ -3989,12 +4000,12 @@ test('188 Elon-Kontext: Tribuene/S21/Kneipe und S21-Abklingzeit', function () {
   }
   // Tribuene
   var a = hatKontext(/Tobi: Elon.*(Zuschauen|elektrifizieren|Räder|neun)/);
-  a.u.S.spieler.x = 30 * K + 8; a.u.S.spieler.y = 33 * K + 8;
+  a.u.S.spieler.x = (30 + D.Karte.RAND) * K + 8; a.u.S.spieler.y = (33 + D.Karte.RAND) * K + 8;
   schritt(a.u.S, a.u.Sp, a.u.X, 0.2);
   wahr(a.ok(), 'Tribuene-Kontext');
   // S21: Abklingzeit unterdrueckt Elon
   var b = hatKontext(/Tobi: Elon/);
-  b.u.S.spieler.x = 18 * K + 8; b.u.S.spieler.y = 37 * K + 4;
+  b.u.S.spieler.x = (18 + D.Karte.RAND) * K + 8; b.u.S.spieler.y = (37 + D.Karte.RAND) * K + 4;
   b.u.S.s21.zuletzt = b.u.S.spielSek;
   schritt(b.u.S, b.u.Sp, b.u.X, 0.2);
   wahr(!b.ok(), 'S21-Abklingzeit unterdrueckt Elon');
@@ -4116,8 +4127,8 @@ test('193 Tipp-Navigation zum Kasten', function () {
 });
 
 test('194 Bank-Blockade mit Kasten: Markt und Reben', function () {
-  var D = lade(), K = 16;
-  [[11, 9], [8, 2]].forEach(function (bank) {
+  var D = lade(), K = 16, rd = D.Karte.RAND;
+  [[11 + rd, 9 + rd], [8 + rd, 2 + rd]].forEach(function (bank) {
     var u = neuesSpielTest(D); erledigt(u.S);
     var kasten = u.S.karte.stationen.filter(function (s) {
       return s.typ === 'bierkasten' && Math.abs(s.x - bank[0]) + Math.abs(s.y - bank[1]) === 1;
@@ -4217,12 +4228,12 @@ test('198 Frech: Zwei-Blasen-Limit, Pool nur bei Sprecher weiter, kurze Raphi-Sa
 // ---------- v16: Auswahl, MxEvent, Himmelsbach, Motiv ----------
 test('199 Versionen 0.20: VERSION, Cache-Buster, README v16-Abschnitt bleibt', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.36', v); });
-  wahr(/mxevent\.js\?v=0\.36/.test(html) && /motiv\.js\?v=0\.36/.test(html), 'neue Module');
+  vs.forEach(function (v) { gleich(v, '?v=0.37', v); });
+  wahr(/mxevent\.js\?v=0\.37/.test(html) && /motiv\.js\?v=0\.37/.test(html), 'neue Module');
   wahr(/Neu in v16/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v16');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v16.md')), 'bau-bericht-v16.md');
   wahr(!!D.MxEvent && !!D.Motiv, 'Module geladen');
@@ -4255,7 +4266,7 @@ test('201 MxEvent im Spiel: dabei/verpasst/Sprung, rng gleich', function () {
     schritt(t.S, t.Sp, t.X, 0.2);
     return t;
   }
-  var dabei = lauf('stadt', 32 * K, 38 * K, 18 * 60 + 30);
+  var dabei = lauf('stadt', (32 + D.Karte.RAND) * K, (38 + D.Karte.RAND) * K, 18 * 60 + 30);
   gleich(dabei.S.mxEvent.status, 'dabei');
   wahr(dabei.S.punkte.punkte >= 220, 'Belohnung Punkte');
   gleich(dabei.S.runden.team, 4);
@@ -4284,7 +4295,7 @@ test('202 Park-Bierkaesten: drei mx-Kaesten, erreichbar, erster Bank-Kasten', fu
     wahr(!!s, 'kasten_mx' + (i + 1));
     gleich(s.typ, 'bierkasten');
     wahr(!st.blockiert(s.x, s.y), 'begehbar');
-    wahr(!!D.Pfad.suche(st, 27, 38, s.x, s.y), 'Pfad vom Eingang');
+    wahr(!!D.Pfad.suche(st, 27 + D.Karte.RAND, 38 + D.Karte.RAND, s.x, s.y), 'Pfad vom Eingang');
   });
   var erster = st.stationen.filter(function (s) { return s.typ === 'bierkasten'; })[0];
   wahr(erster && erster.id.indexOf('kasten_mx') < 0, 'erster Kasten ist Bank-Kasten');
@@ -4525,9 +4536,9 @@ test('211 Umbenennungen v18: keine alten Namen in js/*.js, ids, Alias, Version',
   gleich(D.Charaktere.holen('schwickendorf').name, 'Schwickendorf');
   wahr(!!D.Hinweise.FIGUR.schwinki && !!D.Hinweise.FIGUR.tobi && !D.Hinweise.FIGUR.bundschuh && !D.Hinweise.FIGUR.buntschuh && !D.Hinweise.FIGUR.kevin, 'FIGUR-Keys');
   wahr(!!D.Frech.RAPHI && !D.Frech.RAFFI, 'Frech RAPHI');
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.36', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.37', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v17/.test(rd) && !/Raffi/.test(rd.split('## Neu in v16')[0]), 'README v17');
   wahr(/Neu in v18/.test(rd), 'README Neu in v18');
@@ -4811,9 +4822,9 @@ test('221 Karten im Spiel: Nachschub, Gas, Trinkspiel, Überblick, Heim', functi
 
 test('222 v20: Zeise heim, Schwinki ohne Bremse, Tobi Elon, Siebold-Spiele, Raphi-Gag', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.36', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.37', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v20/.test(rd) && /Neu in v19/.test(rd), 'README v20 und v19');
   wahr(/Legendäres Gründungsmitglied/.test(rd), 'README Zeise');
@@ -4868,12 +4879,12 @@ test('222 v20: Zeise heim, Schwinki ohne Bremse, Tobi Elon, Siebold-Spiele, Raph
 
 test('224 v21 Versionen', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.36', v); });
-  wahr(/stadtvolk\.js\?v=0\.36/.test(html), 'stadtvolk.js im HTML');
+  vs.forEach(function (v) { gleich(v, '?v=0.37', v); });
+  wahr(/stadtvolk\.js\?v=0\.37/.test(html), 'stadtvolk.js im HTML');
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v21/.test(rd) && /Neu in v20/.test(rd) && /Neu in v19/.test(rd), 'README v21, v20, v19');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v21.md')), 'bau-bericht-v21.md');
@@ -4888,12 +4899,13 @@ test('225 v21 Stadt-Look', function () {
   try { raw = D.Karte.erstelleWelt(D.RNG.erstelle(1)).stadt; }
   finally { D.Karte.urbanisiere = orig; }
   var gruen = 0, urban = 0, haus = 0;
-  for (var y = 0; y < 60; y++) for (var x = 0; x < 40; x++) {
+  var rd = D.Karte.RAND;
+  for (var y = rd; y < rd + 60; y++) for (var x = rd; x < rd + 40; x++) {
     var t = full.tile(x, y);
     if (t === T.GRAS || t === T.BAUM || t === T.BUSCH) gruen++;
     if (t === T.GEHWEG || t === T.ASPHALT || t === T.HAUS) urban++;
     if (t === T.HAUS) haus++;
-    if (y < 30) wahr(t < T.ERDE, 'y<30 id unter ERDE @ ' + x + ',' + y + ' = ' + t);
+    if (y < rd + 30) wahr(t < T.ERDE, 'y<30 id unter ERDE @ ' + x + ',' + y + ' = ' + t);
   }
   wahr(gruen / 2400 < 0.15, 'Gruenanteil ' + gruen);
   wahr(urban > 700, 'Stadtflaechen ' + urban);
@@ -4901,18 +4913,18 @@ test('225 v21 Stadt-Look', function () {
   var tuere = { hotel: [25, 11], restaurant: [5, 12], kneipe: [33, 20], disko: [31, 28] };
   Object.keys(tuere).forEach(function (id) {
     var td = full.tueren.filter(function (t) { return t.id === id; })[0];
-    gleich(td.x, tuere[id][0], id + ' x'); gleich(td.y, tuere[id][1], id + ' y');
+    gleich(td.x - rd, tuere[id][0], id + ' x'); gleich(td.y - rd, tuere[id][1], id + ' y');
   });
   var geb = { hotel: [22, 7, 8, 5], restaurant: [2, 8, 7, 5], kneipe: [30, 17, 7, 4], disko: [27, 25, 9, 4], apotheke: [2, 40, 6, 3] };
   full.gebaeude.forEach(function (b) {
     var g = geb[b.id];
-    gleich(b.x, g[0]); gleich(b.y, g[1]); gleich(b.w, g[2]); gleich(b.h, g[3]);
+    gleich(b.x - rd, g[0]); gleich(b.y - rd, g[1]); gleich(b.w, g[2]); gleich(b.h, g[3]);
   });
   full.deco.forEach(function (d) {
     var tx = Math.floor(d.x / K), ty = Math.floor(d.y / K);
     gleich(full.tile(tx, ty), T.GRAS, 'Deko nur auf Gras ' + tx + ',' + ty);
   });
-  for (var py = 32; py <= 38; py++) for (var px = 3; px <= 11; px++) {
+  for (var py = 32 + rd; py <= 38 + rd; py++) for (var px = 3 + rd; px <= 11 + rd; px++) {
     var pt = full.tile(px, py);
     wahr(pt !== T.HAUS && pt !== T.GEHWEG, 'Suedpark frei ' + px + ',' + py);
   }
@@ -4921,8 +4933,8 @@ test('225 v21 Stadt-Look', function () {
       gleich(full.tile(xx, yy), raw.tile(xx, yy), name + ' ' + xx + ',' + yy);
     }
   }
-  gleichZone(27, 31, 38, 44, 'Motocross');
-  gleichZone(14, 31, 23, 36, 'S21');
+  gleichZone(27 + rd, 31 + rd, 38 + rd, 44 + rd, 'Motocross');
+  gleichZone(14 + rd, 31 + rd, 23 + rd, 36 + rd, 'S21');
 });
 
 test('226 v21 urbanisiere ohne rng', function () {
@@ -4975,9 +4987,10 @@ test('227 v21 Stadtvolk-Daten', function () {
       wahr(D.Hinweise.SCOOTER.indexOf(text) < 0, 'kein Scooter: ' + text);
     });
   });
-  gleich(welt.stadt.tile(18, 9), T.BANK, 'Penner auf der Bank');
+  var rd = D.Karte.RAND;
+  gleich(welt.stadt.tile(18 + rd, 9 + rd), T.BANK, 'Penner auf der Bank');
   var bank = welt.stadt.stationen.filter(function (s) { return s.id === 'bank_markt_b'; })[0];
-  wahr(bank && bank.x === 18 && bank.y === 9, 'Station bank_markt_b');
+  wahr(bank && bank.x === 18 + rd && bank.y === 9 + rd, 'Station bank_markt_b');
   wahr(welt.innen.kneipe.blockiert(5, 2), 'Wirt-Platz belegt');
   wahr(welt.innen.hotel.blockiert(3, 2), 'Rezeption-Platz belegt');
   ['kneipe', 'hotel'].forEach(function (ort) {
@@ -5044,7 +5057,7 @@ test('229 v21 Stadtvolk Interaktion', function () {
   var rez = hot.S.stadtvolk.filter(function (v) { return v.id === 'rezeption'; })[0];
   wahr(!!rez.blase, 'Rezeptionistin spricht');
   var bank = neuesSpielTest(D, { seed: 1 });
-  D.Spieler.setzeKachel(bank.S.spieler, 18, 10);
+  D.Spieler.setzeKachel(bank.S.spieler, 18 + D.Karte.RAND, 10 + D.Karte.RAND);
   bank.Sp.aktion(bank.S, bank.X);
   wahr(bank.S.spieler.sitzt, 'Spieler sitzt');
   wahr(!!bank.S.stadtvolk.filter(function (v) { return v.id === 'penner'; })[0].blase, 'Kalle beim Sitzen');
@@ -5081,11 +5094,11 @@ test('223 v20 Zoom: Hoch+Touch naeher, Quer bleibt 0.5', function () {
 
 test('230 v22: Namensschild weg, Blasen 4,5 s, Zeise Legendär', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   gleich(D.Hinweise.BLASE_MIN, 7);
   gleich(D.Hinweise.blaseDauer(''), 7);
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.36', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.37', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v22/.test(rd) && /Namensschild über Raphael entfernt/.test(rd), 'README v22');
   wahr(/Neu in v21/.test(rd), 'README v21 bleibt');
@@ -5119,14 +5132,14 @@ test('230 v22: Namensschild weg, Blasen 4,5 s, Zeise Legendär', function () {
 
 test('231 v23 Titel: Press11 - Stuttgart Edition', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   gleich(D.Hinweise.TITEL, 'Press11 - Stuttgart Edition');
   wahr(D.Hinweise.HINWEIS_VOLL.indexOf('Press11 - Stuttgart Edition') === 0, 'Hinweis beginnt mit dem Titel');
   wahr(!/Saufi Saufi/.test(D.Hinweise.HINWEIS_VOLL), 'Hinweis ohne alten Titel');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   wahr(/<title>Press11 - Stuttgart Edition \(18\+\)<\/title>/.test(html), 'Seitentitel');
   wahr(/aria-label="Press11 - Stuttgart Edition"/.test(html), 'Canvas-Name');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.36', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.37', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/^# Press11 - Stuttgart Edition$/m.test(rd), 'README-Ueberschrift');
   wahr(/Neu in v23/.test(rd) && /Neu in v22/.test(rd), 'README v23 und v22');
@@ -5139,7 +5152,7 @@ test('231 v23 Titel: Press11 - Stuttgart Edition', function () {
 
 test('232 v24 PRESSELF-Vorschaubild', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var bild = 'https://topsentopsen.github.io/press11-saufi-saufi/assets/og-presself.png';
   wahr(/property="og:title" content="Press11 - Stuttgart Edition"/.test(html), 'og:title');
@@ -5210,7 +5223,7 @@ function fakeFeedbackForm(name, text) {
 
 test('233 v25 Feedback-Seite: Formular, Entwurf, keine Schlüssel', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   var spiel = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   wahr(!/feedback\//.test(spiel) && !/Press11 Feedback/.test(spiel), 'Spielseite ohne Feedback-Link');
   ['js/main.js', 'js/render.js', 'js/hinweise.js'].forEach(function (f) {
@@ -5232,9 +5245,9 @@ test('233 v25 Feedback-Seite: Formular, Entwurf, keine Schlüssel', function () 
   wahr(/<textarea id="text" name="text" required/.test(html), 'Feedback Pflicht');
   wahr(/<button type="submit">/.test(html), 'Submit');
   wahr(/id="bestaetigung"/.test(html) && /data-meldung/.test(html) && /data-issue-link/.test(html), 'Bestaetigung');
-  wahr(/src="feedback\.js\?v=0\.36"/.test(html), 'Skript eingebunden');
+  wahr(/src="feedback\.js\?v=0\.37"/.test(html), 'Skript eingebunden');
   wahr(/Press11Feedback\.bind\(/.test(html), 'Submit haengt an bind');
-  wahr(/Press11 0\.36/.test(html), 'Versionszeile');
+  wahr(/Press11 0\.37/.test(html), 'Versionszeile');
   wahr(!/<canvas/.test(html), 'keine Spielflaeche');
   wahr(!/Schwäch|Nubi|neu dabei/.test(html), 'Feedback-Seite ohne Schwächen-Feld und ohne Nubi');
   wahr(!/location\.(href|assign|replace)/.test(js), 'Seite bleibt stehen');
@@ -5484,9 +5497,9 @@ test('236 Feedback: leeres ziel.json faellt auf raw und Worker zurueck', functio
 
 test('237 v27 Gag-Alias, Shot-Train, Prost-Ort, Krug-Halten', function () {
   var D = lade(), M = D.Minispiele, H = D.Hinweise, Ton = D.Ton, K = M.KRUG;
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.36', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.37', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v27/.test(rd) && /Neu in v26/.test(rd), 'README v27 und v26');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v27.md')), 'bau-bericht-v27.md');
@@ -5648,11 +5661,11 @@ test('237 v27 Gag-Alias, Shot-Train, Prost-Ort, Krug-Halten', function () {
 
 test('238 v28 Autos weg, Stadt dichter, Hochformat näher, Zoom', function () {
   var D = lade(), T = D.Karte.T;
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   gleich(D.Render.WELT_FLAECHE_HOCH, 1);
   gleich(D.Render.HUD_SK_HOCH_TOUCH, 0.96);
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.36', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.37', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v28/.test(rd) && /Neu in v27/.test(rd), 'README v28 und v27');
   wahr(/WELT_FLAECHE_HOCH` 1\.0/.test(rd) && /0\.96/.test(rd), 'README nennt die Knöpfe');
@@ -5742,7 +5755,7 @@ test('238 v28 Autos weg, Stadt dichter, Hochformat näher, Zoom', function () {
 
 test('239 v29 Hochformat: Overlay, Trinken 80, Sheet, Feierabend', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   gleich(D.Render.UI_RESERVE_HOCH_TOUCH, 0);
   gleich(D.Render.UI_RESERVE_HOCH, 80);
   var R = D.Render.erstelle(mockCanvas(), mockCanvas().ownerDocument);
@@ -5815,7 +5828,7 @@ test('240 Handy-Wecken: Doppeltipp auf die Figur, einzelner Tipp nicht, Q bleibt
 
 test('241 v30 Hochformat: btnBand, Crew, Wasser, zwei Knöpfe', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   gleich(D.Render.btnBandCss(5, 2), 236, 'fünf Knöpfe, Abstand 2');
   gleich(D.Render.btnBandCss(2, 6), 102, 'zwei Knöpfe, Abstand 6');
   gleich(D.Spiel.wasserAnzeige({ label: 'Trinken', an: true, flaschen: 3 }), '💧 Wasser ×3');
@@ -6106,7 +6119,7 @@ test('248 Mäxle: Rang, Ansage, Lüge, Anzweifeln, Trinkstrafe', function () {
 
 test('249 Handy: Daumenbogen, volle Bannerbreite, Desktop bleibt', function () {
   var D = lade(), E = D.Main.mobilErkannt, B = D.Main.daumenBogen();
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   wahr(/Neu in v32/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')) && /Neu in v30/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README v32 und v30');
   wahr(/Mäxle/.test(fs.readFileSync(path.join(ROOT, 'docs', 'bau-bericht-v32.md'), 'utf8')), 'Bau-Bericht v32');
   wahr(E({ touch: true, w: 1400, h: 900 }).mobil, 'Touch');
@@ -6150,7 +6163,7 @@ function schneidetBox(a, b) {
 
 test('250 v33: kein E-Hinweis, Aktionsknopf bleibt', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   gleich(D.Spiel.aktionAnzeige('E', true), '✋');
   gleich(D.Spiel.aktionAnzeige('E', false), 'E');
   var t = neuesSpielTest(D);
@@ -6291,7 +6304,7 @@ test('254 v33: Aktionspfeile und Park-Gruppe', function () {
 
 test('255 v34: Rauch über der Parkgruppe steigt, verblasst, bleibt billig', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   gleich(D.Partikel.RAUCH_N, 4);
   wahr(D.Partikel.RAUCH_N <= 6, 'wenige Puffs');
   wahr(D.Partikel.RAUCH_ALPHA < 0.55, 'halb durchsichtig');
@@ -6550,7 +6563,7 @@ test('261 v35: Boombox und Noten sind weg, Jukebox bleibt', function () {
 
 test('262 v36: Parkgruppe gibt den Joint, wenn E sie trifft', function () {
   var D = lade(), K = 16;
-  gleich(D.Spiel.VERSION, '0.36');
+  gleich(D.Spiel.VERSION, '0.37');
   wahr(/Neu in v36/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')) && /Neu in v35/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README v36 und v35');
   wahr(/Samirs Kachel/.test(fs.readFileSync(path.join(ROOT, 'docs', 'bau-bericht-v36.md'), 'utf8')), 'Bau-Bericht v36');
   var stadt = D.Karte.erstelleWelt(D.RNG.erstelle(1)).stadt;
@@ -6558,17 +6571,18 @@ test('262 v36: Parkgruppe gibt den Joint, wenn E sie trifft', function () {
   wahr(!!kb, 'Teich-Kasten bleibt');
   wahr(!(kb.x >= 7 && kb.x < 12 && kb.y >= 33 && kb.y < 35), 'Kasten liegt nicht mehr auf der Gruppe');
   var gruppe = stadt.stationen.filter(function (s) { return s.id === 'park_joint'; })[0];
-  var aufSamir = D.Karte.nahe(stadt, 10 * K + 8, 33 * K + 8 - 2, 14);
+  var o = D.Karte.RAND * K;
+  var aufSamir = D.Karte.nahe(stadt, o + 10 * K + 8, o + 33 * K + 8 - 2, 14);
   gleich(aufSamir && aufSamir.id, gruppe.id, 'E auf Samirs Fleck trifft die Gruppe');
 
   var falsch = neuesSpielTest(D); erledigt(falsch.S);
   var jule = falsch.S.leben.filter(function (a) { return a.id === 'jugend_jule'; })[0];
-  falsch.S.spieler.x = 6 * K + 8; falsch.S.spieler.y = 31 * K + 14;
+  falsch.S.spieler.x = o + 6 * K + 8; falsch.S.spieler.y = o + 31 * K + 14;
   var alt = Math.hypot(falsch.S.spieler.x - jule.px, falsch.S.spieler.y - jule.py);
   wahr(alt <= D.Stadtvolk.NAH_PX, 'alte 56-Pixel-Reichweite');
   gleich(D.Karte.nahe(falsch.S.karte, falsch.S.spieler.x, falsch.S.spieler.y - 2, 14), null, 'E trifft hier nichts');
   gleich(falsch.Sp.aktionsPopup(falsch.S), null, 'kein Popup ohne Treffer');
-  falsch.S.spieler.x = 5 * K + 8; falsch.S.spieler.y = 33 * K + 8;
+  falsch.S.spieler.x = o + 5 * K + 8; falsch.S.spieler.y = o + 33 * K + 8;
   var amKasten = D.Karte.nahe(falsch.S.karte, falsch.S.spieler.x, falsch.S.spieler.y - 2, 14);
   gleich(amKasten && amKasten.typ, 'bierkasten', 'neben der Gruppe gewinnt der Kasten');
   var popK = falsch.Sp.aktionsPopup(falsch.S);
@@ -6581,7 +6595,7 @@ test('262 v36: Parkgruppe gibt den Joint, wenn E sie trifft', function () {
   var t = neuesSpielTest(D); erledigt(t.S);
   var bing = 0;
   t.X.T = { bing: function () { bing += 1; }, schluck: function () {}, pling: function () {}, umfall: function () {}, glocke: function () {}, prost: function () {}, setzeBoost: function () {}, boostFx: function () {} };
-  t.S.spieler.x = 10 * K + 8; t.S.spieler.y = 33 * K + 8;
+  t.S.spieler.x = o + 10 * K + 8; t.S.spieler.y = o + 33 * K + 8;
   t.S.zustand = 'spiel';
   var pop = t.Sp.aktionsPopup(t.S);
   wahr(pop && pop.id === 'park_joint' && pop.text === 'Joint erhalten', 'Popup nur an der Gruppe');
@@ -7014,6 +7028,65 @@ test('271 v36: Apotheke bekommt Innenzoom, kleinere Blasen und die Zoomfahrt', f
   wahr(tq.S.karte.pxW * Rq.aktuellerWeltZoom <= Rq.W + 1e-6 && tq.S.karte.pxH * Rq.aktuellerWeltZoom <= Rq.weltH + 1e-6, 'quer ganzer Raum');
   tq.Sp.verlassen(tq.S, tq.X); tq.S.uebergang = null;
   wahr(tq.S.zoomFahrt && tq.S.zoomFahrt.art === 'raus', 'quer Fahrt raus');
+});
+
+test('272 v37: Randstreifen, Mauer, Figur bleibt am Rand mittig', function () {
+  var D = lade(), K = 16, Rnd = D.Karte.RAND, T = D.Karte.T;
+  gleich(Rnd, 38, '38 Kacheln, 608 px');
+  var st = D.Karte.erstelleWelt(D.RNG.erstelle(1)).stadt;
+  gleich(st.rand, Rnd);
+  gleich(st.stadt.x, Rnd); gleich(st.stadt.y, Rnd);
+  gleich(st.stadt.w, D.Karte.STADT_W); gleich(st.stadt.h, D.Karte.STADT_H);
+  gleich(st.w, D.Karte.STADT_W + 2 * Rnd); gleich(st.h, D.Karte.STADT_H + 2 * Rnd);
+  var x, y;
+  for (y = 0; y < st.h; y++) for (x = 0; x < st.w; x++) {
+    var streifen = x < Rnd || y < Rnd || x >= st.w - Rnd || y >= st.h - Rnd;
+    var grenze = streifen && (x === Rnd - 1 || y === Rnd - 1 || x === st.w - Rnd || y === st.h - Rnd);
+    if (!streifen) continue;
+    wahr(st.blockiert(x, y), 'Streifen gesperrt ' + x + ',' + y);
+    gleich(st.tile(x, y), grenze ? T.MAUER : T.AUSSEN, (grenze ? 'Mauer' : 'Aussen') + ' ' + x + ',' + y);
+  }
+  wahr(st.spawn.x >= Rnd && st.spawn.y >= Rnd && st.spawn.x < st.w - Rnd && st.spawn.y < st.h - Rnd, 'Spawn in der Stadt');
+  wahr(!st.blockiert(st.spawn.x, st.spawn.y), 'Spawn begehbar');
+  st.stationen.forEach(function (s) {
+    if (s.typ !== 'fund') return;
+    wahr(s.x >= Rnd && s.y >= Rnd && s.x < st.w - Rnd && s.y < st.h - Rnd, s.id + ' nicht im Streifen');
+    wahr(!st.blockiert(s.x, s.y), s.id + ' begehbar');
+  });
+  wahr(st.stationen.some(function (s) { return s.typ === 'fund'; }), 'Fundsachen bleiben');
+  // Größte Außen-Sicht: quer 640 breit, hochkant bei Zoom 0,75 ist die Sicht 960 hoch.
+  // Daumenversatz 0,12: die Kamera will die Figur bei 0,38 der Sichthöhe, nicht bei 0,5.
+  function ziel(sp, viewW, viewH, frei) {
+    return { x: sp.x - viewW / 2, y: (sp.y - 8) - viewH * (0.5 - frei) };
+  }
+  function pruefe(tx, ty, viewW, viewH, frei, name) {
+    var sp = D.Spieler.erstelle(tx, ty);
+    var kam = D.Kamera.erstelle(viewW, viewH, st.pxW, st.pxH);
+    kam.daumenFrei = frei;
+    D.Kamera.sofort(kam, sp.x, sp.y - 8);
+    var z = ziel(sp, viewW, viewH, frei > 0 ? Math.min(0.2, frei) : 0);
+    nah(kam.x, z.x, 1e-6, name + ' x nicht geklemmt');
+    nah(kam.y, z.y, 1e-6, name + ' y nicht geklemmt');
+    wahr(kam.x >= -1e-6 && kam.y >= -1e-6, name + ' nicht neben der Karte');
+    wahr(kam.x + viewW <= st.pxW + 1e-6 && kam.y + viewH <= st.pxH + 1e-6, name + ' Sicht in der Karte');
+  }
+  var sued = Rnd + 59, west = Rnd, ost = Rnd + 39, strasse = Rnd + 14;
+  pruefe(west, strasse, 640, 352, 0, 'Westen quer');
+  pruefe(ost, strasse, 640, 352, 0, 'Osten quer');
+  pruefe(Rnd + 25, sued, 320, 960, 0.12, 'Süden hoch Daumen');
+  pruefe(Rnd + 25, Rnd + 6, 320, 960, 0.12, 'Norden hoch Daumen');
+  pruefe(west, sued, 640, 960, 0.12, 'Südwest-Ecke');
+  // An der Mauer bleibt die Figur nicht stecken: Westen blockt, die Straße entlang geht es weiter.
+  var sp = D.Spieler.erstelle(west, strasse);
+  for (var i = 0; i < 45; i++) D.Spieler.bewegung(sp, { x: -1, y: 0 }, 0, 1 / 30, i / 30, 1, st);
+  wahr(sp.x > Rnd * K, 'vor der Mauer');
+  wahr(st.tile(Math.floor(sp.x / K), Math.floor((sp.y - 1) / K)) !== T.MAUER, 'nicht in der Mauer');
+  var xVor = sp.x;
+  for (i = 0; i < 30; i++) D.Spieler.bewegung(sp, { x: 1, y: 0 }, 0, 1 / 30, i / 30, 1, st);
+  wahr(sp.x > xVor + 8, 'von der Mauer weg, nicht in der Ecke fest');
+  var ecke = D.Spieler.erstelle(west, sued);
+  for (i = 0; i < 45; i++) D.Spieler.bewegung(ecke, { x: -1, y: 1 }, 0, 1 / 30, i / 30, 1, st);
+  wahr(ecke.x > (Rnd - 1) * K && ecke.y < (sued + 1) * K, 'Südwest bleibt diesseits der Mauer');
 });
 
 (async function () {
