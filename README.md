@@ -4,6 +4,10 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v37
+
+- Rund um die Stadtkarte liegt ein gesperrter Rand, 38 Kacheln breit. An der Innenkante steht eine Mauer, der Rest des Streifens ist ebenfalls nicht begehbar. Die Figur läuft an der Mauer entlang, statt in der Ecke festzuhängen. Die Kamera kann bis in den Streifen mitwandern, deshalb bleibt die Figur auch am Kartenrand in der Mitte. Spawn und Fundsachen bleiben in der Stadt.
+
 ## Neu in v36
 
 - Im Stadtbild liegen extra versteckte Sachen: Bierkästen, Schnapsflaschen und Joints. Kein Pfeil darüber. Wer drankommt, sieht das bekannte Popup, hebt sie mit E auf und hört den Bing. Bier und Schnaps wirken wie das jeweilige Getränk, der Joint bleibt das Spiel-Item (nächster Effekt doppelt, danach kurz schwammig).

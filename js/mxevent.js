@@ -16,7 +16,8 @@
   function erstelle() { return { h: [false, false], status: 'offen' }; }
 
   function imBereich(ort, x, y) {
-    return ort === 'stadt' && x >= BEREICH.x0 && x < BEREICH.x1 && y >= BEREICH.y0 && y < BEREICH.y1;
+    var o = ((Saufi.Karte && Saufi.Karte.RAND) || 0) * 16;
+    return ort === 'stadt' && x >= BEREICH.x0 + o && x < BEREICH.x1 + o && y >= BEREICH.y0 + o && y < BEREICH.y1 + o;
   }
 
   function sichtbar(minute) { return minute >= 18 * 60 && minute < ZEIT; }

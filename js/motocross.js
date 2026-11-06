@@ -14,6 +14,7 @@
   ];
   var HUEGEL = [{ x: 30, y: 33 }, { x: 36, y: 35 }, { x: 32, y: 42 }];
   var CX = 32.5 * K, CY = 37.5 * K;
+  function ursprung() { return ((Saufi.Karte && Saufi.Karte.RAND) || 0) * K; }
 
   function theta(p, t) {
     return p.start + p.w0 * t + p.A * Math.sin(p.g * t + p.phi);   // Startversatz plus langsames Tempo-Schwanken: Positionen wechseln immer wieder
@@ -22,9 +23,9 @@
     return p.rho + p.drift * Math.sin(0.37 * t + p.phi);
   }
   function hoeheBei(x, y) {
-    var maxH = 0;
+    var maxH = 0, o = ursprung();
     for (var i = 0; i < HUEGEL.length; i++) {
-      var hx = (HUEGEL[i].x + 0.5) * K, hy = (HUEGEL[i].y + 0.5) * K;
+      var hx = (HUEGEL[i].x + 0.5) * K + o, hy = (HUEGEL[i].y + 0.5) * K + o;
       var d = Math.hypot(x - hx, y - hy);
       if (d < 18) maxH = Math.max(maxH, 5 * (1 - d / 18));
     }
@@ -33,10 +34,11 @@
 
   function stand(t) {
     t = +t || 0;
+    var o = ursprung();
     var raw = PARAM.map(function (p, i) {
       var th = theta(p, t), rho = rhoVon(p, t);
-      var x = CX + rho * 5.2 * K * Math.cos(th);
-      var y = CY + rho * 5.8 * K * Math.sin(th);
+      var x = CX + o + rho * 5.2 * K * Math.cos(th);
+      var y = CY + o + rho * 5.8 * K * Math.sin(th);
       // Tangente: Ableitung von θ (nahezu ω0, Wackelanteil klein)
       var dth = p.w0 + p.A * p.g * Math.cos(p.g * t + p.phi);
       var winkel = Math.atan2(rho * 5.8 * K * Math.cos(th) * dth, -rho * 5.2 * K * Math.sin(th) * dth);

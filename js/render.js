@@ -173,12 +173,13 @@
         }
       }
       if (karte.id === 'stadt') {
-        list.push({ y: 39 * K, x: 26 * K + 4, w: 34, art: 'holzschild', text: 'Motocross' });
+        var o = (karte.rand || 0) * K;
+        list.push({ y: 39 * K + o, x: 26 * K + 4 + o, w: 34, art: 'holzschild', text: 'Motocross' });
         // S21: zwei Kraene, Starship-Modell, Bauschild
-        list.push({ y: 34 * K + 8, x: 16 * K, w: 8, art: 'kran', nr: 0, kx: 16, ky: 34 });
-        list.push({ y: 33 * K + 8, x: 21 * K, w: 8, art: 'kran', nr: 1, kx: 21, ky: 33 });
-        list.push({ y: 33 * K + 4, x: 20 * K, w: 12, art: 'starshipModell' });
-        list.push({ y: 37 * K + 2, x: 18 * K - 10, w: 40, art: 'bauschild', zeile1: 'Stuttgart 21', zeile2: 'Fertigstellung: irgendwann in der Zukunft' });
+        list.push({ y: 34 * K + 8 + o, x: 16 * K + o, w: 8, art: 'kran', nr: 0, kx: 16, ky: 34 });
+        list.push({ y: 33 * K + 8 + o, x: 21 * K + o, w: 8, art: 'kran', nr: 1, kx: 21, ky: 33 });
+        list.push({ y: 33 * K + 4 + o, x: 20 * K + o, w: 12, art: 'starshipModell' });
+        list.push({ y: 37 * K + 2 + o, x: 18 * K - 10 + o, w: 40, art: 'bauschild', zeile1: 'Stuttgart 21', zeile2: 'Fertigstellung: irgendwann in der Zukunft' });
       }
       karte.stationen.forEach(function (st) {
         if (st.typ === 'bierkasten') list.push({ y: (st.y + 1) * K, x: st.x * K, w: K, art: 'kasten' });
@@ -774,7 +775,7 @@
       }
       else if (d.art === 'kran') kran(c, px + 4, fy, t, d.nr || 0);
       else if (d.art === 'starshipModell') zeichneStarshipModell(c, px + 6, fy);
-      else if (d.art === 'tram') { var tx = ((t * 14) % (karte.pxW + 160)) - 90 - cx; if (tx > -80 && tx < viewW + 10) Sz.strassenbahn(c, tx, 253 - cy, t); }
+      else if (d.art === 'tram') { var tx = ((t * 14) % (karte.pxW + 160)) - 90 - cx; if (tx > -80 && tx < viewW + 10) Sz.strassenbahn(c, tx, 253 + (karte.rand || 0) * K - cy, t); }
       else if (d.art === 'motorrad') zeichneMotorrad(c, d.b || d, cx, cy);
       else if (d.art === 'joint') zeichneJoint(c, d.x - cx + 8, d.ky - cy + 8, t);
       else if (d.art === 'tuersteher') figur(c, { id: 'tuersteher', shirt: '#14102a', hose: '#14102a', haar: '#14102a', extra: 'hut' }, d.x - cx, d.ky - cy, { dir: 'unten', t: t });

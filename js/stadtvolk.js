@@ -175,8 +175,10 @@
   }
 
   // Umgebung. Positionen haengen nur an der Zeit, nicht an S.rng und nicht an belegten Kacheln.
+  function randKacheln() { return (Saufi.Karte && Saufi.Karte.RAND) || 0; }
   function kachelnZuWeg(tiles) {
-    return tiles.map(function (t) { return { x: t[0] * K + 8, y: t[1] * K + 14 }; });
+    var o = randKacheln();
+    return tiles.map(function (t) { return { x: (t[0] + o) * K + 8, y: (t[1] + o) * K + 14 }; });
   }
   function strecke(tiles, opt) {
     opt = opt || {};
@@ -189,17 +191,17 @@
       px: weg[i].x, py: weg[i].y, dir: opt.dir || 'unten', laeuft: false, phase: opt.phase || 0,
       haltung: opt.haltung || 'steht', look: opt.look || null, scale: opt.scale || 1,
       modus: opt.modus || 'ping', weg: weg,
-      kacheln: tiles.map(function (t) { return [t[0], t[1]]; }),
+      kacheln: tiles.map(function (t) { var o = randKacheln(); return [t[0] + o, t[1] + o]; }),
       i: i, richtung: opt.richtung || 1, speed: opt.speed || 16, warte: 0,
       pauseAmEnde: opt.pauseAmEnde || 0, farbe: opt.farbe || null, fell: opt.fell || null
     };
   }
   function vogel(opt) {
-    var w = opt.winkel || 0;
+    var w = opt.winkel || 0, o = randKacheln() * K, cx = opt.cx + o, cy = opt.cy + o;
     return {
       id: opt.id, art: 'vogel', name: '', karteId: 'stadt', spricht: false, modus: 'ellipse',
-      cx: opt.cx, cy: opt.cy, rx: opt.rx, ry: opt.ry, winkel: w, dreh: opt.dreh,
-      px: opt.cx + Math.cos(w) * opt.rx, py: opt.cy + Math.sin(w) * opt.ry,
+      cx: cx, cy: cy, rx: opt.rx, ry: opt.ry, winkel: w, dreh: opt.dreh,
+      px: cx + Math.cos(w) * opt.rx, py: cy + Math.sin(w) * opt.ry,
       dir: 'rechts', laeuft: true, phase: 0, farbe: opt.farbe || '#2a2342', kacheln: [], scale: 1
     };
   }
