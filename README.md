@@ -4,6 +4,11 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v30
+
+- Handy hochkant: die Uhr rechnet mit den echten Knöpfen oben. Im Spiel sind das zwei, Ton und Menü. Ton öffnet Musik, Effekte und die Scooter-Playlist. Das Menü hat Info, die Version und das Playlist-Fenster. Auf dem iPhone gibt es keinen toten Vollbild-Knopf, dafür den Hinweis „Zum Home-Bildschirm“. Die Auswahl behält ihre fünf Knöpfe.
+- Die Promille-Karte zeigt nur noch Krug und Herzen. Unten ein Crew-Streifen mit Krügen für die Stimmung und Köpfen ab 16 px. Wasser heißt „Wasser“, im Leerlauf zeigt der Aktionsknopf eine Hand. Zoom ist eine schmale Pille links, der Stick ein blasser Kreis, solange niemand zieht. Die Versionskapsel ist aus der Daumenzone. Im Spiel ist der Neon-Rahmen aus.
+
 ## Neu in v29
 
 - Handy hochkant: die Welt füllt den Rahmen. Kein dunkles Bedienfeld darunter. Uhr und Rundenbanner sitzen oben, die Version unten rechts. E und Trinken liegen als Paar auf der Welt, F und Item darüber. Zoom steht links, nicht über der Jukebox in Sophies Brauhaus. Die Auswahl behält ihre Leiste. Die Höhenformel bleibt.

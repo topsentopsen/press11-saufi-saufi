@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.29', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.30', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function wendeCharStats(S, char) {
@@ -669,6 +669,21 @@
     else r.item = { label: 'R', an: false };
     return r;
   }
+  // Sichtbarer Knopftext. Intern bleibt Trinken / E, damit Logik und Desktop-Hinweis gleich bleiben.
+  function wasserAnzeige(k) {
+    if (!k) return '';
+    if (k.label === 'Trinken') return (k.an && k.flaschen > 0) ? ('💧 Wasser ×' + k.flaschen) : '💧 leer';
+    return k.label + (k.flaschen !== undefined ? ' ×' + k.flaschen : '');
+  }
+  function aktionAnzeige(label, touch) {
+    if (touch && label === 'E') return '✋';
+    return label || '';
+  }
+  function tonIcon(stumm, musikAus) {
+    if (stumm) return '🔇';
+    if (musikAus) return '🔉';
+    return '🔊';
+  }
   function hilfeText(S) {
     var sp = S.spieler;
     if (Saufi.NPCs.naechsterLiegender(S.npcs, S.ort, sp.x, sp.y, Saufi.NPCs.WECK_REICHWEITE)) return 'Q: Freund wecken';
@@ -1282,6 +1297,7 @@
 
   Saufi.Spiel = {
     VERSION: VERSION, neu: neuesSpiel, update: update, beende: beende, aktion: aktion, waehle: waehle, runde: runde, wasserTrinken: wasserTrinken, itemNutzen: itemNutzen, kontext: kontext, hilfeText: hilfeText, toggleMusik: toggleMusik, spontanePruefen: spontanePruefen, tippeWelt: tippeWelt, weltPunkt: weltPunkt, tippZiel: tippZiel, spontanWahl: spontanWahl, betreten: betreten,
+    wasserAnzeige: wasserAnzeige, aktionAnzeige: aktionAnzeige, tonIcon: tonIcon,
     betreten: betreten, verlassen: verlassen, schnappschuss: schnappschuss, geheZuStation: geheZuStation, setze: setze, starteSpiel: starteSpiel, stationDe: stationDe, waehleFigur: waehleFigur,
     pauseMenue: pauseMenue, playlistOverlay: playlistOverlay, infoOverlay: infoOverlay, stammtisch: stammtisch, tanzen: tanzen, stub: stub,
     schliesse: schliesse, minispielMenue: minispielMenue
@@ -1499,7 +1515,65 @@
     function knopf(id, fn) { var b = doc.getElementById(id); if (!b) return; b.addEventListener('click', function (ev) { ev.preventDefault(); geste(); fn(b); }); return b; }
     knopf('ton-knopf', function (b) { toggleTon(S, X); b.classList.toggle('aus', S.stummAn); });
     var mk = knopf('musik-knopf', function (b) { toggleMusik(S, X); b.classList.toggle('aus', S.musikAus); }); if (mk && mk.classList) mk.classList.toggle('aus', !!S.musikAus);
-    knopf('vollbild-knopf', function () { var el = rahmen; if (doc.fullscreenElement) doc.exitFullscreen(); else if (el.requestFullscreen) el.requestFullscreen(); });
+    var vollGeht = !!(rahmen && (typeof rahmen.requestFullscreen === 'function' || typeof rahmen.webkitRequestFullscreen === 'function'));
+    var vollKnopf = doc.getElementById('vollbild-knopf');
+    if (vollKnopf && !vollGeht) vollKnopf.hidden = true;
+    knopf('vollbild-knopf', function () {
+      var el = rahmen;
+      if (!el) return;
+      if (doc.fullscreenElement && doc.exitFullscreen) doc.exitFullscreen();
+      else if (el.requestFullscreen) el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    });
+    var soundOffen = false, menuOffen = false;
+    function popZu(id, an) { var el = doc.getElementById(id); if (el) el.hidden = !an; }
+    function schliessePop() { soundOffen = false; menuOffen = false; popZu('sound-pop', false); popZu('spiel-menu', false); }
+    function oeffnePop(welches) {
+      if (welches === 'sound') { soundOffen = !soundOffen; menuOffen = false; }
+      else { menuOffen = !menuOffen; soundOffen = false; }
+      popZu('sound-pop', soundOffen); popZu('spiel-menu', menuOffen);
+    }
+    function inKnoten(node, id) {
+      while (node) { if (node.id === id) return true; node = node.parentNode || node.parentElement; }
+      return false;
+    }
+    knopf('sound-knopf', function () { if (S.zustand !== 'start') oeffnePop('sound'); });
+    knopf('menu-knopf', function () { if (S.zustand !== 'start') oeffnePop('menu'); });
+    knopf('pop-musik', function () { toggleMusik(S, X); });
+    knopf('pop-effekte', function () { toggleTon(S, X); });
+    knopf('pop-playlist', function () { schliessePop(); if (S.zustand === 'spiel' || S.zustand === 'start') { if (S.overlay && S.overlay.art === 'playlist') schliesse(S); else playlistOverlay(S, X); } });
+    knopf('menu-info', function () { schliessePop(); if (S.zustand === 'spiel' || S.zustand === 'start') infoOverlay(S); });
+    knopf('menu-voll', function () {
+      schliessePop();
+      var el = rahmen;
+      if (!el) return;
+      if (doc.fullscreenElement && doc.exitFullscreen) doc.exitFullscreen();
+      else if (el.requestFullscreen) el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    });
+    knopf('menu-yt', function () {
+      schliessePop();
+      var z = M && M.zustand ? M.zustand() : null;
+      if (z && (z.aktiv === 'youtube' || z.quelle === 'youtube') && M.klappe) {
+        var zu = M.klappe();
+        var b = doc.getElementById('yt-klapp');
+        if (b) b.textContent = zu ? '▶ Scooter' : '– Scooter';
+      } else if (S.zustand === 'spiel' || S.zustand === 'start') {
+        if (S.overlay && S.overlay.art === 'playlist') schliesse(S); else playlistOverlay(S, X);
+      }
+    });
+    var menuHome = doc.getElementById('menu-home');
+    var menuVoll = doc.getElementById('menu-voll');
+    if (menuHome) menuHome.hidden = !!vollGeht;
+    if (menuVoll) menuVoll.hidden = !vollGeht;
+    var menuVer = doc.getElementById('menu-version');
+    if (menuVer) menuVer.textContent = 'Version ' + VERSION;
+    doc.addEventListener('click', function (ev) {
+      var t = ev && ev.target;
+      if (!t) return;
+      if (inKnoten(t, 'sound-knopf') || inKnoten(t, 'menu-knopf') || inKnoten(t, 'sound-pop') || inKnoten(t, 'spiel-menu')) return;
+      if (soundOffen || menuOffen) schliessePop();
+    });
     function zoomAendern(dir) {
       if (!S || S.zustand === 'start') return;
       var neu = Saufi.Render.zoomStufe(R.userZoom || 1, dir);
@@ -1563,7 +1637,11 @@
       if (!warTouch || !R.touch) { touchGemeldet = true; groesse(); }
       if (stickId !== null) return false; // zweiter Finger auf Stick-Zone ignorieren
       stickId = id; var r0 = zone.getBoundingClientRect(); o0 = { x: clientX, y: clientY };
-      if (basis) { basis.style.display = 'block'; basis.style.left = (o0.x - r0.left) + 'px'; basis.style.top = (o0.y - r0.top) + 'px'; }
+      if (basis) {
+        if (basis.classList && basis.classList.add) basis.classList.add('aktiv');
+        basis.style.display = 'block'; basis.style.bottom = 'auto';
+        basis.style.left = (o0.x - r0.left) + 'px'; basis.style.top = (o0.y - r0.top) + 'px';
+      }
       return true;
     }
     function stickMove(clientX, clientY) {
@@ -1578,7 +1656,11 @@
     function stickEnde(clientX, clientY) {
       if (stickId !== null && o0 && clientX !== undefined && stickWeg < 10 && Date.now() - stickT0 < 350) stickTipp(clientX, clientY);
       stickId = null; stickTouch = false; E.stick.x = 0; E.stick.y = 0;
-      if (basis) basis.style.display = 'none'; if (dau) dau.style.transform = '';
+      if (basis) {
+        if (basis.classList && basis.classList.remove) basis.classList.remove('aktiv');
+        basis.style.left = ''; basis.style.top = ''; basis.style.bottom = ''; basis.style.display = '';
+      }
+      if (dau) dau.style.transform = '';
     }
     if (zone) {
       zone.addEventListener('pointerdown', function (ev) {
@@ -1624,14 +1706,40 @@
       if (was) was.hidden = endeAn || startAn;
       var mkn = doc.getElementById('musik-knopf'); if (mkn && mkn.classList) mkn.classList.toggle('aus', !!S.musikAus);
       var kx = kontext(S);
-      function setze(el, k, txt) {
+      var touchKlasse = rahmen && rahmen.classList && rahmen.classList.contains && rahmen.classList.contains('touch');
+      var touchUi = !!(E && E.touch) || !!touchKlasse;
+      function setze(el, k, txt, aria) {
         if (!el) return;
         if (el.textContent !== txt) el.textContent = txt;
         if (el.classList) el.classList.toggle('aus', !k.an);
-        el.setAttribute && el.setAttribute('aria-label', txt);
+        el.setAttribute && el.setAttribute('aria-label', aria || txt);
       }
-      setze(akt, kx.aktion, kx.aktion.label);
-      setze(was, kx.wasser, kx.wasser.label + (kx.wasser.flaschen !== undefined ? ' ×' + kx.wasser.flaschen : ''));
+      var aktTxt = aktionAnzeige(kx.aktion.label, touchUi);
+      setze(akt, kx.aktion, aktTxt, kx.aktion.label === 'E' ? 'Aktion' : kx.aktion.label);
+      if (akt && akt.classList && akt.classList.toggle) {
+        var idle = touchUi && kx.aktion.label === 'E';
+        akt.classList.toggle('leer', idle);
+        var warLeer = akt.getAttribute ? akt.getAttribute('data-leer') === '1' : false;
+        if (!idle && warLeer && akt.classList.remove && akt.classList.add) {
+          akt.classList.remove('puls');
+          akt.classList.add('puls');
+        }
+        if (akt.setAttribute) akt.setAttribute('data-leer', idle ? '1' : '0');
+      }
+      setze(was, kx.wasser, wasserAnzeige(kx.wasser));
+      var skn = doc.getElementById('sound-knopf');
+      if (skn) {
+        var ic = tonIcon(!!S.stummAn, !!S.musikAus);
+        if (skn.textContent !== ic) skn.textContent = ic;
+        var tonTitel = S.stummAn ? 'Alles aus' : (S.musikAus ? 'Nur Effekte' : 'Ton an');
+        if (skn.setAttribute) skn.setAttribute('aria-label', tonTitel);
+      }
+      var popM = doc.getElementById('pop-musik'); if (popM) popM.textContent = S.musikAus ? 'Musik aus' : 'Musik an';
+      var popE = doc.getElementById('pop-effekte'); if (popE) popE.textContent = S.stummAn ? 'Effekte aus' : 'Effekte an';
+      if (rahmen && rahmen.classList && rahmen.classList.toggle) {
+        rahmen.classList.toggle('ziehen-hinweis', S.zustand === 'spiel' && (S.spielSek || 0) < 60 && stickId === null && !S.overlay);
+      }
+      if ((S.overlay || S.zustand === 'start') && (soundOffen || menuOffen)) schliessePop();
       if (item) {
         item.hidden = endeAn;
         setze(item, kx.item, kx.item.label);
@@ -1688,7 +1796,25 @@
       update(S, dt, X);
       if (S.neustart) { gewaehlt = S.auswahlId || S.char.id; erstStart = false; neuStarten(); starteSpiel(S, X); }
       musikInfoSync();
+      if (S.zustand !== 'start') {
+        var nSicht = 0, obenElN = doc.getElementById('oben');
+        if (obenElN && obenElN.children) {
+          for (var bi = 0; bi < obenElN.children.length; bi++) {
+            var bk = obenElN.children[bi];
+            if (!bk || String(bk.tagName || '').toUpperCase() !== 'BUTTON' || bk.hidden) continue;
+            if (typeof bk.offsetParent !== 'undefined' && bk.offsetParent === null) continue;
+            nSicht++;
+          }
+        }
+        R.obenKnopfN = (nSicht >= 1 && nSicht <= 4) ? nSicht : 2;
+        R.obenGap = 6;
+      }
       Saufi.Render.zeichne(R, S);
+      var zoomEl = doc.getElementById('zoom');
+      if (zoomEl && R.hudLinks && R.hochkant && R.touch && S.zustand !== 'start') {
+        var zsc = (R.cssW > 0 && R.W > 0) ? (R.cssW / R.W) : 1;
+        zoomEl.style.top = ((R.hudLinks.y + R.hudLinks.h) * zsc + 10) + 'px';
+      }
       S.treffer = R.treffer; S.panel = R.panel || null;
       if (rahmen && rahmen.classList) rahmen.classList.toggle('overlay', !!S.overlay);
       // Ende/Overlay: Ton-Hinweis ausblenden (liegt sonst ueber Titel/Menue)
