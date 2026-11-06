@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.35', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.36', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function wendeCharStats(S, char) {
@@ -72,7 +72,7 @@
       motiv: { zuletzt: 0, n: 0 },
       mxEvent: Saufi.MxEvent ? Saufi.MxEvent.erstelle() : { h: [false, false], status: 'offen' },
       auswahlId: char.id,
-      kaesten: {}
+      kaesten: {}, funde: {}
     };
     wendeCharStats(S, char);
     S.licht = Saufi.Uhr.licht(S.uhr);
@@ -586,13 +586,23 @@
       case 'tanz': tanzen(S, X); break;
       case 'jukebox': playlistOverlay(S, X); break;
       case 'joint':
-        if (Saufi.Ereignisse.Joint.nimm(S.joint)) { sag(S, 'Dicke Tüte eingesteckt (Spiel-Item). R: nächster Effekt doppelt, danach 30 s schwammig.', 4, 'info'); erfolgBing(X); }
-        else sag(S, 'Hier liegt nichts mehr.', 1.5, 'info');
+        if (S.joint && S.joint.gefunden) sag(S, 'Hier liegt nichts mehr.', 1.5, 'info');
+        else if (S.joint && (S.joint.hat || S.joint.doppelt)) sag(S, 'Du hast schon eine Tüte. Erst benutzen (R).', 2.2, 'info');
+        else if (Saufi.Ereignisse.Joint.nimm(S.joint)) { sag(S, 'Dicke Tüte eingesteckt (Spiel-Item). R: nächster Effekt doppelt, danach 30 s schwammig.', 4, 'info'); erfolgBing(X); }
         break;
       case 'jointgruppe':
         S.parkN = (S.parkN | 0);
         Saufi.Stadtvolk.parkSpruch(S.leben, S.parkN);
         S.parkN += 1;
+        if (!parkGegeben(S)) {
+          if (Saufi.Ereignisse.Joint.nimm(S.joint, 'park')) {
+            sag(S, 'Dicke Tüte eingesteckt (Spiel-Item). R: nächster Effekt doppelt, danach 30 s schwammig.', 4, 'info');
+            erfolgBing(X);
+          } else if (S.joint && (S.joint.hat || S.joint.doppelt)) sag(S, 'Du hast schon eine Tüte. Erst benutzen (R).', 2.2, 'info');
+        }
+        break;
+      case 'fund':
+        nimmFund(S, st, X);
         break;
       case 'flasche':
         if (S.flascheGenommen) sag(S, 'Hier liegt nichts mehr.', 1.5, 'info'); else { S.flascheGenommen = true; S.flaschen = Math.min(flaschenMax(S), S.flaschen + 1); sag(S, 'Wasserflasche gefunden (' + flaschenText(S) + ').', 2, 'gut'); T.pling(); erfolgBing(X); }
@@ -727,25 +737,60 @@
     if (sp.sitzt) return 'Bewegen: aufstehen';
     var st = Saufi.Karte.nahe(S.karte, sp.x, sp.y - 2, 14);
     if (!st) return Saufi.Stadtvolk.inReichweite(S.stadtvolk, S.karte.id, sp.x, sp.y) ? 'E: Quatschen' : '';
+    if (st.typ === 'fund') {
+      if (fundWeg(S, st)) return '';
+      if (st.was === 'joint') return 'E: Aufheben';
+      if (st.was === 'schnaps') return 'E: Schnaps';
+      return 'E: Bier';
+    }
     var t = { tuer: 'E: ' + (st.label || 'Tür'), ausgang: 'E: Hinaus', buffet: 'E: Frühstück', kueche: 'E: Essen bestellen', spender: 'E: Wasser', tresen_restaurant: 'E: Bestellen', tresen_kneipe: 'E: Bestellen',
       bar_disko: 'E: Bestellen', stammtisch: Saufi.Runden.aktive(S.runden) && Saufi.Runden.aktive(S.runden).ort === S.ort ? 'E: PROST!' : 'E: Stammtisch', sofa: 'E: Ausruhen', bank: 'E: Ausruhen', tanz: 'E: Tanzen (im Takt!)',
       jukebox: 'E: Musik', joint: 'E: Aufheben', jointgruppe: 'E: Quatschen', flasche: 'E: Aufheben', tribuene: 'E: Bier auf der Tribüne', bierkasten: 'E: Bier', rezeption: 'E: Rezeption' }[st.typ];
     if (S.gm && S.gm.id && /^(tresen_|bar_)/.test(st.typ)) return 'E: Siebolds Trinkspiel';
     return t || '';
   }
-  // Nähe-Popup an der Parkgruppe. Gleicher Abstand wie die anderen Nähe-Popups (Stadtvolk).
-  // Gibt kein Item: Rucksack und Dicke Tüte bleiben unberührt. Pfeil und E-Spruch bleiben.
+  function fundWeg(S, st) { return !!(S.funde && st && S.funde[st.id]); }
+  function parkGegeben(S) { return !!(S.joint && S.joint.quellen && S.joint.quellen.park); }
+  function fundText(st) {
+    if (st.was === 'schnaps') return 'Schnaps holen';
+    if (st.was === 'joint') return 'Joint erhalten';
+    return 'Bier gefunden';
+  }
+  function nimmFund(S, st, X) {
+    if (!S.funde) S.funde = {};
+    if (S.funde[st.id]) { sag(S, 'Hier liegt nichts mehr.', 1.5, 'info'); return; }
+    if (st.was === 'joint') {
+      if (S.joint && (S.joint.hat || S.joint.doppelt)) { sag(S, 'Du hast schon eine Tüte. Erst benutzen (R).', 2.2, 'info'); return; }
+      if (!Saufi.Ereignisse.Joint.nimm(S.joint, st.id)) { sag(S, 'Hier liegt nichts mehr.', 1.5, 'info'); return; }
+      S.funde[st.id] = true;
+      sag(S, 'Dicke Tüte eingesteckt (Spiel-Item). R: nächster Effekt doppelt, danach 30 s schwammig.', 4, 'info');
+      erfolgBing(X);
+      return;
+    }
+    var id = st.was === 'schnaps' ? 'kurzer' : 'pils';
+    trinke(S, id, X);
+    S.funde[st.id] = true;
+    S.prost = 1.4;
+    Saufi.Punkte.add(S.punkte, 5, st.was === 'schnaps' ? 'Schnaps' : 'Bierkasten');
+    sag(S, (st.was === 'schnaps' ? 'Schwabentropfen! Pegel ' : 'Kessel-Pils: Pegel ') + Saufi.Pegel.anzeige(S.fig.pegel) + ' ‰', 2, 'info');
+  }
+  // Nähe-Popup nur für die Station, die E wirklich auslöst. Sonst verspricht der Text eine Aktion, die nicht kommt.
   function aktionsPopup(S) {
-    if (!S || S.zustand !== 'spiel' || S.overlay || S.ort !== 'stadt' || !S.spieler) return null;
-    var sp = S.spieler, reich = (Saufi.Stadtvolk && Saufi.Stadtvolk.NAH_PX) || 56;
-    var list = S.leben || [], i, a, nah = false, ax = 0, ay = 0, n = 0;
+    if (!S || S.zustand !== 'spiel' || S.overlay || !S.spieler || !S.karte) return null;
+    var sp = S.spieler;
+    var st = Saufi.Karte.nahe(S.karte, sp.x, sp.y - 2, 14);
+    if (!st) return null;
+    if (st.typ === 'fund' && !fundWeg(S, st)) {
+      return { id: st.id, text: fundText(st), x: (st.x + 0.5) * K, y: st.y * K };
+    }
+    if (st.typ !== 'jointgruppe' || parkGegeben(S)) return null;
+    var list = S.leben || [], i, a, ax = 0, ay = 0, n = 0;
     for (i = 0; i < list.length; i++) {
       a = list[i];
       if (!a || !a.id || a.id.indexOf('jugend_') !== 0) continue;
       ax += a.px; ay += a.py; n += 1;
-      if (Math.hypot(a.px - sp.x, a.py - sp.y) <= reich) nah = true;
     }
-    if (!n || !nah) return null;
+    if (!n) return { id: 'park_joint', text: 'Joint erhalten', x: (st.x + st.w / 2) * K, y: st.y * K };
     return { id: 'park_joint', text: 'Joint erhalten', x: ax / n, y: ay / n - 18 };
   }
   // Alle Stellen, an denen E etwas tut. Einmal-Fundsachen fallen weg, sobald sie weg sind.
@@ -756,6 +801,7 @@
     (karte.stationen || []).forEach(function (st) {
       if (st.typ === 'joint' && S.joint && S.joint.gefunden) return;
       if (st.typ === 'flasche' && S.flascheGenommen) return;
+      if (st.typ === 'fund') return;
       out.push({
         id: st.id, typ: st.typ, label: st.label || '',
         x: (st.x + st.w / 2) * K,

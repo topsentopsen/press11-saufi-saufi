@@ -582,6 +582,12 @@
     rr(c, -4.6, -1.3, 9.2, 2.8, '#fff8ee', 1.4, '#8a7c9c', 0.5); rr(c, -4.8, -1.2, 2, 2.6, '#ff8f2e', 1); c.restore();
     c.globalAlpha = 0.5; kreis(c, x + 4, y - 4 + w, 1.2, '#c9c3d6'); kreis(c, x + 5.2, y - 7 + w, 1.6, '#c9c3d6'); c.globalAlpha = 1;
   }
+  function zeichneSchnaps(c, x, y) {
+    ellipse(c, x, y + 4, 2.6, 1, 'rgba(50,30,80,0.25)');
+    rr(c, x - 1.8, y - 3.2, 3.6, 6.2, '#7a1830', 1, '#3a1020', 0.55);
+    rr(c, x - 0.9, y - 5.2, 1.8, 2.2, '#d8d0e4', 0.5);
+    r(c, x - 1.2, y - 1.4, 2.4, 0.6, 'rgba(255,255,255,0.45)');
+  }
 
   function heckeBusch(c, x, y) {
     ellipse(c, x, y, 16, 3.2, 'rgba(50,30,80,0.22)');
@@ -682,6 +688,14 @@
     propsFuer(R, karte).forEach(function (p) { if (p.x - cx < viewW + 40 && p.x - cx > -140 && p.y - cy > -20 && p.y - cy < viewH + 120) dinge.push(p); });
     if (!karte.innen) dinge.push({ y: 15 * K + 4, x: 0, art: 'tram' });
     if (karte.id === 'hotel' && S.joint && !S.joint.gefunden) dinge.push({ y: 8 * K + 12, art: 'joint', x: 14 * K, ky: 8 * K });
+    if (!karte.innen && S.funde) {
+      (karte.stationen || []).forEach(function (st) {
+        if (st.typ !== 'fund' || S.funde[st.id]) return;
+        var fx = st.x * K, fy = (st.y + 1) * K;
+        if (fx - cx < -20 || fy - cy < -20 || fx - cx > viewW + 24 || fy - cy > viewH + 24) return;
+        dinge.push({ y: fy, x: fx, w: K, art: st.was === 'schnaps' ? 'schnaps' : st.was === 'joint' ? 'fundJoint' : 'fundKasten' });
+      });
+    }
     S.npcs.forEach(function (n) { if (n.aktiv && n.karteId === karte.id) dinge.push({ y: n.y, art: 'npc', n: n }); });
     (S.stadtvolk || []).forEach(function (v) {
       if (v.karteId !== karte.id) return;
@@ -734,6 +748,9 @@
       else if (d.art === 'laterne') { if (SH.a > 0.02) ellipse(c, px + 8 + SH.dx * 6, fy - 1, 5, 1.2, 'rgba(50,30,80,' + SH.a + ')'); Sz.zeichneSprite(R, c, 'laterne', 14, 28, 7, 26, px + 8, fy - 0.5, function (hc) { Sz.laterneBild(hc); }); }
       else if (d.art === 'bank') Sz.zeichneSprite(R, c, 'bank', 22, 18, 11, 16, px + 8, fy - 1, function (hc) { Sz.bankBild(hc); });
       else if (d.art === 'kasten') Sz.zeichneSprite(R, c, 'kasten', 14, 12, 7, 11, px + 8, fy - 1, function (hc) { Sz.kastenBild(hc); });
+      else if (d.art === 'fundKasten') { c.save(); c.translate(px + 5, fy - 1); c.scale(0.62, 0.62); Sz.kastenBild(c); c.restore(); }
+      else if (d.art === 'schnaps') zeichneSchnaps(c, px + 5, fy - 6);
+      else if (d.art === 'fundJoint') zeichneJoint(c, px + 5, fy - 8, t);
       else if (d.art === 'brunnen') { Sz.zeichneSprite(R, c, 'brunnen', 40, 42, 20, 36, px + 16, fy - 3, function (hc) { Sz.brunnenBild(hc); }); Sz.brunnenWasser(c, px + 16, fy - 3, t); }
       else if (d.art === 'tribuene') {
         for (var ti = 0; ti < 3; ti++) rr(c, px + 1, fy - 4 - ti * 6, d.w - 2, 5, ti % 2 ? '#8a6a4a' : '#a07850', 1.2, '#4a3560', 0.55);
@@ -839,6 +856,11 @@
       var pop = Saufi.Spiel.aktionsPopup(S);
       if (pop) {
         var popX = pop.x - cx - 32, popY = pop.y - cy - 16;
+        // Am Kartenrand sonst abgeschnitten: das 64×12-Schild bleibt im Bild.
+        if (popX < 2) popX = 2;
+        if (popY < 2) popY = 2;
+        if (popX > viewW - 66) popX = Math.max(2, viewW - 66);
+        if (popY > viewH - 14) popY = Math.max(2, viewH - 14);
         var popSichtbar = popX > -70 && popY > -20 && popX < viewW + 8 && popY < viewH + 8;
         if (popSichtbar) zeichneAktionsPopup(c, popX, popY, pop.text);
         R.aktionsPopups.push({ id: pop.id, text: pop.text, x: popX, y: popY, sichtbar: popSichtbar });
