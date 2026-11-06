@@ -4,6 +4,11 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v34
+
+- Über Jule, Samir und Nico im Südpark steigen kleine Rauchwölkchen auf. Sie sind weich, halb durchsichtig, ziehen nach oben und verblassen. Es bleiben vier Puffs, ohne extra Zufall, damit es auf dem Handy billig bleibt.
+- Wer an die Gruppe herankommt, sieht das Aktionspopup „Joint erhalten“, im selben Stil wie der andere Aktionshinweis. Der Pfeil und der E-Spruch bleiben. HUD, Knöpfe und Rucksack bleiben, wo sie sind.
+
 ## Neu in v33
 
 - Der schwebende Hinweis „E: …“ über der Welt ist weg. Der Aktionsknopf bleibt, im Leerlauf als Hand.
