@@ -7,6 +7,12 @@
   var Saufi = g.Saufi = g.Saufi || {};
   var K = 16;
   var NAH_PX = 56, REDE_PX = 40, PAUSE = 9, BLASE_SEK = Saufi.Hinweise.BLASE_SEK;
+  // Südpark: Jule, Samir, Nico. Kein Konsum, nur der Fleck, an dem sie stehen.
+  var PARK_SPRUECHE = [
+    'Jule: Des isch unser Fleck.',
+    'Samir: Der Südpark hält die Runde aus.',
+    'Nico: Setz dich, der Kasten bleibt aber zu.'
+  ];
 
   var LISTE = {
     wirt: {
@@ -236,9 +242,18 @@
     ];
     return list;
   }
+  function parkSpruch(list, n) {
+    var gruppe = (list || []).filter(function (a) { return a && a.id && a.id.indexOf('jugend_') === 0; });
+    if (!gruppe.length) return '';
+    var i = (n | 0) % gruppe.length;
+    var text = PARK_SPRUECHE[i % PARK_SPRUECHE.length];
+    gruppe[i].blase = { text: text, rest: BLASE_SEK };
+    return text;
+  }
   function bewege(list, dt) {
     if (!dt || dt < 0) return;
     (list || []).forEach(function (a) {
+      if (a && a.blase) { a.blase.rest -= dt; if (a.blase.rest <= 0) a.blase = null; }
       if (!a || a.modus === 'steh' || a.modus === 'park') { a.laeuft = false; return; }
       if (a.modus === 'ellipse') {
         a.winkel += a.dreh * dt;
@@ -282,6 +297,6 @@
   Saufi.Stadtvolk = {
     LISTE: LISTE, NAH_PX: NAH_PX, REDE_PX: REDE_PX, PAUSE: PAUSE,
     erstelle: erstelle, naechster: naechster, inReichweite: inReichweite, sprich: sprich, fuerId: fuerId, aufBank: aufBank, update: update,
-    leben: leben, bewege: bewege
+    leben: leben, bewege: bewege, PARK_SPRUECHE: PARK_SPRUECHE, parkSpruch: parkSpruch
   };
 })(globalThis);

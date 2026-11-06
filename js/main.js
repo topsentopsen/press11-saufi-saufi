@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.32', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.33', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function wendeCharStats(S, char) {
@@ -608,6 +608,11 @@
         if (Saufi.Ereignisse.Joint.nimm(S.joint)) sag(S, 'Dicke Tüte eingesteckt (Spiel-Item). R: nächster Effekt doppelt, danach 30 s schwammig.', 4, 'info');
         else sag(S, 'Hier liegt nichts mehr.', 1.5, 'info');
         break;
+      case 'jointgruppe':
+        S.parkN = (S.parkN | 0);
+        Saufi.Stadtvolk.parkSpruch(S.leben, S.parkN);
+        S.parkN += 1;
+        break;
       case 'flasche':
         if (S.flascheGenommen) sag(S, 'Hier liegt nichts mehr.', 1.5, 'info'); else { S.flascheGenommen = true; S.flaschen = Math.min(flaschenMax(S), S.flaschen + 1); sag(S, 'Wasserflasche gefunden (' + flaschenText(S) + ').', 2, 'gut'); T.pling(); }
         break;
@@ -743,9 +748,30 @@
     if (!st) return Saufi.Stadtvolk.inReichweite(S.stadtvolk, S.karte.id, sp.x, sp.y) ? 'E: Quatschen' : '';
     var t = { tuer: 'E: ' + (st.label || 'Tür'), ausgang: 'E: Hinaus', buffet: 'E: Frühstück', kueche: 'E: Essen bestellen', spender: 'E: Wasser', tresen_restaurant: 'E: Bestellen', tresen_kneipe: 'E: Bestellen',
       bar_disko: 'E: Bestellen', stammtisch: Saufi.Runden.aktive(S.runden) && Saufi.Runden.aktive(S.runden).ort === S.ort ? 'E: PROST!' : 'E: Stammtisch', sofa: 'E: Ausruhen', bank: 'E: Ausruhen', tanz: 'E: Tanzen (im Takt!)',
-      jukebox: 'E: Musik', joint: 'E: Aufheben', flasche: 'E: Aufheben', tribuene: 'E: Bier auf der Tribüne', bierkasten: 'E: Bier', rezeption: 'E: Rezeption' }[st.typ];
+      jukebox: 'E: Musik', joint: 'E: Aufheben', jointgruppe: 'E: Quatschen', flasche: 'E: Aufheben', tribuene: 'E: Bier auf der Tribüne', bierkasten: 'E: Bier', rezeption: 'E: Rezeption' }[st.typ];
     if (S.gm && S.gm.id && /^(tresen_|bar_)/.test(st.typ)) return 'E: Siebolds Trinkspiel';
     return t || '';
+  }
+  // Alle Stellen, an denen E etwas tut. Einmal-Fundsachen fallen weg, sobald sie weg sind.
+  // Vor v0.33 hatte keiner davon einen eigenen wippenden Pfeil (auch die Bierkästen nicht).
+  function aktionsPunkte(S) {
+    var out = [], karte = S && S.karte;
+    if (!karte) return out;
+    (karte.stationen || []).forEach(function (st) {
+      if (st.typ === 'joint' && S.joint && S.joint.gefunden) return;
+      if (st.typ === 'flasche' && S.flascheGenommen) return;
+      out.push({
+        id: st.id, typ: st.typ, label: st.label || '',
+        x: (st.x + st.w / 2) * K,
+        y: st.y * K,
+        vorherMarkiert: false
+      });
+    });
+    (S.stadtvolk || []).forEach(function (v) {
+      if (!v || v.karteId !== karte.id) return;
+      out.push({ id: v.id, typ: 'stadtvolk', label: v.name || v.id, x: v.px, y: v.py - 16, vorherMarkiert: false });
+    });
+    return out;
   }
   function berechnePfeil(S) {
     var n = Saufi.Runden.naechste(S.runden);
@@ -1349,7 +1375,7 @@
   }
 
   Saufi.Spiel = {
-    VERSION: VERSION, neu: neuesSpiel, update: update, beende: beende, aktion: aktion, waehle: waehle, runde: runde, wasserTrinken: wasserTrinken, itemNutzen: itemNutzen, kontext: kontext, hilfeText: hilfeText, toggleMusik: toggleMusik, spontanePruefen: spontanePruefen, tippeWelt: tippeWelt, weltPunkt: weltPunkt, tippZiel: tippZiel, spontanWahl: spontanWahl, betreten: betreten,
+    VERSION: VERSION, neu: neuesSpiel, update: update, beende: beende, aktion: aktion, waehle: waehle, runde: runde, wasserTrinken: wasserTrinken, itemNutzen: itemNutzen, kontext: kontext, hilfeText: hilfeText, aktionsPunkte: aktionsPunkte, toggleMusik: toggleMusik, spontanePruefen: spontanePruefen, tippeWelt: tippeWelt, weltPunkt: weltPunkt, tippZiel: tippZiel, spontanWahl: spontanWahl, betreten: betreten,
     wasserAnzeige: wasserAnzeige, aktionAnzeige: aktionAnzeige, tonIcon: tonIcon,
     betreten: betreten, verlassen: verlassen, schnappschuss: schnappschuss, geheZuStation: geheZuStation, setze: setze, starteSpiel: starteSpiel, stationDe: stationDe, waehleFigur: waehleFigur, djAktualisieren: djAktualisieren, probstAbgelenkt: probstAbgelenkt, probstSchaut: probstSchaut,
     pauseMenue: pauseMenue, playlistOverlay: playlistOverlay, infoOverlay: infoOverlay, stammtisch: stammtisch, tanzen: tanzen, stub: stub,
@@ -1904,11 +1930,12 @@
   }
   // Daumenbogen unten rechts: E in der Ecke, Wasser daneben, F und Item höher und kleiner.
   function daumenBogen() {
+    // Gleiche Größe, gleiche Grundlinie (y), 8 px Luft. F und Item bleiben kleiner und höher.
     return {
       aktion: { x: 0, y: 0, w: 96, h: 96 },
-      wasser: { x: 100, y: 8, w: 88, h: 88 },
-      item: { x: 20, y: 100, w: 64, h: 64 },
-      f: { x: 92, y: 100, w: 60, h: 60 }
+      wasser: { x: 104, y: 0, w: 96, h: 96 },
+      item: { x: 20, y: 104, w: 64, h: 64 },
+      f: { x: 92, y: 104, w: 60, h: 60 }
     };
   }
   function berechneSkala(availW, availH, logW, logH, touch, minSchrift) {

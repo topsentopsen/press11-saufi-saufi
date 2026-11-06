@@ -113,6 +113,8 @@
     k.station('bank_park_a', 'bank', 4, 33, 1, 1, 'Bank im Südpark');
     k.station('bank_park_b', 'bank', 9, 33, 1, 1, 'Bank am Teich');
     k.station('bank_park_c', 'bank', 6, 37, 1, 1, 'Bank am Parkweg');
+    // Jule (7,34), Samir (10,33), Nico (11,34): eine Station für die Gruppe, nicht drei einzelne.
+    k.station('park_joint', 'jointgruppe', 7, 33, 5, 2, 'Parkrunde');
     [[2, 32], [11, 32], [2, 38], [18, 38], [32, 40], [8, 44]].forEach(function (p) {
       if (!k.blockiert(p[0], p[1]) && k.tile(p[0], p[1]) !== T.WEG) k.setze(p[0], p[1], T.LATERNE);
     });

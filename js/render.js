@@ -15,6 +15,8 @@
   // HUD_SK_HOCH_TOUCH: linkes HUD im Handy-Hochformat. Vorher (54/62)*0.85 ≈ 0.74, jetzt +30 % → 0.96.
   var WELT_FLAECHE_HOCH = 1.0, WELT_FLAECHE_QUER = 4.0, MIN_WELT_ZOOM = 0.5, UI_RESERVE_HOCH = 80, UI_RESERVE_HOCH_TOUCH = 0, STADT_PX_H = 960;
   var HUD_SK_HOCH_TOUCH = 0.96;
+  // Crew-Streifen in CSS-px. Der Body zieht die Safe-Area ab, die Leiste sitzt auf der Canvas-Unterkante.
+  var CREW_CSS = 36, KNOPF_CSS = 96, KNOPF_LUFT = 8;
   // Sichtbare #oben-Knoepfe: n * 44 + (n - 1) * Abstand + 8 CSS-px Luft vor der Uhr.
   function btnBandCss(n, gap) {
     n = n | 0;
@@ -445,6 +447,40 @@
   }
 
   function blaseSchneidet(a, b) { return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y); }
+  function cssSkal(R) {
+    var s = (R.cssW > 0 && R.W > 0) ? (R.cssW / R.W) : 1;
+    return s > 0 ? s : 1;
+  }
+  // Bedienelemente in Bildschirm-Logikpixeln (W×H). Blasen weichen daneben aus, nicht darauf.
+  function bedienRects(R) {
+    var sCss = cssSkal(R), rects = [];
+    function add(x, y, w, h) { if (w > 1 && h > 1) rects.push({ x: x, y: y, w: w, h: h }); }
+    if (R.hudUhr) add(R.hudUhr.x, R.hudUhr.y, R.hudUhr.w, R.hudUhr.h);
+    if (R.hudLinks) add(R.hudLinks.x, R.hudLinks.y, R.hudLinks.w, R.hudLinks.h);
+    if (R.hudRunde) add(R.hudRunde.x, R.hudRunde.y, R.hudRunde.w, R.hudRunde.h);
+    if (R.teamLeiste) add(R.teamLeiste.x, R.teamLeiste.y, R.teamLeiste.w, R.teamLeiste.h);
+    if (R.hochkant && R.touch) {
+      var cW = R.W * sCss, cH = R.H * sCss;
+      var boden = CREW_CSS + KNOPF_LUFT;
+      var bw = KNOPF_CSS / sCss, bh = KNOPF_CSS / sCss;
+      var aktX = (cW - 6 - KNOPF_CSS) / sCss;
+      var aktY = (cH - boden - KNOPF_CSS) / sCss;
+      add(aktX, aktY, bw, bh);
+      add(aktX - (KNOPF_LUFT + KNOPF_CSS) / sCss, aktY, bw, bh);
+      var zoomTop = R.hudLinks ? (R.hudLinks.y + R.hudLinks.h) * sCss + 10 : 120;
+      add(6 / sCss, zoomTop / sCss, 44 / sCss, 92 / sCss);
+      add(0, (cH - boden - 110) / sCss, 130 / sCss, 110 / sCss);
+      var band = R.hudUhr && R.hudUhr.btnBand ? R.hudUhr.btnBand : Math.ceil(102 / sCss);
+      add(R.W - band, 0, band, 50 / sCss);
+    } else if (R.touch) {
+      var kS = Math.max(0.5, sCss);
+      var kE = Math.max(44 / kS, 48 * 0.85), kW2 = Math.max(44 / kS, 44 * 0.85), padQ = 6 / kS;
+      add(R.W - padQ - kE, R.H - padQ - kE - kW2 - 4 / kS, kE, kE);
+      add(R.W - padQ - kW2, R.H - padQ - kW2, kW2, kW2);
+      add(0, R.H - 120 / kS, 120 / kS, 120 / kS);
+    }
+    return rects;
+  }
   // safe: { rects, minX, minY, maxX, maxY } in denselben Koordinaten wie die Blase (Kamerabild, vor dem Zoom).
   function blase(c, x, y, s, vermeide, belegt, safe) {
     var pad = 8, maxW = Math.min(VW - 10, 150), ziel = 8;
@@ -456,63 +492,83 @@
     var minY = safe && safe.minY != null ? safe.minY : 2;
     var maxX = safe && safe.maxX != null ? safe.maxX : VW - 2;
     var maxY = safe && safe.maxY != null ? safe.maxY : VH - 2;
-    var bx = Math.round(x - bw / 2), by = Math.round(y - bh - 4);
-    var rect = { x: bx, y: by, w: bw, h: bh };
-    function schiebe(block) {
-      if (!block || !blaseSchneidet(rect, block)) return;
-      // Rechts (Daumen, Jukebox-Seite) lieber nach links ausweichen als über den Knopf.
-      if (block.x > VW * 0.5) {
-        var linksZuerst = Math.round(block.x - bw - 4);
-        if (linksZuerst >= minX) {
-          rect.x = linksZuerst;
-          if (!blaseSchneidet(rect, block)) return;
-        }
-      }
-      var oben = Math.round(block.y - bh - 4);
-      if (oben >= minY) { rect.y = oben; return; }
-      var links = Math.round(block.x - bw - 4);
-      if (links >= minX) { rect.x = links; return; }
-      rect.x = Math.round(block.x + block.w + 4);
+    var rect = { x: Math.round(x - bw / 2), y: Math.round(y - bh - 4), w: bw, h: bh };
+    var knoepfe = (safe && safe.rects) ? safe.rects : [];
+    function innerhalb(r) {
+      if (r.x < minX) r.x = minX;
+      if (r.y < minY) r.y = minY;
+      if (r.x + r.w > maxX) r.x = Math.max(minX, maxX - r.w);
+      if (r.y + r.h > maxY) r.y = Math.max(minY, maxY - r.h);
     }
-    // Schild zuerst, dann HUD/Zoom/Bedienleiste (safe.rects), dann Stapel, dann noch einmal die Leisten.
-    schiebe(vermeide);
-    if (safe && safe.rects) safe.rects.forEach(schiebe);
-    if (belegt) {
-      for (var gi = 0; gi < 6; gi++) {
-        var hit = belegt.filter(function (r) { return blaseSchneidet(rect, r); })[0];
-        if (!hit) break;
-        rect.y = Math.round(hit.y - bh - 3);
+    function trifft(r, list) {
+      var i;
+      for (i = 0; i < list.length; i++) if (list[i] && blaseSchneidet(r, list[i])) return list[i];
+      return null;
+    }
+    innerhalb(rect);
+    var guard = 0, hit;
+    while (guard < 10) {
+      hit = trifft(rect, vermeide ? [vermeide].concat(knoepfe).concat(belegt || []) : knoepfe.concat(belegt || []));
+      if (!hit) break;
+      guard++;
+      var opts = [
+        { x: Math.round(hit.x - bw - 6), y: rect.y },
+        { x: Math.round(hit.x + hit.w + 6), y: rect.y },
+        { x: rect.x, y: Math.round(hit.y - bh - 6) },
+        { x: rect.x, y: Math.round(hit.y + hit.h + 6) }
+      ];
+      var best = null, bestD = 1e9, oi;
+      for (oi = 0; oi < opts.length; oi++) {
+        var t = { x: opts[oi].x, y: opts[oi].y, w: bw, h: bh };
+        innerhalb(t);
+        if (trifft(t, knoepfe)) continue;
+        var d = Math.hypot((t.x + bw / 2) - x, (t.y + bh / 2) - y);
+        if (oi < 2) d -= 1;
+        if (d < bestD) { bestD = d; best = t; }
+      }
+      if (!best) break;
+      rect.x = best.x; rect.y = best.y;
+    }
+    if (trifft(rect, knoepfe)) {
+      var notnagel = [
+        { x: minX, y: rect.y, w: bw, h: bh },
+        { x: Math.max(minX, maxX - bw), y: rect.y, w: bw, h: bh },
+        { x: rect.x, y: minY, w: bw, h: bh }
+      ];
+      var ni;
+      for (ni = 0; ni < notnagel.length; ni++) {
+        innerhalb(notnagel[ni]);
+        if (!trifft(notnagel[ni], knoepfe)) { rect.x = notnagel[ni].x; rect.y = notnagel[ni].y; break; }
       }
     }
-    if (safe && safe.rects) safe.rects.forEach(schiebe);
-    if (rect.x < minX) rect.x = minX;
-    if (rect.y < minY) rect.y = minY;
-    if (rect.x + rect.w > maxX) rect.x = Math.max(minX, maxX - rect.w);
-    if (rect.y + rect.h > maxY) rect.y = Math.max(minY, maxY - rect.h);
-    bx = Math.round(rect.x); by = Math.round(rect.y);
+    var bx = Math.round(rect.x), by = Math.round(rect.y);
     if (belegt) belegt.push({ x: bx, y: by, w: bw, h: bh });
     panel(c, bx, by, bw, bh, P.uiFlaeche, 5);
     poly(c, [[x - 2.2, by + bh - 0.8], [x + 2.2, by + bh - 0.8], [x, by + bh + 3.4]], P.uiFlaeche);
     textInBox(c, s, bx + 3, by + 1, bw - 6, bh - 2, ziel, { col: P.uiTinte, ausr: 'center' });
   }
-  // Sichtfenster der Blase: nicht unter HUD, Zoom, Bedien-Overlay und nicht aus dem Welt-Clip.
+  // Sichtfenster der Blase: HUD, Zoom, Knöpfe, Crew. Koordinaten wie die Blase (durch Zoom geteilt).
   function blasenRahmen(R) {
     var z = R.aktuellerWeltZoom > 0 ? R.aktuellerWeltZoom : 1;
     function v(r) { return { x: r.x / z, y: r.y / z, w: r.w / z, h: r.h / z }; }
-    var rects = [];
-    var minY = 2, maxY = VH - 2;
-    if (R.hochkant && R.touch) {
-      rects.push(v({ x: 0, y: 0, w: Math.min(W, 210), h: 40 }));
-      rects.push(v({ x: 0, y: 44, w: 112, h: 50 }));
-      rects.push(v({ x: Math.max(0, W - 176), y: Math.max(0, H - 168), w: 176, h: 168 }));
-      rects.push(v({ x: 0, y: Math.max(0, H - 140), w: 128, h: 140 }));
-      var sCss = (R.cssW > 0 && W > 0) ? (R.cssW / W) : 1;
-      var zoomY = 50 + Math.round(40 * HUD_SK_HOCH_TOUCH) + 10 / sCss;
-      rects.push(v({ x: 6 / sCss, y: zoomY, w: 52 / sCss, h: 92 / sCss }));
-      minY = 4;
-      maxY = VH - 2;
-    } else rects.push(v({ x: 0, y: 0, w: 108, h: 68 }));
-    return { rects: rects, minX: 2, minY: minY, maxX: VW - 2, maxY: Math.min(VH - 2, maxY) };
+    var rects = bedienRects(R).map(v);
+    if (!rects.length) rects.push(v({ x: 0, y: 0, w: 108, h: 68 }));
+    return { rects: rects, minX: 2, minY: 2, maxX: VW - 2, maxY: VH - 2 };
+  }
+  function zeichneBlasen(R) {
+    var list = R.blasen || [];
+    if (!list.length) { R.blasenBoxen = []; return; }
+    var c = R.ctx, zoom = R.aktuellerWeltZoom > 0 ? R.aktuellerWeltZoom : 1;
+    var belegt = [], safe = blasenRahmen(R);
+    c.save();
+    c.scale(zoom, zoom);
+    list.forEach(function (b) { blase(c, b.x, b.y, b.text, b.vermeide, belegt, safe); });
+    c.restore();
+    R.blasenBoxen = belegt.map(function (r) { return { x: r.x * zoom, y: r.y * zoom, w: r.w * zoom, h: r.h * zoom }; });
+  }
+  function pfeilBob(t) { return Math.sin((t || 0) * 5) * 2.4; }
+  function zeichneAktionsPfeil(c, x, y) {
+    poly(c, [[x - 5, y - 9], [x + 5, y - 9], [x, y]], '#ffd75e', P.kontur, 1);
   }
 
   function zeichneJoint(c, x, y, t) {
@@ -715,7 +771,10 @@
         figur(c, v.look, v.px - cx, v.py - cy, { dir: 'unten', t: t, sitzt: v.haltung === 'sitzt' });
         if (v.blase) R.blasen.push({ x: v.px - cx, y: v.py - cy - 25, text: v.name + ': ' + v.blase.text, vermeide: null });
       }
-      else if (d.art === 'leben') zeichneLeben(c, d.a, cx, cy, t);
+      else if (d.art === 'leben') {
+        zeichneLeben(c, d.a, cx, cy, t);
+        if (d.a.blase && d.a.blase.text) R.blasen.push({ x: d.a.px - cx, y: d.a.py - cy - 22, text: d.a.blase.text, vermeide: null });
+      }
       else if (d.art === 'heckeBusch') heckeBusch(c, d.pose.heckeX - cx, d.pose.heckeY - cy);
       else if (d.art === 'heckeProbst') {
         var pp = d.pose.probst, qx = pp.x - cx, qy = pp.y - cy, qs = 1 - 0.4 * pp.quetsch;
@@ -818,9 +877,7 @@
       else { c.fillStyle = '#ffe066'; c.beginPath(); c.moveTo(mx, my - 1 * ms - Math.abs(Math.sin(mk.t * 5)) * 3 * ms); c.lineTo(mx - 2.5 * ms, my - 6 * ms - Math.abs(Math.sin(mk.t * 5)) * 3 * ms); c.lineTo(mx + 2.5 * ms, my - 6 * ms - Math.abs(Math.sin(mk.t * 5)) * 3 * ms); c.closePath(); c.fill(); }
       c.restore();
     }
-    // Blasen nach Lichtern (lesbar ueber Fensterlichtern)
-    var belegt = [], blasenSafe = blasenRahmen(R);
-    (R.blasen || []).forEach(function (b) { blase(c, b.x, b.y, b.text, b.vermeide, belegt, blasenSafe); });
+    // blasen nach Lichtern gesammelt, gezeichnet erst nach dem HUD (zeichneBlasen).
     var nacht = karte.innen ? 0 : Sz.nachtGrad(S.uhr.minute / 60);
     if (nacht > 0.05) {                                           // weiche Vignette in der Nacht
       var vg = c.createRadialGradient(viewW / 2, viewH / 2, viewH * 0.28, viewW / 2, viewH / 2, Math.max(viewW, viewH) * 0.72);
@@ -830,6 +887,17 @@
     }
     // Starship-Overlay in Bildschirmkoordinaten (nur Stadt, nach Lichtern und Vignette)
     if (!karte.innen && Saufi.S21 && Saufi.S21.starshipStand) zeichneStarshipFlug(c, S, viewW, viewH, t);
+    // Wippender Pfeil über jedem Aktionspunkt. Spitze zeigt nach unten.
+    R.aktionsPfeile = [];
+    if (S.zustand !== 'start' && Saufi.Spiel && Saufi.Spiel.aktionsPunkte) {
+      var bobP = pfeilBob(S.t);
+      Saufi.Spiel.aktionsPunkte(S).forEach(function (p) {
+        var ax = p.x - cx, ay = p.y - cy - 14 + bobP;
+        if (ax < -24 || ay < -36 || ax > viewW + 24 || ay > viewH + 36) return;
+        zeichneAktionsPfeil(c, ax, ay);
+        R.aktionsPfeile.push({ id: p.id, typ: p.typ, x: ax, y: ay, bob: bobP });
+      });
+    }
   }
 
   function kran(c, px, fy, t, nr) {
@@ -1320,7 +1388,7 @@
       } else bySco = H - (R.touch ? Math.ceil(120 / Math.max(0.5, sCss)) : 22) - 18;
       panel(c, bxSco - 6, bySco - 3, bwSco + 12, 15, 'rgba(42,35,66,0.92)', 6);
       rr(c, bxSco, bySco, bwSco, 9, 'rgba(255,255,255,0.12)', 4.5, P.kontur, 0.7); if (f > 0.02) rr(c, bxSco + 0.8, bySco + 0.8, (bwSco - 1.6) * f, 7.4, pulse ? '#ffffff' : P.neonPink, 3.7);
-      textInBox(c, S.boostAktiv ? 'HYPER HYPER!' : (f >= 1 ? 'R: HYPER-BOOST!' : 'SCOOTER · E tanzen'), bxSco, bySco, bwSco, 9, 7, { col: S.boostAktiv ? P.neonGelb : '#ffffff', ausr: 'center', kontur: 'rgba(30,10,60,0.9)', maxZeilen: 1 });
+      textInBox(c, S.boostAktiv ? 'HYPER HYPER!' : (f >= 1 ? 'R: HYPER-BOOST!' : 'SCOOTER · tanzen'), bxSco, bySco, bwSco, 9, 7, { col: S.boostAktiv ? P.neonGelb : '#ffffff', ausr: 'center', kontur: 'rgba(30,10,60,0.9)', maxZeilen: 1 });
     }
     // Navigationspfeil: Referenz = Unterkante linkes HUD (Hoch) bzw. Uhr (Quer)
     var pfeilZoom = R.aktuellerWeltZoom != null ? R.aktuellerWeltZoom : WELT_ZOOM;
@@ -1331,13 +1399,12 @@
     var dialogRect = null, hilfeRect = null;
     var cursorY;
     if (topBand) {
-      // Daumenzone rechts (E/Trinken plus die Reihe darüber) und Stick links bleiben frei.
-      // Crew liegt über der ganzen Breite, 8 CSS-px über dem Wasser-Knopf (unten 20 + Höhe 80).
+      // Daumenzone rechts und Stick links bleiben frei.
+      // Crew liegt auf der Canvas-Unterkante, unter Wasser und Hand. Safe-Area zieht der Body ab.
       var band = Math.round(Math.min(156, Math.max(112, H * 0.2)));
-      var stripCss = 36, knopfTopCss = R.daumen ? 176 : 100, lueckeCss = 8;
       var scBand = Math.max(0.5, sCss);
-      var stripH = S.overlay ? 0 : (stripCss / scBand);
-      var stripTop = H - (knopfTopCss + lueckeCss + stripCss) / scBand;
+      var stripH = S.overlay ? 0 : (CREW_CSS / scBand);
+      var stripTop = H - stripH;
       var bandTop = H - band;
       var cursorBottom = Math.min(bandTop, stripH ? stripTop : bandTop) - 4;
       R.teamLeiste = null;
@@ -1352,7 +1419,7 @@
         cursorBottom = cy - 4;
         return { x: cx, y: cy, w: cw, h: hochK };
       }
-      if (S.hilfe) {
+      if (S.hilfe && !/^E:/.test(S.hilfe)) {
         hilfeRect = card(S.hilfe, 28, 'rgba(255,248,238,0.96)', 9);
         R.hudHilfe = hilfeRect;
       } else R.hudHilfe = null;
@@ -1375,7 +1442,7 @@
       // Reserve von oben: Uhr → Banner → Hinweis → Dialog; Summe ≤ Reserve−2; Abstand ≥ 2
       cursorY = (R.hudRunde ? R.hudRunde.y + R.hudRunde.h + 2 : (R.hudUhr.y + R.hudUhr.h + 2));
       var freiRes = H - 2 - cursorY;
-      if (S.hilfe) {
+      if (S.hilfe && !/^E:/.test(S.hilfe)) {
         var hilfeH = Math.min(12, freiRes);
         var hm = textInBox(c, S.hilfe, 0, 0, Math.min(W - 24, Math.round(W * 0.85)) - 8, hilfeH, 7, { ausr: 'center', mess: true, maxZeilen: 1 });
         var hw = Math.min(W - 16, Math.round(hm.w) + 14);
@@ -1429,7 +1496,7 @@
         R.hudDialog = dialogRect;
         stackBottom = dialogRect.y - 4;
       } else R.hudDialog = null;
-      if (S.hilfe) {
+      if (S.hilfe && !/^E:/.test(S.hilfe)) {
         var hmQ = textInBox(c, S.hilfe, 0, 0, maxBubbleW - 8, 14, 8, { ausr: 'center', mess: true, maxZeilen: 1 });
         var hwQ = Math.min(maxBubbleW, Math.round(hmQ.w) + 14), hyQ = stackBottom - 12;
         hilfeRect = { x: Math.round(W / 2 - hwQ / 2), y: hyQ, w: hwQ, h: 12 };
@@ -2021,6 +2088,7 @@
     }
     c.restore();
     hud(R, S);
+    zeichneBlasen(R);
     versionsAnzeige(R, true);
     if (S.zustand === 'umgefallen') pressFBild(R, S);
     if (S.overlay) {
@@ -2050,6 +2118,6 @@
     get WELT_FLAECHE() { return WELT_FLAECHE; }, get WELT_ZOOM() { return WELT_ZOOM; },
     WELT_FLAECHE_HOCH: WELT_FLAECHE_HOCH, WELT_FLAECHE_QUER: WELT_FLAECHE_QUER, MIN_WELT_ZOOM: MIN_WELT_ZOOM,
     HUD_SK_HOCH_TOUCH: HUD_SK_HOCH_TOUCH, ZOOM_STUFEN: ZOOM_STUFEN, clampZoomFaktor: clampZoomFaktor, zoomStufe: zoomStufe,
-    btnBandCss: btnBandCss
+    btnBandCss: btnBandCss, bedienRects: bedienRects, CREW_CSS: CREW_CSS, KNOPF_CSS: KNOPF_CSS, KNOPF_LUFT: KNOPF_LUFT, pfeilBob: pfeilBob
   };
 })(globalThis);
