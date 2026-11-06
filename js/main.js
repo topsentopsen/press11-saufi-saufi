@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.33', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.34', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function wendeCharStats(S, char) {
@@ -752,6 +752,21 @@
     if (S.gm && S.gm.id && /^(tresen_|bar_)/.test(st.typ)) return 'E: Siebolds Trinkspiel';
     return t || '';
   }
+  // Nähe-Popup an der Parkgruppe. Gleicher Abstand wie die anderen Nähe-Popups (Stadtvolk).
+  // Gibt kein Item: Rucksack und Dicke Tüte bleiben unberührt. Pfeil und E-Spruch bleiben.
+  function aktionsPopup(S) {
+    if (!S || S.zustand !== 'spiel' || S.overlay || S.ort !== 'stadt' || !S.spieler) return null;
+    var sp = S.spieler, reich = (Saufi.Stadtvolk && Saufi.Stadtvolk.NAH_PX) || 56;
+    var list = S.leben || [], i, a, nah = false, ax = 0, ay = 0, n = 0;
+    for (i = 0; i < list.length; i++) {
+      a = list[i];
+      if (!a || !a.id || a.id.indexOf('jugend_') !== 0) continue;
+      ax += a.px; ay += a.py; n += 1;
+      if (Math.hypot(a.px - sp.x, a.py - sp.y) <= reich) nah = true;
+    }
+    if (!n || !nah) return null;
+    return { id: 'park_joint', text: 'Joint erhalten', x: ax / n, y: ay / n - 18 };
+  }
   // Alle Stellen, an denen E etwas tut. Einmal-Fundsachen fallen weg, sobald sie weg sind.
   // Vor v0.33 hatte keiner davon einen eigenen wippenden Pfeil (auch die Bierkästen nicht).
   function aktionsPunkte(S) {
@@ -1375,7 +1390,7 @@
   }
 
   Saufi.Spiel = {
-    VERSION: VERSION, neu: neuesSpiel, update: update, beende: beende, aktion: aktion, waehle: waehle, runde: runde, wasserTrinken: wasserTrinken, itemNutzen: itemNutzen, kontext: kontext, hilfeText: hilfeText, aktionsPunkte: aktionsPunkte, toggleMusik: toggleMusik, spontanePruefen: spontanePruefen, tippeWelt: tippeWelt, weltPunkt: weltPunkt, tippZiel: tippZiel, spontanWahl: spontanWahl, betreten: betreten,
+    VERSION: VERSION, neu: neuesSpiel, update: update, beende: beende, aktion: aktion, waehle: waehle, runde: runde, wasserTrinken: wasserTrinken, itemNutzen: itemNutzen, kontext: kontext, hilfeText: hilfeText, aktionsPunkte: aktionsPunkte, aktionsPopup: aktionsPopup, toggleMusik: toggleMusik, spontanePruefen: spontanePruefen, tippeWelt: tippeWelt, weltPunkt: weltPunkt, tippZiel: tippZiel, spontanWahl: spontanWahl, betreten: betreten,
     wasserAnzeige: wasserAnzeige, aktionAnzeige: aktionAnzeige, tonIcon: tonIcon,
     betreten: betreten, verlassen: verlassen, schnappschuss: schnappschuss, geheZuStation: geheZuStation, setze: setze, starteSpiel: starteSpiel, stationDe: stationDe, waehleFigur: waehleFigur, djAktualisieren: djAktualisieren, probstAbgelenkt: probstAbgelenkt, probstSchaut: probstSchaut,
     pauseMenue: pauseMenue, playlistOverlay: playlistOverlay, infoOverlay: infoOverlay, stammtisch: stammtisch, tanzen: tanzen, stub: stub,

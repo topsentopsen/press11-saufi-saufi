@@ -68,7 +68,39 @@
     staub(S, weltX, weltY, nacht);
   }
 
+  // Parkgruppe: feste, wenige Wölkchen. Kein S.rng, kein Wachstum, zwei Kreise pro Puff.
+  var RAUCH_N = 4, RAUCH_STEIG = 28, RAUCH_TEMPO = 0.2, RAUCH_ALPHA = 0.5;
+  var RAUCH_FARBE = 'rgba(244,244,248,1)';
+  function gruppenAnker(list) {
+    var n = 0, x = 0, y = 0, i, a;
+    for (i = 0; i < (list || []).length; i++) {
+      a = list[i];
+      if (!a || !a.id || a.id.indexOf('jugend_') !== 0) continue;
+      x += a.px; y += a.py; n += 1;
+    }
+    if (!n) return null;
+    return { x: x / n, y: y / n - 18, n: n };
+  }
+  function rauch(t, x, y) {
+    var out = [], i, u, drift;
+    t = t || 0;
+    for (i = 0; i < RAUCH_N; i++) {
+      u = (t * RAUCH_TEMPO + i / RAUCH_N) % 1;
+      if (u < 0) u += 1;
+      drift = Math.sin(t * 0.85 + i * 2.2) * (2.2 + u * 2.4);
+      out.push({
+        x: x + drift,
+        y: y - u * RAUCH_STEIG,
+        r: 2.4 + u * 2.0,
+        a: (1 - u) * RAUCH_ALPHA
+      });
+    }
+    return out;
+  }
+
   Saufi.Partikel = {
-    MAX: MAX, MAX_STAUB: MAX_STAUB, funken: funken, schaum: schaum, staub: staub, staubSchritt: staubSchritt
+    MAX: MAX, MAX_STAUB: MAX_STAUB, funken: funken, schaum: schaum, staub: staub, staubSchritt: staubSchritt,
+    RAUCH_N: RAUCH_N, RAUCH_STEIG: RAUCH_STEIG, RAUCH_ALPHA: RAUCH_ALPHA, RAUCH_FARBE: RAUCH_FARBE,
+    gruppenAnker: gruppenAnker, rauch: rauch
   };
 })(globalThis);

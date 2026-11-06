@@ -566,6 +566,10 @@
     c.restore();
     R.blasenBoxen = belegt.map(function (r) { return { x: r.x * zoom, y: r.y * zoom, w: r.w * zoom, h: r.h * zoom }; });
   }
+  // Aktionspopup: weißer Text mit Kontur, 64×12. Weck-Hinweis und „Joint erhalten“ teilen sich das.
+  function zeichneAktionsPopup(c, x, y, text) {
+    textInBox(c, text, x, y, 64, 12, 8, { col: '#ffffff', ausr: 'center', kontur: P.kontur, min: 7 });
+  }
   function pfeilBob(t) { return Math.sin((t || 0) * 5) * 2.4; }
   function zeichneAktionsPfeil(c, x, y) {
     poly(c, [[x - 5, y - 9], [x + 5, y - 9], [x, y]], '#ffd75e', P.kontur, 1);
@@ -826,7 +830,7 @@
           });
           R.blasen.push({ x: n.x - cx, y: n.y - cy - 25, text: n.char.name + ': ' + n.blase.text, vermeide: vermeide });
         }
-        else if (n.liegt && Math.hypot(n.x - S.spieler.x, n.y - S.spieler.y) <= Saufi.NPCs.WECK_REICHWEITE) textInBox(c, (R.touch ? '2× tippen' : 'Q = wecken'), n.x - cx - 28, n.y - cy - 22, 64, 12, 8, { col: '#ffffff', ausr: 'center', kontur: P.kontur, min: 7 });
+        else if (n.liegt && Math.hypot(n.x - S.spieler.x, n.y - S.spieler.y) <= Saufi.NPCs.WECK_REICHWEITE) zeichneAktionsPopup(c, n.x - cx - 28, n.y - cy - 22, R.touch ? '2× tippen' : 'Q = wecken');
       }
       else if (d.art === 'spieler') {
         var sp = S.spieler, ch = S.char;
@@ -844,6 +848,17 @@
         }
       }
     });
+    // Nähe-Popup über der Parkgruppe, gleicher Zeichenstil wie „Q = wecken“.
+    R.aktionsPopups = [];
+    if (S.zustand === 'spiel' && karte.id === 'stadt' && Saufi.Spiel && Saufi.Spiel.aktionsPopup) {
+      var pop = Saufi.Spiel.aktionsPopup(S);
+      if (pop) {
+        var popX = pop.x - cx - 32, popY = pop.y - cy - 16;
+        var popSichtbar = popX > -70 && popY > -20 && popX < viewW + 8 && popY < viewH + 8;
+        if (popSichtbar) zeichneAktionsPopup(c, popX, popY, pop.text);
+        R.aktionsPopups.push({ id: pop.id, text: pop.text, x: popX, y: popY, sichtbar: popSichtbar });
+      }
+    }
     // Effekte (Funken-Sterne, Schaum, Staub) — nur Weltpass
     (S.effekte || []).forEach(function (e) {
       var a = Math.max(0, e.rest / e.dauer), age = e.dauer - e.rest;
@@ -887,6 +902,29 @@
     }
     // Starship-Overlay in Bildschirmkoordinaten (nur Stadt, nach Lichtern und Vignette)
     if (!karte.innen && Saufi.S21 && Saufi.S21.starshipStand) zeichneStarshipFlug(c, S, viewW, viewH, t);
+    // Rauch über Jule, Samir und Nico. Nach der Tönung, damit die Wölkchen weich hell bleiben.
+    // Fest vier Puffs, zwei Kreise, kein Zufall.
+    R.rauch = [];
+    if (karte.id === 'stadt' && Saufi.Partikel && Saufi.Partikel.rauch && Saufi.Partikel.gruppenAnker) {
+      var ankerR = Saufi.Partikel.gruppenAnker(S.leben);
+      if (ankerR) {
+        var rsx = ankerR.x - cx, rsy = ankerR.y - cy, steigR = Saufi.Partikel.RAUCH_STEIG || 24;
+        if (rsx >= -36 && rsy >= -steigR - 20 && rsx <= viewW + 36 && rsy <= viewH + 20) {
+          var puffs = Saufi.Partikel.rauch(S.t || 0, ankerR.x, ankerR.y - 14);
+          R.rauch = puffs;
+          var rauchAlt = c.globalAlpha, ri, rp;
+          for (ri = 0; ri < puffs.length; ri++) {
+            rp = puffs[ri];
+            if (!(rp.a > 0.02)) continue;
+            c.globalAlpha = rp.a;
+            kreis(c, rp.x - cx, rp.y - cy, rp.r + 1.6, Saufi.Partikel.RAUCH_FARBE);
+            c.globalAlpha = Math.min(1, rp.a * 0.65);
+            kreis(c, rp.x - cx, rp.y - cy - 0.4, Math.max(0.8, rp.r * 0.45), '#ffffff');
+          }
+          c.globalAlpha = rauchAlt;
+        }
+      }
+    }
     // Wippender Pfeil über jedem Aktionspunkt. Spitze zeigt nach unten.
     R.aktionsPfeile = [];
     if (S.zustand !== 'start' && Saufi.Spiel && Saufi.Spiel.aktionsPunkte) {
