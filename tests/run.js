@@ -337,7 +337,7 @@ test('15 Karte: Tueren per A* erreichbar, keine eingesperrten Orte, alle vier Or
   for (var seed = 1; seed <= 30; seed++) {
     var w = D.Karte.erstelleWelt(D.RNG.erstelle(seed)), st = w.stadt;
     wahr(!st.blockiert(st.spawn.x, st.spawn.y), 'Spawn frei');
-    gleich(st.tueren.length, 4, 'vier Tueren');
+    gleich(st.tueren.length, 5, 'fuenf Tueren');
     ['hotel', 'restaurant', 'kneipe', 'disko'].forEach(function (id) {
       var td = st.tueren.filter(function (x) { return x.id === id; })[0]; wahr(td, id + ' hat Tuer');
       wahr(!st.blockiert(td.aussen.x, td.aussen.y), id + ' Vorplatz frei');
@@ -789,7 +789,7 @@ test('39 Teamstimmung 0: eigener Titel statt Umgefallen/Press F', function () {
   gleich(t.S.zustand, 'ende'); gleich(t.S.ende.wertung.titel, 'Feierabend');
   wahr(/weitergezogen/.test(t.S.ende.wertung.kopf)); wahr(/Teamstimmung 0/.test(t.S.ende.grund));
   wahr(t.S.ende.wertung.kopf.indexOf('Press F') < 0);
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   wahr(D.Gfx.MIN_SCHRIFT <= 7);
 });
 
@@ -844,9 +844,9 @@ test('42 DPR-Begrenzung: MAX_DPR = 2, setzeAufloesung und begrenzDpr kappen', fu
   wahr(sk === R.canvas.width / R.W, 'Skala konsistent');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
   wahr(/begrenzDpr|MAX_DPR/.test(main), 'main nutzt DPR-Begrenzung');
-  wahr(/VERSION\s*=\s*['"]0\.35['"]/.test(main), 'VERSION 0.28');
+  wahr(/VERSION\s*=\s*['"]0\.36['"]/.test(main), 'VERSION 0.28');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  wahr(/main\.js\?v=0\.35/.test(html), 'Cache-Buster v=0.25');
+  wahr(/main\.js\?v=0\.36/.test(html), 'Cache-Buster v=0.25');
 });
 
 test('43 Hochformat-Layout: Playlist und Menues passen in PORT_H', function () {
@@ -1278,7 +1278,7 @@ test('67 Stadtkarte 40x60: Suedstreifen begehbar, Tueren/Stationen wie v04', fun
     gleich(td.x, tuere[id][0], id + ' Tuer-x');
     gleich(td.y, tuere[id][1], id + ' Tuer-y');
   });
-  var geb = { hotel: [22, 7, 8, 5], restaurant: [2, 8, 7, 5], kneipe: [30, 17, 7, 4], disko: [27, 25, 9, 4] };
+  var geb = { hotel: [22, 7, 8, 5], restaurant: [2, 8, 7, 5], kneipe: [30, 17, 7, 4], disko: [27, 25, 9, 4], apotheke: [2, 40, 6, 3] };
   st.gebaeude.forEach(function (b) {
     var g = geb[b.id]; wahr(g, b.id + ' Gebaeude');
     gleich(b.x, g[0]); gleich(b.y, g[1]); gleich(b.w, g[2]); gleich(b.h, g[3]);
@@ -1361,11 +1361,11 @@ test('72 Quer BASE 320x176: VH == H/zoom, Flaeche >= 3', function () {
 
 test('73 Versionen: VERSION 0.13, ?v=0.13, README v10, Bau-Bericht v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster vorhanden');
-  vs.forEach(function (v) { gleich(v, '?v=0.35', 'Cache-Buster ' + v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.36', 'Cache-Buster ' + v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v13/.test(readme), 'README Neu in v13');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
@@ -1663,11 +1663,11 @@ test('82 Stick: Totzone, cancel=0, zweiter Finger ignoriert, E gleichzeitig', fu
 
 test('83 Versionen: VERSION 0.13, ?v=0.13, README v10, Bau-Bericht v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.35', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.36', v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v13/.test(readme), 'README Neu in v13');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
@@ -1687,7 +1687,7 @@ test('84 StummHinweis: Flag erst im Timeout, mind. 4 s sichtbar', function () {
   gleich(T.hinweis(), '', 'nach Flag kein Hinweis mehr');
 });
 
-test('85 Disko Hoch: Raum fuellt Weltflaeche (Zoom-Kennzahl / Schwarz < 25%)', function () {
+test('85 Disko Hoch: ganzer Raum sichtbar, weiter raus als draussen', function () {
   var D = lade(), t = neuesSpielTest(D), S = t.S;
   S.ort = 'disko'; S.karte = S.welt.innen.disko;
   S.kamera.weltW = S.karte.pxW; S.kamera.weltH = S.karte.pxH;
@@ -1698,12 +1698,10 @@ test('85 Disko Hoch: Raum fuellt Weltflaeche (Zoom-Kennzahl / Schwarz < 25%)', f
   D.Render.zeichne(R, S);
   var weltH = R.weltH, zoom = R.aktuellerWeltZoom;
   wahr(zoom != null, 'aktuellerWeltZoom gesetzt');
-  var cover = Math.max(R.W / S.karte.pxW, weltH / Math.max(1, S.karte.pxH));
-  nah(zoom, cover, 1e-6, 'Cover-Zoom Disko');
-  wahr(zoom >= weltH / S.karte.pxH - 1e-6 || zoom >= R.W / S.karte.pxW - 1e-6, 'eine Achse gefuellt');
-  // Letterbox-Schwarzanteil bei Cover ≈ 0 (Crop statt Balken)
-  var schwarz = Math.max(0, 1 - Math.min(1, (S.karte.pxW * zoom) / R.W) * Math.min(1, (S.karte.pxH * zoom) / weltH));
-  wahr(schwarz < 0.25, 'Schwarzanteil Welt < 25% (ist ' + schwarz + ')');
+  wahr(zoom < D.Render.WELT_ZOOM, 'innen weiter raus als draussen');
+  wahr(S.karte.pxW * zoom <= R.W + 1e-6 && S.karte.pxH * zoom <= weltH + 1e-6, 'ganzer Raum im Bild');
+  // Raum fuellt die Breite noch gut (kein Briefmarken-Raum)
+  wahr(S.karte.pxW * zoom >= R.W * 0.75, 'Raum nutzt >= 75 % der Breite (ist ' + (S.karte.pxW * zoom / R.W) + ')');
 });
 
 test('86 Zuruf RUNDE! Abstand ≥ 4 px zur Scooter-Leiste', function () {
@@ -2039,10 +2037,10 @@ test('96 Durchspiel-Bot Seeds 1/7/42 Hoch-Touch und Quer', function () {
 
 test('97 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
-  vs.forEach(function (v) { gleich(v, '?v=0.35', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.36', v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v13/.test(readme), 'README Neu in v13');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
@@ -2155,7 +2153,7 @@ test('102 Nacht-Helligkeit: Tint 02:30 ≥ 0.10; 20 Uhr warm; Monotonie', functi
 test('103 Hoch-Zoom/Karte: 60/960, VW 350–420, Schrift ≥8 CSS', function () {
   var D = lade(), st = D.Karte.erstelleWelt(D.RNG.erstelle(1)).stadt;
   gleich(st.h, 60); gleich(st.pxH, 960); gleich(D.Render.STADT_PX_H, 960);
-  var geb = { hotel: [22, 7, 8, 5], restaurant: [2, 8, 7, 5], kneipe: [30, 17, 7, 4], disko: [27, 25, 9, 4] };
+  var geb = { hotel: [22, 7, 8, 5], restaurant: [2, 8, 7, 5], kneipe: [30, 17, 7, 4], disko: [27, 25, 9, 4], apotheke: [2, 40, 6, 3] };
   st.gebaeude.forEach(function (b) {
     var g = geb[b.id]; gleich(b.x, g[0]); gleich(b.y, g[1]); gleich(b.w, g[2]); gleich(b.h, g[3]);
   });
@@ -2269,11 +2267,11 @@ test('106 Bot-Durchspiel Seeds 1/7/42 Hoch+Quer ohne Soft-Lock/…', function ()
 
 test('107 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0);
-  vs.forEach(function (v) { gleich(v, '?v=0.35', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.36', v); });
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
@@ -2631,12 +2629,12 @@ test('117 Bot Seeds 1/7/42 Hoch+Quer, Darstellung ändert Logik nicht', function
 
 test('118 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0);
-  vs.forEach(function (v) { gleich(v, '?v=0.35', v); });
-  wahr(/partikel\.js\?v=0\.35/.test(html), 'partikel eingebunden');
+  vs.forEach(function (v) { gleich(v, '?v=0.36', v); });
+  wahr(/partikel\.js\?v=0\.36/.test(html), 'partikel eingebunden');
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
@@ -3037,9 +3035,9 @@ test('132 Touch-Größen v10 ≥44 / Kreis ≥36', function () {
 
 test('133 Versionen v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.35', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.36', v); });
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
@@ -3203,20 +3201,20 @@ function versionMitte(log, W) {
   if (!log.meta) return null;
   for (var i = 0; i < log.meta.length; i++) {
     var m = log.meta[i];
-    if (m.text === 'v0.35' && m.align === 'center' && Math.abs(m.x - W / 2) <= 1 && !m.stroke) return m;
+    if (m.text === 'v0.36' && m.align === 'center' && Math.abs(m.x - W / 2) <= 1 && !m.stroke) return m;
   }
   return null;
 }
 
 test('149 Versionen v14: VERSION, Cache-Buster, README, Bau-Bericht', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
-  wahr(/VERSION\s*=\s*['"]0\.35['"]/.test(main), 'main.js VERSION 0.28');
+  wahr(/VERSION\s*=\s*['"]0\.36['"]/.test(main), 'main.js VERSION 0.28');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.35', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.36', v); });
   wahr(/Neu in v14/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v14');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v14.md')), 'bau-bericht-v14.md');
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v13 bleibt');
@@ -3247,7 +3245,7 @@ test('150 Versionsanzeige mittig: Start/Spiel/Ende in drei Layouts', function ()
       else { t.S.zustand = 'start'; }
       D.Render.zeichne(R, t.S);
       if (z === 'start' && !lay.hoch) wahr(R.hudVersion && R.hudVersion.y > 20, 'v16: Version im Quer-Startbild nicht auf dem Titel');
-      else if (!(lay.hoch && lay.touch && z === 'spiel')) wahr(!!versionMitte(log, R.W), 'v0.35 mittig @ ' + z + ' hoch=' + lay.hoch + ' touch=' + !!lay.touch);
+      else if (!(lay.hoch && lay.touch && z === 'spiel')) wahr(!!versionMitte(log, R.W), 'v0.36 mittig @ ' + z + ' hoch=' + lay.hoch + ' touch=' + !!lay.touch);
       var hv = R.hudVersion;
       var schneidet = function (a, b) { return a && b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; };
       if (lay.hoch && lay.touch && z === 'spiel') {
@@ -3900,11 +3898,11 @@ test('181 Starship-Modell bei S21: Prop in propsFuer, Y-sortiert', function () {
 
 test('182 Versionstest v14', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   wahr(/Neu in v14/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v14.md')));
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  wahr(/motocross\.js\?v=0\.35/.test(html) && /s21\.js\?v=0\.35/.test(html), 'Module in index');
+  wahr(/motocross\.js\?v=0\.36/.test(html) && /s21\.js\?v=0\.36/.test(html), 'Module in index');
   wahr(!!D.Motocross && !!D.S21, 'Module geladen');
 });
 
@@ -3932,14 +3930,14 @@ test('183 Render-Smoke: Kamera S21 und Motocross, drei Layouts', function () {
 // ---------- v15: Elon, Maenner, Bierkasten ----------
 test('184 Version v15: VERSION, Cache-Buster, elon.js, README, Bau-Bericht', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
-  wahr(/VERSION\s*=\s*['"]0\.35['"]/.test(main), 'main.js VERSION 0.28');
+  wahr(/VERSION\s*=\s*['"]0\.36['"]/.test(main), 'main.js VERSION 0.28');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.35', v); });
-  wahr(/elon\.js\?v=0\.35/.test(html), 'elon.js in index');
+  vs.forEach(function (v) { gleich(v, '?v=0.36', v); });
+  wahr(/elon\.js\?v=0\.36/.test(html), 'elon.js in index');
   wahr(/Neu in v15/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v15');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v15.md')), 'bau-bericht-v15.md');
   wahr(!!D.Elon, 'Elon geladen');
@@ -4219,12 +4217,12 @@ test('198 Frech: Zwei-Blasen-Limit, Pool nur bei Sprecher weiter, kurze Raphi-Sa
 // ---------- v16: Auswahl, MxEvent, Himmelsbach, Motiv ----------
 test('199 Versionen 0.20: VERSION, Cache-Buster, README v16-Abschnitt bleibt', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.35', v); });
-  wahr(/mxevent\.js\?v=0\.35/.test(html) && /motiv\.js\?v=0\.35/.test(html), 'neue Module');
+  vs.forEach(function (v) { gleich(v, '?v=0.36', v); });
+  wahr(/mxevent\.js\?v=0\.36/.test(html) && /motiv\.js\?v=0\.36/.test(html), 'neue Module');
   wahr(/Neu in v16/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v16');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v16.md')), 'bau-bericht-v16.md');
   wahr(!!D.MxEvent && !!D.Motiv, 'Module geladen');
@@ -4527,9 +4525,9 @@ test('211 Umbenennungen v18: keine alten Namen in js/*.js, ids, Alias, Version',
   gleich(D.Charaktere.holen('schwickendorf').name, 'Schwickendorf');
   wahr(!!D.Hinweise.FIGUR.schwinki && !!D.Hinweise.FIGUR.tobi && !D.Hinweise.FIGUR.bundschuh && !D.Hinweise.FIGUR.buntschuh && !D.Hinweise.FIGUR.kevin, 'FIGUR-Keys');
   wahr(!!D.Frech.RAPHI && !D.Frech.RAFFI, 'Frech RAPHI');
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.35', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.36', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v17/.test(rd) && !/Raffi/.test(rd.split('## Neu in v16')[0]), 'README v17');
   wahr(/Neu in v18/.test(rd), 'README Neu in v18');
@@ -4813,9 +4811,9 @@ test('221 Karten im Spiel: Nachschub, Gas, Trinkspiel, Überblick, Heim', functi
 
 test('222 v20: Zeise heim, Schwinki ohne Bremse, Tobi Elon, Siebold-Spiele, Raphi-Gag', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.35', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.36', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v20/.test(rd) && /Neu in v19/.test(rd), 'README v20 und v19');
   wahr(/Legendäres Gründungsmitglied/.test(rd), 'README Zeise');
@@ -4870,12 +4868,12 @@ test('222 v20: Zeise heim, Schwinki ohne Bremse, Tobi Elon, Siebold-Spiele, Raph
 
 test('224 v21 Versionen', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.35', v); });
-  wahr(/stadtvolk\.js\?v=0\.35/.test(html), 'stadtvolk.js im HTML');
+  vs.forEach(function (v) { gleich(v, '?v=0.36', v); });
+  wahr(/stadtvolk\.js\?v=0\.36/.test(html), 'stadtvolk.js im HTML');
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v21/.test(rd) && /Neu in v20/.test(rd) && /Neu in v19/.test(rd), 'README v21, v20, v19');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v21.md')), 'bau-bericht-v21.md');
@@ -4905,7 +4903,7 @@ test('225 v21 Stadt-Look', function () {
     var td = full.tueren.filter(function (t) { return t.id === id; })[0];
     gleich(td.x, tuere[id][0], id + ' x'); gleich(td.y, tuere[id][1], id + ' y');
   });
-  var geb = { hotel: [22, 7, 8, 5], restaurant: [2, 8, 7, 5], kneipe: [30, 17, 7, 4], disko: [27, 25, 9, 4] };
+  var geb = { hotel: [22, 7, 8, 5], restaurant: [2, 8, 7, 5], kneipe: [30, 17, 7, 4], disko: [27, 25, 9, 4], apotheke: [2, 40, 6, 3] };
   full.gebaeude.forEach(function (b) {
     var g = geb[b.id];
     gleich(b.x, g[0]); gleich(b.y, g[1]); gleich(b.w, g[2]); gleich(b.h, g[3]);
@@ -4959,8 +4957,8 @@ test('227 v21 Stadtvolk-Daten', function () {
   var D = lade(), T = D.Karte.T, V = D.Stadtvolk;
   var welt = D.Karte.erstelleWelt(D.RNG.erstelle(1));
   var list = V.erstelle(welt, 1);
-  var pflicht = { wirt: 'kneipe', penner: 'stadt', rezeption: 'hotel' };
-  gleich(list.length, 3, 'drei Figuren');
+  var pflicht = { wirt: 'kneipe', penner: 'stadt', rezeption: 'hotel', apotheker: 'apotheke' };
+  gleich(list.length, 4, 'vier Figuren');
   Object.keys(pflicht).forEach(function (id) {
     var v = list.filter(function (x) { return x.id === id; })[0];
     wahr(v, id); gleich(v.karteId, pflicht[id], id + ' Karte');
@@ -4970,7 +4968,7 @@ test('227 v21 Stadtvolk-Daten', function () {
   Object.keys(V.LISTE).forEach(function (id) {
     var def = V.LISTE[id];
     wahr(def.sprueche.length >= 6 && def.sprueche.length <= 12, id + ' Pool ' + def.sprueche.length);
-    def.sprueche.concat(def.reaktion.bestellen || [], def.reaktion.sitzen || [], def.reaktion.rezeption || []).forEach(function (text) {
+    def.sprueche.concat(def.reaktion.bestellen || [], def.reaktion.sitzen || [], def.reaktion.rezeption || [], def.reaktion.rezept || []).forEach(function (text) {
       wahr(text.length <= 60, 'zu lang: ' + text);
       wahr(!verboten.test(text), 'Strich: ' + text);
       wahr(!kinder.test(text), 'kein Kind: ' + text);
@@ -5083,11 +5081,11 @@ test('223 v20 Zoom: Hoch+Touch naeher, Quer bleibt 0.5', function () {
 
 test('230 v22: Namensschild weg, Blasen 4,5 s, Zeise Legendär', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   gleich(D.Hinweise.BLASE_MIN, 7);
   gleich(D.Hinweise.blaseDauer(''), 7);
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.35', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.36', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v22/.test(rd) && /Namensschild über Raphael entfernt/.test(rd), 'README v22');
   wahr(/Neu in v21/.test(rd), 'README v21 bleibt');
@@ -5121,14 +5119,14 @@ test('230 v22: Namensschild weg, Blasen 4,5 s, Zeise Legendär', function () {
 
 test('231 v23 Titel: Press11 - Stuttgart Edition', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   gleich(D.Hinweise.TITEL, 'Press11 - Stuttgart Edition');
   wahr(D.Hinweise.HINWEIS_VOLL.indexOf('Press11 - Stuttgart Edition') === 0, 'Hinweis beginnt mit dem Titel');
   wahr(!/Saufi Saufi/.test(D.Hinweise.HINWEIS_VOLL), 'Hinweis ohne alten Titel');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   wahr(/<title>Press11 - Stuttgart Edition \(18\+\)<\/title>/.test(html), 'Seitentitel');
   wahr(/aria-label="Press11 - Stuttgart Edition"/.test(html), 'Canvas-Name');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.35', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.36', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/^# Press11 - Stuttgart Edition$/m.test(rd), 'README-Ueberschrift');
   wahr(/Neu in v23/.test(rd) && /Neu in v22/.test(rd), 'README v23 und v22');
@@ -5141,7 +5139,7 @@ test('231 v23 Titel: Press11 - Stuttgart Edition', function () {
 
 test('232 v24 PRESSELF-Vorschaubild', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var bild = 'https://topsentopsen.github.io/press11-saufi-saufi/assets/og-presself.png';
   wahr(/property="og:title" content="Press11 - Stuttgart Edition"/.test(html), 'og:title');
@@ -5212,7 +5210,7 @@ function fakeFeedbackForm(name, text) {
 
 test('233 v25 Feedback-Seite: Formular, Entwurf, keine Schlüssel', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   var spiel = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   wahr(!/feedback\//.test(spiel) && !/Press11 Feedback/.test(spiel), 'Spielseite ohne Feedback-Link');
   ['js/main.js', 'js/render.js', 'js/hinweise.js'].forEach(function (f) {
@@ -5234,9 +5232,9 @@ test('233 v25 Feedback-Seite: Formular, Entwurf, keine Schlüssel', function () 
   wahr(/<textarea id="text" name="text" required/.test(html), 'Feedback Pflicht');
   wahr(/<button type="submit">/.test(html), 'Submit');
   wahr(/id="bestaetigung"/.test(html) && /data-meldung/.test(html) && /data-issue-link/.test(html), 'Bestaetigung');
-  wahr(/src="feedback\.js\?v=0\.35"/.test(html), 'Skript eingebunden');
+  wahr(/src="feedback\.js\?v=0\.36"/.test(html), 'Skript eingebunden');
   wahr(/Press11Feedback\.bind\(/.test(html), 'Submit haengt an bind');
-  wahr(/Press11 0\.35/.test(html), 'Versionszeile');
+  wahr(/Press11 0\.36/.test(html), 'Versionszeile');
   wahr(!/<canvas/.test(html), 'keine Spielflaeche');
   wahr(!/Schwäch|Nubi|neu dabei/.test(html), 'Feedback-Seite ohne Schwächen-Feld und ohne Nubi');
   wahr(!/location\.(href|assign|replace)/.test(js), 'Seite bleibt stehen');
@@ -5384,7 +5382,9 @@ test('234 v26 Hecke nur nachts, Himmelsbach alter Hase, Stadtleben', function ()
   D.Stadtvolk.bewege(leben, 0.05);
   D.Stadtvolk.bewege(leben, 1.2);
   wahr(Math.abs(rad.px - x0) > 5, 'Rad faehrt');
-  gleich(D.Stadtvolk.erstelle(welt, 1).length, 3, 'redende Stadtvolk bleiben drei');
+  var rede = D.Stadtvolk.erstelle(welt, 1);
+  gleich(rede.length, 4, 'redende Stadtvolk: Wirt, Kalle, Rezeption, Apotheker');
+  wahr(rede.some(function (v) { return v.id === 'apotheker' && v.karteId === 'apotheke'; }), 'Apotheker im Haus');
 });
 
 test('235 v26 Auswahl-Musik: eigener Hardstyle-Loop, kein Track-File', function () {
@@ -5484,9 +5484,9 @@ test('236 Feedback: leeres ziel.json faellt auf raw und Worker zurueck', functio
 
 test('237 v27 Gag-Alias, Shot-Train, Prost-Ort, Krug-Halten', function () {
   var D = lade(), M = D.Minispiele, H = D.Hinweise, Ton = D.Ton, K = M.KRUG;
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.35', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.36', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v27/.test(rd) && /Neu in v26/.test(rd), 'README v27 und v26');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v27.md')), 'bau-bericht-v27.md');
@@ -5648,11 +5648,11 @@ test('237 v27 Gag-Alias, Shot-Train, Prost-Ort, Krug-Halten', function () {
 
 test('238 v28 Autos weg, Stadt dichter, Hochformat näher, Zoom', function () {
   var D = lade(), T = D.Karte.T;
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   gleich(D.Render.WELT_FLAECHE_HOCH, 1);
   gleich(D.Render.HUD_SK_HOCH_TOUCH, 0.96);
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.35', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.36', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v28/.test(rd) && /Neu in v27/.test(rd), 'README v28 und v27');
   wahr(/WELT_FLAECHE_HOCH` 1\.0/.test(rd) && /0\.96/.test(rd), 'README nennt die Knöpfe');
@@ -5742,7 +5742,7 @@ test('238 v28 Autos weg, Stadt dichter, Hochformat näher, Zoom', function () {
 
 test('239 v29 Hochformat: Overlay, Trinken 80, Sheet, Feierabend', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   gleich(D.Render.UI_RESERVE_HOCH_TOUCH, 0);
   gleich(D.Render.UI_RESERVE_HOCH, 80);
   var R = D.Render.erstelle(mockCanvas(), mockCanvas().ownerDocument);
@@ -5815,7 +5815,7 @@ test('240 Handy-Wecken: Doppeltipp auf die Figur, einzelner Tipp nicht, Q bleibt
 
 test('241 v30 Hochformat: btnBand, Crew, Wasser, zwei Knöpfe', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   gleich(D.Render.btnBandCss(5, 2), 236, 'fünf Knöpfe, Abstand 2');
   gleich(D.Render.btnBandCss(2, 6), 102, 'zwei Knöpfe, Abstand 6');
   gleich(D.Spiel.wasserAnzeige({ label: 'Trinken', an: true, flaschen: 3 }), '💧 Wasser ×3');
@@ -6106,7 +6106,7 @@ test('248 Mäxle: Rang, Ansage, Lüge, Anzweifeln, Trinkstrafe', function () {
 
 test('249 Handy: Daumenbogen, volle Bannerbreite, Desktop bleibt', function () {
   var D = lade(), E = D.Main.mobilErkannt, B = D.Main.daumenBogen();
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   wahr(/Neu in v32/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')) && /Neu in v30/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README v32 und v30');
   wahr(/Mäxle/.test(fs.readFileSync(path.join(ROOT, 'docs', 'bau-bericht-v32.md'), 'utf8')), 'Bau-Bericht v32');
   wahr(E({ touch: true, w: 1400, h: 900 }).mobil, 'Touch');
@@ -6150,7 +6150,7 @@ function schneidetBox(a, b) {
 
 test('250 v33: kein E-Hinweis, Aktionsknopf bleibt', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   gleich(D.Spiel.aktionAnzeige('E', true), '✋');
   gleich(D.Spiel.aktionAnzeige('E', false), 'E');
   var t = neuesSpielTest(D);
@@ -6291,7 +6291,7 @@ test('254 v33: Aktionspfeile und Park-Gruppe', function () {
 
 test('255 v34: Rauch über der Parkgruppe steigt, verblasst, bleibt billig', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Spiel.VERSION, '0.36');
   gleich(D.Partikel.RAUCH_N, 4);
   wahr(D.Partikel.RAUCH_N <= 6, 'wenige Puffs');
   wahr(D.Partikel.RAUCH_ALPHA < 0.55, 'halb durchsichtig');
@@ -6546,6 +6546,474 @@ test('261 v35: Boombox und Noten sind weg, Jukebox bleibt', function () {
   var log = [], R = D.Render.erstelle(mockCanvas(log), mockCanvas().ownerDocument);
   D.Render.zeichne(R, t.S);
   wahr(!log.some(function (z) { return z === '♪'; }), 'keine schwebende Note');
+});
+
+test('262 v36: Parkgruppe gibt den Joint, wenn E sie trifft', function () {
+  var D = lade(), K = 16;
+  gleich(D.Spiel.VERSION, '0.36');
+  wahr(/Neu in v36/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')) && /Neu in v35/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README v36 und v35');
+  wahr(/Samirs Kachel/.test(fs.readFileSync(path.join(ROOT, 'docs', 'bau-bericht-v36.md'), 'utf8')), 'Bau-Bericht v36');
+  var stadt = D.Karte.erstelleWelt(D.RNG.erstelle(1)).stadt;
+  var kb = stadt.stationen.filter(function (s) { return s.id === 'kasten_park_b'; })[0];
+  wahr(!!kb, 'Teich-Kasten bleibt');
+  wahr(!(kb.x >= 7 && kb.x < 12 && kb.y >= 33 && kb.y < 35), 'Kasten liegt nicht mehr auf der Gruppe');
+  var gruppe = stadt.stationen.filter(function (s) { return s.id === 'park_joint'; })[0];
+  var aufSamir = D.Karte.nahe(stadt, 10 * K + 8, 33 * K + 8 - 2, 14);
+  gleich(aufSamir && aufSamir.id, gruppe.id, 'E auf Samirs Fleck trifft die Gruppe');
+
+  var falsch = neuesSpielTest(D); erledigt(falsch.S);
+  var jule = falsch.S.leben.filter(function (a) { return a.id === 'jugend_jule'; })[0];
+  falsch.S.spieler.x = 6 * K + 8; falsch.S.spieler.y = 31 * K + 14;
+  var alt = Math.hypot(falsch.S.spieler.x - jule.px, falsch.S.spieler.y - jule.py);
+  wahr(alt <= D.Stadtvolk.NAH_PX, 'alte 56-Pixel-Reichweite');
+  gleich(D.Karte.nahe(falsch.S.karte, falsch.S.spieler.x, falsch.S.spieler.y - 2, 14), null, 'E trifft hier nichts');
+  gleich(falsch.Sp.aktionsPopup(falsch.S), null, 'kein Popup ohne Treffer');
+  falsch.S.spieler.x = 5 * K + 8; falsch.S.spieler.y = 33 * K + 8;
+  var amKasten = D.Karte.nahe(falsch.S.karte, falsch.S.spieler.x, falsch.S.spieler.y - 2, 14);
+  gleich(amKasten && amKasten.typ, 'bierkasten', 'neben der Gruppe gewinnt der Kasten');
+  var popK = falsch.Sp.aktionsPopup(falsch.S);
+  wahr(!popK || popK.text !== 'Joint erhalten', 'der Kasten verspricht keinen Joint');
+  var p0 = falsch.S.fig.pegel;
+  falsch.Sp.aktion(falsch.S, falsch.X);
+  wahr(falsch.S.fig.pegel > p0, 'E trinkt das Bier');
+  wahr(!falsch.S.joint.hat && !(falsch.S.joint.quellen && falsch.S.joint.quellen.park), 'dabei gibt es keinen Joint');
+
+  var t = neuesSpielTest(D); erledigt(t.S);
+  var bing = 0;
+  t.X.T = { bing: function () { bing += 1; }, schluck: function () {}, pling: function () {}, umfall: function () {}, glocke: function () {}, prost: function () {}, setzeBoost: function () {}, boostFx: function () {} };
+  t.S.spieler.x = 10 * K + 8; t.S.spieler.y = 33 * K + 8;
+  t.S.zustand = 'spiel';
+  var pop = t.Sp.aktionsPopup(t.S);
+  wahr(pop && pop.id === 'park_joint' && pop.text === 'Joint erhalten', 'Popup nur an der Gruppe');
+  gleich(t.Sp.hilfeText(t.S), 'E: Quatschen');
+  wahr(!t.S.joint.hat && !t.S.joint.gefunden, 'vorher leer');
+  t.Sp.aktion(t.S, t.X);
+  wahr(t.S.joint.hat && t.S.joint.quellen.park, 'E legt den Joint in den Rucksack');
+  wahr(!t.S.joint.gefunden, 'Hotel-Tüte bleibt ein eigener Fund');
+  gleich(bing, 1, 'Bing');
+  var gesprochen = (t.S.leben || []).filter(function (a) { return a.blase && D.Stadtvolk.PARK_SPRUECHE.indexOf(a.blase.text) >= 0; });
+  gleich(gesprochen.length, 1, 'die Gruppe spricht weiter');
+  gleich(t.Sp.aktionsPopup(t.S), null, 'Popup weg, der Joint ist da');
+  gleich(t.Sp.kontext(t.S).item.label, 'Tüte');
+  t.Sp.aktion(t.S, t.X);
+  gleich(bing, 1, 'zweites Reden gibt keinen zweiten Joint');
+  wahr(t.S.joint.quellen.park && t.S.joint.hat, 'Quelle bleibt gesetzt');
+  var log = [], R = D.Render.erstelle(mockCanvas(log), mockCanvas().ownerDocument);
+  D.Kamera.sofort(t.S.kamera, t.S.spieler.x, t.S.spieler.y);
+  D.Render.zeichne(R, t.S);
+  wahr(R.aktionsPfeile.some(function (p) { return p.id === 'park_joint'; }), 'Pfeil bleibt');
+  wahr(!(log.meta || []).some(function (m) { return m.text === 'Joint erhalten' && !m.stroke; }), 'Text nicht mehr im Bild');
+  t.S.ort = 'hotel'; t.S.karte = t.S.welt.innen.hotel;
+  wahr(D.Spiel.aktionsPunkte(t.S).some(function (p) { return p.typ === 'joint'; }), 'Hotel-Tüte noch markiert');
+});
+
+test('263 v36: versteckte Kästen, Schnaps, Joints und Straßenjoints', function () {
+  var D = lade(), K = 16, T = D.Karte.T;
+  gleich(D.Render.WELT_FLAECHE_HOCH, 1);
+  gleich(D.Render.WELT_FLAECHE_QUER, 4);
+  gleich(D.Main.daumenBogen().item.y, 100, 'Rucksack bleibt');
+  function welt(seed) { return D.Karte.erstelleWelt(D.RNG.erstelle(seed)).stadt; }
+  function funds(st) { return st.stationen.filter(function (s) { return s.typ === 'fund'; }); }
+  function key(seed) {
+    return funds(welt(seed)).filter(function (s) { return s.strasse; }).map(function (s) { return s.x + ',' + s.y; }).sort().join('|');
+  }
+  var st = welt(1);
+  var alle = funds(st);
+  var kasten = alle.filter(function (s) { return s.was === 'kasten'; });
+  var schnaps = alle.filter(function (s) { return s.was === 'schnaps'; });
+  var joints = alle.filter(function (s) { return s.was === 'joint' && !s.strasse; });
+  var strasse = alle.filter(function (s) { return s.was === 'joint' && s.strasse; });
+  gleich(kasten.length, 4, 'vier versteckte Kästen');
+  gleich(schnaps.length, 3, 'drei Schnapsflaschen');
+  wahr(joints.length >= 2, 'Joints abseits der Straße');
+  gleich(strasse.length, 3, 'drei Straßenjoints');
+  var strassenArt = {}; strassenArt[T.STRASSE] = strassenArt[T.WEG] = strassenArt[T.GEHWEG] = strassenArt[T.ASPHALT] = true;
+  strasse.forEach(function (s) {
+    wahr(strassenArt[st.tile(s.x, s.y)], s.id + ' liegt auf der Straße');
+    wahr(Math.abs(s.x - st.spawn.x) + Math.abs(s.y - st.spawn.y) > 4, 'nicht vor der Tür');
+  });
+  joints.forEach(function (s) { wahr(!strassenArt[st.tile(s.x, s.y)], s.id + ' nicht auf der Straße'); });
+  alle.forEach(function (s) {
+    wahr(!st.blockiert(s.x, s.y), s.id + ' begehbar');
+    wahr(!!D.Pfad.suche(st, st.spawn.x, st.spawn.y, s.x, s.y), s.id + ' erreichbar');
+  });
+  gleich(key(1), key(1), 'gleicher Seed, gleiche Straße');
+  wahr(key(1) !== key(2) || key(1) !== key(9), 'anderer Seed, andere Straßenjoints');
+  var ra = D.RNG.erstelle(5), rb = D.RNG.erstelle(5);
+  D.Karte.erstelleWelt(ra); D.Karte.erstelleWelt(rb);
+  gleich(ra.next(), rb.next(), 'Karten-rng bleibt gleich');
+  var t = neuesSpielTest(D); erledigt(t.S); t.S.zustand = 'spiel';
+  wahr(!D.Spiel.aktionsPunkte(t.S).some(function (p) { return p.typ === 'fund'; }), 'Verstecke haben keinen Pfeil');
+  wahr(!t.S.leben.some(function (a) { return a.art === 'auto' || (a.id || '').indexOf('auto') === 0; }), 'keine Autos');
+  var bing = 0;
+  t.X.T = { bing: function () { bing += 1; }, schluck: function () {}, pling: function () {}, umfall: function () {}, glocke: function () {}, prost: function () {}, setzeBoost: function () {}, boostFx: function () {} };
+  function hin(s) { t.S.spieler.x = s.x * K + 8; t.S.spieler.y = s.y * K + 8; t.S.overlay = null; }
+  var k1 = t.S.karte.stationen.filter(function (s) { return s.id === 'fund_kasten_west'; })[0];
+  hin(k1);
+  gleich(t.Sp.aktionsPopup(t.S).text, 'Bier gefunden');
+  gleich(t.Sp.hilfeText(t.S), 'E: Bier');
+  var p0 = t.S.fig.pegel;
+  t.Sp.aktion(t.S, t.X);
+  nah(t.S.fig.pegel, p0 + D.Getraenke.pegelDelta('pils', t.S.fig.trink), 1e-9, 'Kasten trinkt Pils');
+  wahr(t.S.funde[k1.id], 'Kasten weg');
+  gleich(bing, 1, 'Bing am Kasten');
+  gleich(t.Sp.aktionsPopup(t.S), null, 'Popup weg');
+  var p1 = t.S.fig.pegel;
+  t.Sp.aktion(t.S, t.X);
+  gleich(t.S.fig.pegel, p1, 'zweiter Griff leer');
+  gleich(bing, 1, 'leerer Fund still');
+  var fl = t.S.karte.stationen.filter(function (s) { return s.id === 'fund_schnaps_reben'; })[0];
+  hin(fl);
+  gleich(t.Sp.aktionsPopup(t.S).text, 'Schnaps holen');
+  var log = [], R = D.Render.erstelle(mockCanvas(log), mockCanvas().ownerDocument);
+  D.Kamera.sofort(t.S.kamera, t.S.spieler.x, t.S.spieler.y);
+  D.Render.zeichne(R, t.S);
+  wahr(R.aktionsPopups.some(function (p) { return p.text === 'Schnaps holen' && p.sichtbar; }), 'Schnaps-Popup gezeichnet');
+  wahr(!R.aktionsPfeile.some(function (p) { return p.id === fl.id; }), 'kein Pfeil über der Flasche');
+  t.Sp.aktion(t.S, t.X);
+  nah(t.S.fig.pegel, p1 + D.Getraenke.pegelDelta('kurzer', t.S.fig.trink), 1e-9, 'Schnaps ist ein Kurzer');
+  gleich(bing, 2, 'Bing am Schnaps');
+  var j = t.S.karte.stationen.filter(function (s) { return s.id === 'fund_joint_wiese'; })[0];
+  hin(j);
+  gleich(t.Sp.aktionsPopup(t.S).text, 'Joint erhalten');
+  t.Sp.aktion(t.S, t.X);
+  wahr(t.S.joint.hat && t.S.joint.quellen[j.id] && !t.S.joint.gefunden, 'Wiesen-Joint im Rucksack');
+  gleich(bing, 3, 'Bing am Joint');
+  t.Sp.itemNutzen(t.S, t.X);
+  wahr(t.S.joint.doppelt && !t.S.joint.hat, 'R macht den nächsten Effekt doppelt');
+  var bankK = t.S.karte.stationen.filter(function (s) { return s.typ === 'bierkasten'; })[0];
+  var vor = t.S.fig.pegel;
+  t.Sp.aktion(t.S, t.X, bankK);
+  nah(t.S.fig.pegel, vor + D.Getraenke.pegelDelta('pils', t.S.fig.trink) * 2, 1e-9, 'Pils wirkt doppelt');
+  wahr(!t.S.joint.doppelt, 'Doppelt ist verbraucht');
+  var sj = t.S.karte.stationen.filter(function (s) { return s.strasse; })[0];
+  hin(sj);
+  gleich(t.Sp.aktionsPopup(t.S).text, 'Joint erhalten');
+  t.Sp.aktion(t.S, t.X);
+  wahr(t.S.joint.hat && t.S.funde[sj.id], 'Straßenjoint als Ersatz');
+  t.Sp.aktion(t.S, t.X);
+  wahr(t.S.funde[sj.id], 'liegt nicht doppelt');
+});
+
+test('264 v36: Apotheke gibt den Joint auf Rezept', function () {
+  var D = lade();
+  var welt = D.Karte.erstelleWelt(D.RNG.erstelle(1));
+  wahr(D.Karte.ORTE.indexOf('apotheke') >= 0, 'Apotheke in ORTE');
+  D.Karte.ORTE.forEach(function (id) {
+    var k = welt.innen[id];
+    wahr(k && k.innen === true && k.id === id, id + ' ist Innenraum');
+    wahr(k.stationen.some(function (s) { return s.typ === 'ausgang'; }), id + ' Ausgang');
+  });
+  var apo = welt.innen.apotheke;
+  gleich(apo.w, 14); gleich(apo.h, 11);
+  wahr(apo.stationen.some(function (s) { return s.id === 'rezept' && s.typ === 'rezept'; }), 'Rezept-Tresen');
+  var tuer = welt.stadt.tueren.filter(function (td) { return td.id === 'apotheke'; })[0];
+  wahr(tuer && tuer.y >= 30, 'Haus im Süden');
+  wahr(!welt.stadt.blockiert(tuer.aussen.x, tuer.aussen.y), 'Vorplatz frei');
+  wahr(D.Pfad.suche(welt.stadt, welt.stadt.spawn.x, welt.stadt.spawn.y, tuer.aussen.x, tuer.aussen.y), 'Tür erreichbar');
+  wahr(D.Uhr.offen('apotheke', 8 * 60) && !D.Uhr.offen('apotheke', 20 * 60), '08 bis 20');
+  var kamera = fs.readFileSync(path.join(ROOT, 'js/kamera.js'), 'utf8');
+  var render = fs.readFileSync(path.join(ROOT, 'js/render.js'), 'utf8');
+  wahr(!/apotheke/.test(kamera), 'Kamera ohne Apotheken-Sonderfall');
+  var zoomFn = render.slice(render.indexOf('function weltZoomFuer'), render.indexOf('function infoAbsaetze'));
+  wahr(/karte\.innen/.test(zoomFn) && !/apotheke/.test(zoomFn), 'Innenzoom nur über das innen-Flag');
+  var blaseFn = render.slice(render.indexOf('function blasenRahmen'), render.indexOf('function zeichneAktionsPopup'));
+  wahr(!/apotheke/.test(blaseFn), 'Blasen ohne Apotheken-Sonderfall');
+
+  function ton(bing) {
+    return {
+      bing: function () { bing.n += 1; }, tuer: function () {}, setzeTief: function () {}, setzeEbene: function () {},
+      schluck: function () {}, pling: function () {}, umfall: function () {}, glocke: function () {}, prost: function () {}
+    };
+  }
+  var bing = { n: 0 };
+  var t = neuesSpielTest(D); erledigt(t.S); t.S.zustand = 'spiel'; t.X.T = ton(bing);
+  wahr(t.Sp.geheZuStation(t.S, 'apotheke', 'rezept', t.X), 'kommt an den Tresen');
+  gleich(t.S.ort, 'apotheke');
+  gleich(t.S.karte.innen, true);
+  var pop = t.Sp.aktionsPopup(t.S);
+  wahr(pop && pop.id === 'rezept' && pop.text === 'auf Rezept', 'Popup auf Rezept');
+  gleich(t.Sp.hilfeText(t.S), 'E: Rezept');
+  wahr(!t.S.joint.hat && !t.S.joint.gefunden, 'vorher keine Tüte');
+  t.Sp.aktion(t.S, t.X);
+  wahr(t.S.joint.hat && t.S.joint.quellen.rezept && !t.S.joint.gefunden, 'Rezept-Tüte, Hotel-Fund bleibt');
+  gleich(bing.n, 1, 'Bing');
+  var apoN = t.S.stadtvolk.filter(function (v) { return v.id === 'apotheker'; })[0];
+  wahr(apoN && apoN.blase && /Rezept|Tüte/.test(apoN.blase.text), 'Apotheker spricht');
+  gleich(t.Sp.aktionsPopup(t.S), null, 'Popup weg');
+  t.Sp.aktion(t.S, t.X);
+  gleich(bing.n, 1, 'kein zweites Rezept');
+  wahr(t.S.joint.quellen.rezept && t.S.joint.hat);
+  var log = [], R = D.Render.erstelle(mockCanvas(log), mockCanvas().ownerDocument);
+  D.Render.zeichne(R, t.S);
+  wahr(log.length > 20, 'Innenraum wird gezeichnet');
+  wahr(t.S.leben.every(function (a) { return a.art !== 'auto'; }), 'keine Autos');
+
+  var voll = neuesSpielTest(D); erledigt(voll.S); voll.S.zustand = 'spiel';
+  voll.S.joint.hat = true; voll.X.T = ton({ n: 0 });
+  wahr(voll.Sp.geheZuStation(voll.S, 'apotheke', 'rezept', voll.X));
+  voll.Sp.aktion(voll.S, voll.X);
+  wahr(!voll.S.joint.quellen.rezept, 'volle Hände lassen das Rezept liegen');
+  gleich(voll.Sp.aktionsPopup(voll.S).text, 'auf Rezept');
+
+  var zu = neuesSpielTest(D); erledigt(zu.S); zu.S.zustand = 'spiel'; zu.X.T = ton({ n: 0 });
+  wahr(zu.Sp.geheZuStation(zu.S, 'stadt', 'tuer_apotheke', zu.X));
+  zu.S.uhr.minute = 20 * 60;
+  zu.Sp.aktion(zu.S, zu.X);
+  gleich(zu.S.ort, 'stadt', 'nach 20 Uhr bleibt die Tür zu');
+  wahr(zu.S.hinweise.liste.some(function (h) { return /hat zu/.test(h.text); }), 'Hinweis zu');
+});
+
+
+// ---------- Innen/Aussen: Zoom, Blasen, Zoomfahrt (DESIGNER-NOTES.md) ----------
+function hochTouchR(D, log) {
+  var R = D.Render.erstelle(mockCanvas(log), mockCanvas().ownerDocument);
+  var h = D.Render.berechnePortH(390, 844);
+  R.touch = true; R.cssW = 390; R.cssH = 844;
+  D.Render.setzeBildschirm(R, true, { h: h, touch: true, zoomFaktor: 1 });
+  return R;
+}
+function querR(D) {
+  var R = D.Render.erstelle(mockCanvas(), mockCanvas().ownerDocument);
+  R.cssW = 844; R.cssH = 390;
+  D.Render.setzeBildschirm(R, false, { zoomFaktor: 1 });
+  return R;
+}
+function geheRein(t, ort) { t.Sp.betreten(t.S, ort, t.X); t.S.uebergang = null; t.S.zoomFahrt = null; }
+
+test('265 Innen-Zoom: Kamera.innenZoom Werte, Rand und Nutzerfaktor', function () {
+  var D = lade(), Ka = D.Kamera, welt = D.Karte.erstelleWelt(D.RNG.erstelle(1));
+  gleich(Ka.INNEN_RAND, 16, 'eine Kachel Rand'); gleich(Ka.INNEN_RELATIV, 0.9, 'innen 0.9 von draussen');
+  ['hotel', 'restaurant', 'kneipe', 'disko', 'apotheke'].forEach(function (id) {
+    var k = welt.innen[id];
+    // Hochformat-Handy 320 x 692, draussen Basis 1.0
+    var zh = Ka.innenZoom(320, 692, k.pxW, k.pxH, 1, 1);
+    nah(zh, 0.9, 1e-9, id + ' hoch');
+    wahr((k.pxW + 2 * Ka.INNEN_RAND) * zh <= 320 + 1e-6, id + ' Raum + Rand passt in die Breite');
+    // Querformat 320 x 176, draussen Basis 0.5
+    var zq = Ka.innenZoom(320, 176, k.pxW, k.pxH, 0.5, 1);
+    nah(zq, 0.45, 1e-9, id + ' quer');
+    wahr(zq < 0.5, id + ' quer weiter raus');
+    // Nutzer-Zoom ist ein reiner Faktor
+    D.Render.ZOOM_STUFEN.forEach(function (f) {
+      var z = Ka.innenZoom(320, 692, k.pxW, k.pxH, 1, f);
+      nah(z / zh, f, 1e-9, id + ' Faktor ' + f);
+    });
+  });
+  // Kleiner Bildschirm: Raum-Fit gewinnt gegen 0.9, Untergrenze greift
+  var hotel = welt.innen.hotel;
+  nah(Ka.innenZoom(200, 600, hotel.pxW, hotel.pxH, 1, 1), 200 / (hotel.pxW + 32), 1e-9, 'contain gewinnt');
+  gleich(Ka.innenZoom(50, 50, hotel.pxW, hotel.pxH, 1, 0.75), Ka.INNEN_MIN_ZOOM, 'Untergrenze');
+});
+
+test('266 Innen-Zoom: Render draussen normal, drinnen weiter raus, Nutzer-Zoom multipliziert', function () {
+  var D = lade();
+  [['hoch', hochTouchR], ['quer', querR]].forEach(function (lay) {
+    [1, 0.75, 1.45].forEach(function (f) {
+      var t = neuesSpielTest(D), R = lay[1](D);
+      D.Render.setzeBildschirm(R, lay[0] === 'hoch', { h: R.H, touch: R.touch, zoomFaktor: f });
+      t.S.zustand = 'spiel';
+      D.Render.zeichne(R, t.S);
+      var aussen = R.aktuellerWeltZoom;
+      nah(aussen, D.Render.WELT_ZOOM, 1e-9, lay[0] + ' draussen = WELT_ZOOM');
+      nah(aussen, Math.max(D.Render.MIN_WELT_ZOOM, (lay[0] === 'hoch' ? 1 : 0.5) * f), 1e-9, lay[0] + ' draussen unveraendert x' + f);
+      ['hotel', 'restaurant', 'kneipe', 'disko', 'apotheke'].forEach(function (ort) {
+        geheRein(t, ort);
+        D.Render.zeichne(R, t.S);
+        var z = R.aktuellerWeltZoom, basis = lay[0] === 'hoch' ? 1 : 0.5;
+        nah(z, Math.max(D.Kamera.INNEN_MIN_ZOOM, 0.9 * basis * f), 1e-9, lay[0] + ' ' + ort + ' innen x' + f);
+        if (f === 1) {
+          wahr(z < aussen, lay[0] + ' ' + ort + ' innen weiter raus');
+          wahr(t.S.karte.pxW * z <= R.W && t.S.karte.pxH * z <= R.weltH, lay[0] + ' ' + ort + ' ganzer Raum sichtbar');
+        }
+        t.Sp.verlassen(t.S, t.X); t.S.uebergang = null; t.S.zoomFahrt = null;
+        D.Render.zeichne(R, t.S);
+        nah(R.aktuellerWeltZoom, aussen, 1e-9, lay[0] + ' nach ' + ort + ' wieder normal');
+      });
+    });
+  });
+});
+
+test('267 Innen-Kamera: Raum bleibt ganz im Bild, Spieler so mittig wie moeglich', function () {
+  var D = lade(), t = neuesSpielTest(D), R = hochTouchR(D);
+  t.S.zustand = 'spiel'; geheRein(t, 'hotel');
+  var k = t.S.kamera, sp = t.S.spieler;
+  [[1, 1], [14, 10], [8, 6], [1, 10]].forEach(function (p) {
+    D.Spieler.setzeKachel(sp, p[0], p[1]);
+    D.Render.zeichne(R, t.S); D.Kamera.sofort(k, sp.x, sp.y - 8);
+    wahr(k.x <= 1e-6 && k.x + k.viewW >= t.S.karte.pxW - 1e-6, 'Raum horizontal ganz sichtbar bei ' + p);
+    wahr(k.y <= 1e-6 && k.y + k.viewH >= t.S.karte.pxH - 1e-6, 'Raum vertikal ganz sichtbar bei ' + p);
+    // vertikal ist Platz: Spieler exakt auf der Kamera-Hoehe (Daumen-Versatz eingerechnet)
+    nah(sp.y - 8 - k.y, k.viewH * (0.5 - (k.daumenFrei > 0 ? Math.min(0.2, k.daumenFrei) : 0)), 1e-6, 'Spieler vertikal zentriert');
+  });
+  // Draussen unveraendert: Stadt groesser als das Bild, normales Folgen
+  t.Sp.verlassen(t.S, t.X); t.S.uebergang = null; t.S.zoomFahrt = null;
+  D.Render.zeichne(R, t.S);
+  gleich(k.raumHalten, false, 'draussen kein Raumhalten');
+});
+
+test('268 Sprechblasen: draussen normal, drinnen kleiner aber lesbar', function () {
+  var D = lade(), Rn = D.Render;
+  gleich(Rn.BLASE_INNEN, 0.85, 'innen 85 %'); gleich(Rn.BLASE_MIN_CSS, 8.5, 'Mindestschrift 8.5 CSS-px');
+  gleich(Rn.blasenSkalaFuer(1, false, 1.22), 1, 'draussen = Welt-Zoom');
+  gleich(Rn.blasenSkalaFuer(0.5, false, 2.6), 0.5, 'draussen quer = Welt-Zoom');
+  [320, 360, 390, 430].forEach(function (cssW) {
+    var cs = cssW / 320, aussen = 1, innen = Rn.blasenSkalaFuer(aussen, true, cs);
+    wahr(innen <= aussen, cssW + ': innen nie groesser');
+    // Schon draussen unter 8.5 CSS-px (320 CSS breit): innen nicht noch kleiner
+    if (Rn.BLASE_SCHRIFT * aussen * cs < Rn.BLASE_MIN_CSS) gleich(innen, aussen, cssW + ': nicht unter draussen');
+    else wahr(Rn.BLASE_SCHRIFT * innen * cs >= Rn.BLASE_MIN_CSS - 1e-9, cssW + ': Schrift >= 8.5 CSS-px');
+    if (cssW >= 360) wahr(innen < aussen, cssW + ': innen kleiner');
+  });
+  nah(Rn.blasenSkalaFuer(1, true, 430 / 320), 0.85, 1e-9, 'grosses Handy: volle 0.85');
+  // Im Bild: gleiche Blase draussen und drinnen messen
+  function box(innen) {
+    var t = neuesSpielTest(D), R = hochTouchR(D);
+    t.S.zustand = 'spiel';
+    if (innen) geheRein(t, 'kneipe');
+    t.S.npcs.forEach(function (n) { n.blase = null; });
+    var n = t.S.npcs.filter(function (x) { return x.aktiv; })[0];
+    n.karteId = t.S.karte.id; n.liegt = false; n.x = t.S.spieler.x; n.y = t.S.spieler.y + 40;
+    n.blase = { text: 'Prost auf den Abend!', rest: 4 };
+    t.S.stadtvolk = []; t.S.leben = [];
+    Rn.zeichne(R, t.S);
+    return { R: R, b: R.blasenBoxen.filter(function (b) { return b.h > 0; })[0] };
+  }
+  var a = box(false), i = box(true);
+  nah(a.R.blasenSkala, a.R.aktuellerWeltZoom, 1e-9, 'draussen Blase = Welt-Zoom');
+  wahr(i.R.blasenSkala < a.R.blasenSkala, 'drinnen kleinere Skala');
+  wahr(a.b && i.b, 'beide Blasen gemessen');
+  wahr(i.b.h < a.b.h && i.b.w < a.b.w, 'Blase drinnen kleiner auf dem Schirm');
+  wahr(Rn.BLASE_SCHRIFT * i.R.blasenSkala * (390 / i.R.W) >= Rn.BLASE_MIN_CSS - 1e-9, 'drinnen lesbar am Handy');
+  wahr(i.b.x >= 0 && i.b.x + i.b.w <= i.R.W && i.b.y >= 0 && i.b.y + i.b.h <= i.R.weltH, 'Blase drinnen im Bild');
+  // Nutzer-Zoom wirkt auch auf die Blasen
+  var t2 = neuesSpielTest(D), R2 = hochTouchR(D);
+  Rn.setzeBildschirm(R2, true, { h: R2.H, touch: true, zoomFaktor: 1.3 });
+  t2.S.zustand = 'spiel'; geheRein(t2, 'kneipe'); Rn.zeichne(R2, t2.S);
+  wahr(R2.blasenSkala > i.R.blasenSkala, 'Zoom + vergroessert auch Innen-Blasen');
+});
+
+test('269 Zoomfahrt: rein zoomt raus, raus zoomt rein, abbremsend, Spieler bleibt Bezugspunkt', function () {
+  var D = lade(), Ka = D.Kamera;
+  gleich(Ka.FAHRT.rein.von, 1.25); gleich(Ka.FAHRT.rein.dauer, 0.7);
+  gleich(Ka.FAHRT.raus.von, 0.8); gleich(Ka.FAHRT.raus.dauer, 0.55);
+  nah(Ka.easeOutCubic(0), 0, 1e-12); nah(Ka.easeOutCubic(1), 1, 1e-12); nah(Ka.easeOutCubic(0.5), 0.875, 1e-12);
+  var t = neuesSpielTest(D), R = hochTouchR(D), S = t.S;
+  S.zustand = 'spiel';
+  var Rn = D.Render; Rn.zeichne(R, S);
+  var aussen = R.aktuellerWeltZoom;
+  t.Sp.betreten(S, 'hotel', t.X); S.uebergang = null;
+  wahr(S.zoomFahrt && S.zoomFahrt.art === 'rein', 'Fahrt rein gestartet');
+  var ziel = Ka.innenZoom(R.W, R.weltH, S.karte.pxW, S.karte.pxH, 1, 1), zs = [], schritte = 0;
+  while (S.zoomFahrt && schritte < 100) {
+    Rn.zeichne(R, S); zs.push(R.aktuellerWeltZoom);
+    // Spieler bleibt im Bild und vertikal auf seiner Kamera-Hoehe
+    var sy = (S.spieler.y - 8 - S.kamera.y) * R.aktuellerWeltZoom;
+    nah(sy, R.weltH * (0.5 - (S.kamera.daumenFrei > 0 ? Math.min(0.2, S.kamera.daumenFrei) : 0)), 1, 'Spieler vertikal fest');
+    S.zoomFahrt = Ka.fahrtUpdate(S.zoomFahrt, 1 / 30); schritte++;
+  }
+  nah(zs[0], ziel * 1.25, 1e-9, 'Start nah an der Tuer');
+  for (var i = 1; i < zs.length; i++) wahr(zs[i] <= zs[i - 1] + 1e-12, 'zoomt stetig raus');
+  wahr(schritte >= 20 && schritte <= 22, '~0.7 s (' + schritte + ' Frames)');
+  Rn.zeichne(R, S); nah(R.aktuellerWeltZoom, ziel, 1e-9, 'endet auf Innen-Zoom');
+  wahr(ziel < aussen, 'Endwert weiter raus als draussen');
+  // Abbremsend: erste Haelfte deckt den Grossteil
+  wahr((zs[0] - zs[Math.floor(zs.length / 2)]) / (zs[0] - ziel) > 0.8, 'easeOut');
+  // Raus: von weit rein auf normal
+  t.Sp.verlassen(S, t.X); S.uebergang = null;
+  wahr(S.zoomFahrt && S.zoomFahrt.art === 'raus', 'Fahrt raus gestartet');
+  Rn.zeichne(R, S); var z0 = R.aktuellerWeltZoom;
+  nah(z0, aussen * 0.8, 1e-9, 'Start weit');
+  schritt(S, t.Sp, t.X, 0.6);
+  gleich(S.zoomFahrt, null, 'Fahrt laeuft im Spiel-Update ab');
+  Rn.zeichne(R, S); nah(R.aktuellerWeltZoom, aussen, 1e-9, 'zurueck auf normal');
+  // Blasen bleiben waehrend der Fahrt ruhig (keine pumpende Groesse)
+  t.Sp.verlassen(S, t.X); Rn.zeichne(R, S); nah(R.blasenSkala, aussen, 1e-9, 'Blasen-Skala fest waehrend Fahrt');
+  // Ruhiger Modus: keine Fahrt
+  S.ruhig = true; t.Sp.betreten(S, 'disko', t.X); gleich(S.zoomFahrt, null, 'ruhig: kein Zoom');
+});
+
+test('270 Zoomfahrt raus: nie ueber den Stadtrand hinaus (Querformat)', function () {
+  var D = lade(), t = neuesSpielTest(D), R = querR(D), S = t.S;
+  S.zustand = 'spiel'; geheRein(t, 'kneipe');
+  t.Sp.verlassen(S, t.X); S.uebergang = null;
+  D.Render.zeichne(R, S);
+  wahr(S.kamera.viewW <= S.karte.pxW + 1e-6 && S.kamera.viewH <= S.karte.pxH + 1e-6, 'Sicht nicht groesser als die Stadt');
+  wahr(R.aktuellerWeltZoom >= D.Render.MIN_WELT_ZOOM - 1e-9, 'MIN_WELT_ZOOM draussen');
+});
+
+test('271 v36: Apotheke bekommt Innenzoom, kleinere Blasen und die Zoomfahrt', function () {
+  var D = lade(), Ka = D.Kamera, Rn = D.Render;
+  var welt = D.Karte.erstelleWelt(D.RNG.erstelle(1));
+  var apo = welt.innen.apotheke;
+  wahr(D.Karte.ORTE.indexOf('apotheke') >= 0 && apo && apo.innen === true, 'Apotheke in der gemeinsamen Liste');
+  var kamera = fs.readFileSync(path.join(ROOT, 'js/kamera.js'), 'utf8');
+  var render = fs.readFileSync(path.join(ROOT, 'js/render.js'), 'utf8');
+  var zoomFn = render.slice(render.indexOf('function weltZoomFuer'), render.indexOf('function infoAbsaetze'));
+  var blaseFn = render.slice(render.indexOf('function blasenSkalaFuer'), render.indexOf('function weltZoomFuer'));
+  wahr(!/apotheke/.test(kamera) && !/apotheke/.test(zoomFn) && !/apotheke/.test(blaseFn), 'kein Sonderfall, nur das innen-Flag');
+  nah(Ka.innenZoom(320, 692, apo.pxW, apo.pxH, 1, 1), 0.9, 1e-9, 'Hochformat 0,9');
+  nah(Ka.innenZoom(320, 176, apo.pxW, apo.pxH, 0.5, 1), 0.45, 1e-9, 'Querformat 0,45');
+
+  var t = neuesSpielTest(D), R = hochTouchR(D), S = t.S;
+  S.zustand = 'spiel';
+  Rn.zeichne(R, S);
+  var aussen = R.aktuellerWeltZoom;
+  t.Sp.betreten(S, 'apotheke', t.X); S.uebergang = null;
+  wahr(S.ort === 'apotheke' && S.karte.innen === true && S.karte.id === 'apotheke', 'drin');
+  wahr(S.zoomFahrt && S.zoomFahrt.art === 'rein', 'Fahrt rein');
+  var ziel = Ka.innenZoom(R.W, R.weltH, S.karte.pxW, S.karte.pxH, 1, 1);
+  Rn.zeichne(R, S);
+  nah(R.aktuellerWeltZoom, ziel * Ka.FAHRT.rein.von, 1e-9, 'Start nah, dann raus');
+  var blaseInnen = Rn.blasenSkalaFuer(Rn.WELT_ZOOM, true, R.cssW / R.W);
+  nah(R.blasenSkala, blaseInnen, 1e-9, 'Innen-Blasen folgen der gemeinsamen Skala');
+  wahr(R.blasenSkala < aussen, 'Blase drinnen kleiner als draußen');
+  wahr(Rn.BLASE_SCHRIFT * R.blasenSkala * (R.cssW / R.W) >= Rn.BLASE_MIN_CSS - 1e-9, 'Schrift mindestens 8,5 CSS-px');
+  var schritte = 0, zs = [], letzteBlase = R.blasenSkala;
+  while (S.zoomFahrt && schritte < 100) {
+    Rn.zeichne(R, S); zs.push(R.aktuellerWeltZoom);
+    nah(R.blasenSkala, letzteBlase, 1e-9, 'Blasengröße bleibt während der Fahrt');
+    var sy = (S.spieler.y - 8 - S.kamera.y) * R.aktuellerWeltZoom;
+    nah(sy, R.weltH * (0.5 - (S.kamera.daumenFrei > 0 ? Math.min(0.2, S.kamera.daumenFrei) : 0)), 1, 'Spieler bleibt Bezugspunkt');
+    S.zoomFahrt = Ka.fahrtUpdate(S.zoomFahrt, 1 / 30); schritte++;
+  }
+  wahr(schritte >= 20 && schritte <= 22, 'Fahrt dauert etwa 0,7 s');
+  for (var i = 1; i < zs.length; i++) wahr(zs[i] <= zs[i - 1] + 1e-12, 'zoomt stetig raus');
+  Rn.zeichne(R, S);
+  nah(R.aktuellerWeltZoom, ziel, 1e-9, 'endet auf dem Innenzoom');
+  wahr(ziel < aussen, 'weiter raus als draußen');
+  wahr(S.karte.pxW * ziel <= R.W + 1e-6 && S.karte.pxH * ziel <= R.weltH + 1e-6, 'ganzer Raum sichtbar');
+  wahr(S.kamera.raumHalten === true, 'Raum bleibt im Bild');
+  S.npcs.forEach(function (n) { n.blase = null; });
+  var n = S.npcs.filter(function (x) { return x.aktiv; })[0];
+  n.karteId = S.karte.id; n.liegt = false; n.x = S.spieler.x; n.y = S.spieler.y - 36;
+  n.blase = { text: 'Auf Rezept, eine Tüte.', rest: 4 };
+  S.stadtvolk = []; S.leben = [];
+  Rn.zeichne(R, S);
+  var ib = R.blasenBoxen.filter(function (b) { return b.h > 0; })[0];
+  wahr(ib && ib.x >= -1 && ib.y >= -1 && ib.x + ib.w <= R.W + 1 && ib.y + ib.h <= R.weltH + 1, 'Blase im Bild');
+
+  t.Sp.verlassen(S, t.X); S.uebergang = null;
+  wahr(S.ort === 'stadt' && S.zoomFahrt && S.zoomFahrt.art === 'raus', 'Fahrt raus');
+  Rn.zeichne(R, S);
+  nah(R.aktuellerWeltZoom, Math.max(Rn.MIN_WELT_ZOOM, aussen * Ka.FAHRT.raus.von), 1e-9, 'Start weit, dann rein');
+  schritt(S, t.Sp, t.X, 0.6);
+  gleich(S.zoomFahrt, null, 'Fahrt läuft im Spiel-Update ab');
+  Rn.zeichne(R, S);
+  nah(R.aktuellerWeltZoom, aussen, 1e-9, 'draußen wieder normal');
+  nah(R.blasenSkala, aussen, 1e-9, 'Blasen draußen wieder am Welt-Zoom');
+
+  var tq = neuesSpielTest(D), Rq = querR(D);
+  tq.S.zustand = 'spiel';
+  Rn.zeichne(Rq, tq.S);
+  var aussenQ = Rq.aktuellerWeltZoom;
+  tq.Sp.betreten(tq.S, 'apotheke', tq.X); tq.S.uebergang = null; tq.S.zoomFahrt = null;
+  Rn.zeichne(Rq, tq.S);
+  nah(Rq.aktuellerWeltZoom, 0.45, 1e-9, 'quer innen 0,45');
+  wahr(Rq.aktuellerWeltZoom < aussenQ && Rq.blasenSkala < aussenQ, 'quer weiter raus und kleinere Blasen');
+  wahr(tq.S.karte.pxW * Rq.aktuellerWeltZoom <= Rq.W + 1e-6 && tq.S.karte.pxH * Rq.aktuellerWeltZoom <= Rq.weltH + 1e-6, 'quer ganzer Raum');
+  tq.Sp.verlassen(tq.S, tq.X); tq.S.uebergang = null;
+  wahr(tq.S.zoomFahrt && tq.S.zoomFahrt.art === 'raus', 'quer Fahrt raus');
 });
 
 (async function () {

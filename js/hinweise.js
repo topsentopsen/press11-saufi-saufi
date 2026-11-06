@@ -60,7 +60,7 @@
   // v20: Tobi und Bundschuh nicht im Scooter-Pool. Tobi bekommt den Elon-Pool aus elon.js.
   var FIGUR = {}; ['raphael','tobias','schwickendorf','ritzi','siebold','schwinki','stoeckle','probst','himmelsbach','zeise'].forEach(function (id) { FIGUR[id] = SCOOTER; });
   var SITUATION = {}; ['mittrinken','essen','wasser','erwischt','umfallen','aufstehen','scooter','joint'].forEach(function (k) { SITUATION[k] = SCOOTER; });
-  var ORT = {}; ['hotel','restaurant','kneipe','disko','stadt','motocross'].forEach(function (k) { ORT[k] = SCOOTER; });
+  var ORT = {}; ['hotel','restaurant','kneipe','disko','apotheke','stadt','motocross'].forEach(function (k) { ORT[k] = SCOOTER; });
   var PEGEL = {}; ['nuechtern','angeheitert','voll','absturz'].forEach(function (k) { PEGEL[k] = SCOOTER; });
 
   function pegelStufe(pegel) {

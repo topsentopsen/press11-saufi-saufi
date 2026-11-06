@@ -65,6 +65,21 @@
         'Schöne Samstagnacht noch, die Herren.'
       ],
       reaktion: { rezeption: ['Kann ich helfen?', 'Zimmer 11 isch noch frei.'] }
+    },
+    apotheker: {
+      name: 'Apotheker', haltung: 'steht',
+      look: { id: 'apotheker', shirt: '#f7f4ee', hose: '#2f6a4a', haar: '#5a4636', extra: 'brille' },
+      sprueche: [
+        'Apotheke am Kessel. Rezept oder Pflaster?',
+        'Auf Rezept, sagt der Zettel. Mehr steht da nicht.',
+        'Die Tüte ist nur ein Spielitem. Wasser gibt es im Jaz.',
+        'Bitte nicht in der Schlange kotzen.',
+        'Nach acht hat die Apotheke zu.',
+        'Ein Rezept, eine Tüte. Kein zweites Mal.',
+        'Grünes Kreuz, kurze Antworten.',
+        'Hustenbonbons links. Die Tüte nur mit Zettel.'
+      ],
+      reaktion: { rezept: ['Rezept ist da. Eine Tüte, und gut.', 'Auf Rezept. Bitte nicht im Laden anzünden.'] }
     }
   };
 

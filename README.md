@@ -4,6 +4,13 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v36
+
+- Im Stadtbild liegen extra versteckte Sachen: Bierkästen, Schnapsflaschen und Joints. Kein Pfeil darüber. Wer drankommt, sieht das bekannte Popup, hebt sie mit E auf und hört den Bing. Bier und Schnaps wirken wie das jeweilige Getränk, der Joint bleibt das Spiel-Item (nächster Effekt doppelt, danach kurz schwammig).
+- Die Parkgruppe gibt den Joint jetzt wirklich ab, wenn man mit ihr redet. Vorher stand nur der Text „Joint erhalten“ da.
+- Zusätzlich liegen ein paar Joints irgendwo auf der Straße. Gleicher Seed, gleiche Stellen.
+- Die Apotheke am Kessel ist ein weiteres Haus, betretbar wie die anderen. Drinnen gibt der Apotheker eine Tüte auf Rezept: kurzer Dialog, das bekannte Popup und der Bing. Sie steht in der gemeinsamen Innenraum-Liste und bekommt damit denselben Innenzoom: weiter raus, kleinere Sprechblasen, Zoomfahrt beim Rein- und Rausgehen.
+
 ## Neu in v35
 
 - Sprechblasen bleiben länger stehen: mindestens 7 Sekunden, dazu 60 ms je Zeichen, höchstens 10 Sekunden. Der Shuffle-Bag und das Ausweichen vor Knöpfen bleiben. Es liegen weiter höchstens zwei Zufallsblasen gleichzeitig, und sie überlappen sich nicht.

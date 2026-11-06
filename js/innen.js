@@ -24,6 +24,10 @@
       r(c, sx, sy, K, K, fl ? '#f8f1e6' : '#cfe0ea');
       r(c, sx, sy, K, 0.7, 'rgba(255,255,255,0.7)'); r(c, sx, sy, 0.7, K, 'rgba(255,255,255,0.5)');
       r(c, sx, sy + K - 0.5, K, 0.5, 'rgba(70,60,90,0.16)'); r(c, sx + K - 0.5, sy, 0.5, K, 'rgba(70,60,90,0.16)');
+    } else if (id === 'apotheke') {              // helle Fliesen
+      r(c, sx, sy, K, K, fl ? '#f4f7f2' : '#e7f2ea');
+      r(c, sx, sy, K, 0.6, 'rgba(255,255,255,0.7)');
+      r(c, sx, sy + K - 0.5, K, 0.5, 'rgba(40,80,50,0.12)');
     } else if (id === 'kneipe') {                 // Dielen
       for (i = 0; i < 3; i++) {
         var py2 = sy + i * 5.34, hh2 = hash(x * 3 + i, y), dun = hh2 % 2;
@@ -43,7 +47,8 @@
     hotel: { oben: '#f6e6cc', unten: '#b8855f', rand: '#9b6f4e', leiste: '#7a4f36' },
     restaurant: { oben: '#efd9aa', unten: '#a56c48', rand: '#8a5636', leiste: '#5f3a26' },
     kneipe: { oben: '#8a5a44', unten: '#5a3a2e', rand: '#43291f', leiste: '#2f1c15' },
-    disko: { oben: '#2f2652', unten: '#1c1634', rand: '#120e26', leiste: '#0a0818' }
+    disko: { oben: '#2f2652', unten: '#1c1634', rand: '#120e26', leiste: '#0a0818' },
+    apotheke: { oben: '#f7f4ee', unten: '#d5e6da', rand: '#b7d0c2', leiste: '#8fb39c' }
   };
   function wand(c, karte, x, y, sx, sy) {
     var f = WAND[karte.id] || WAND.hotel, oben = y === 0, unten = y === karte.h - 1, seite = x === 0 || x === karte.w - 1, hs = hash(x, y);
@@ -107,6 +112,10 @@
       if (x === 2) { rr(c, sx + 4, sy - 3, 3, 3, '#c9a64a', 1.4); kreis(c, sx + 5.5, sy - 3.4, 1, '#ffd75e'); }          // Klingel
       else if (x === 4) { r(c, sx + 7.4, sy - 3.4, 1.2, 3.6, '#4a3560'); poly(c, [[sx + 5, sy - 3], [sx + 11, sy - 3], [sx + 10, sy - 7], [sx + 6, sy - 7]], '#ffe9a8', '#c9a64a', 0.5); }
       else if (x === 5) { rr(c, sx + 3, sy - 4.4, 8, 5.6, '#2a2342', 1, '#8a8296', 0.5); r(c, sx + 4.2, sy - 3.4, 5.6, 3, '#4fe6ff'); }
+    } else if (id === 'apotheke') {
+      vlauf(c, sx, sy + 1, K, 5.4, '#f7f4ee', '#dfeee4');
+      r(c, sx + 6.6, sy - 3.2, 2.6, 7, '#1f7a42');
+      r(c, sx + 4.4, sy - 1, 7.2, 2.6, '#1f7a42');
     } else if (restaurant) {
       var kuech = karte.tile(x, y - 1) === T.KUECHE;
       if (kuech) { rr(c, sx + 1, sy - 2, 14, 4, '#fffdf8', 1, '#b3a5c2', 0.5); if (x % 2) { kreis(c, sx + 8, sy - 2.5, 3, '#e8e4ee', '#9aa3bb', 0.6); r(c, sx + 7.6, sy - 6, 0.8, 1.8, '#9aa3bb'); } else { kreis(c, sx + 5, sy - 1, 2.4, '#fff', '#b3a5c2', 0.5); kreis(c, sx + 11, sy - 1, 2.4, '#fff', '#b3a5c2', 0.5); } }
@@ -362,6 +371,11 @@
       });
       for (i = 0; i < 4; i++) { r(c, 2.4 * K + i * 3.2 * K, 29.4, 1.6 * K, 1.2, TANZ_FARBEN[i]); }
       r(c, 0, 0, w, 1.4, '#14102a');
+    } else if (id === 'apotheke') {
+      rr(c, 2 * K + 4, 2, 5 * K, 16, '#f7f4ee', 1.4, '#1f7a42', 0.8);
+      textInBox(c, 'REZEPT', 2 * K + 8, 3, 4 * K, 14, 9, { col: '#1f7a42', ausr: 'center', min: 6 });
+      r(c, 10 * K - 2, 4, 4, 16, '#1f7a42');
+      r(c, 10 * K - 8, 10, 16, 4, '#1f7a42');
     }
   }
 

@@ -16,9 +16,10 @@
   [T.WASSER, T.MAUER, T.REBEN, T.BAUM, T.LATERNE, T.BRUNNEN, T.BANK, T.GEB, T.TUER, T.BUSCH, T.HAUS, T.WAND, T.TRESEN, T.TISCH, T.SOFA, T.BUFFET,
     T.SPENDER, T.DJ, T.JUKEBOX, T.PFLANZE, T.KUECHE, T.AUSGANG, T.KICKER, T.TRIBUENE, T.ABSPERR, T.BAUZAUN, T.BAUGRUBE].forEach(function (t) { BLOCK[t] = true; });
 
-  var ORTE = ['hotel', 'restaurant', 'kneipe', 'disko'];
-  var NAMEN = { hotel: 'Jaz', restaurant: 'Gasthaus Maultäschle', kneipe: 'Sophies Brauhaus', disko: 'Untergrund 07', motocross: 'Motocross-Park' };
-  var KURZ = { hotel: 'Jaz', restaurant: 'Maultäschle', kneipe: 'Sophie', disko: 'Untergrund', motocross: 'Motocross' };
+  // Gemeinsame Innenraum-Liste. Zoom und Blasen hängen an karte.innen bzw. an ORTE, nicht an einem einzelnen Haus.
+  var ORTE = ['hotel', 'restaurant', 'kneipe', 'disko', 'apotheke'];
+  var NAMEN = { hotel: 'Jaz', restaurant: 'Gasthaus Maultäschle', kneipe: 'Sophies Brauhaus', disko: 'Untergrund 07', apotheke: 'Apotheke am Kessel', motocross: 'Motocross-Park' };
+  var KURZ = { hotel: 'Jaz', restaurant: 'Maultäschle', kneipe: 'Sophie', disko: 'Untergrund', apotheke: 'Apotheke', motocross: 'Motocross' };
 
   function neueKarte(id, w, h, fill, innen) {
     var k = {
@@ -171,7 +172,94 @@
     });
     k.stadtvolk.push({ id: 'penner', x: 18, y: 9, vorne: { x: 18, y: 10 }, bank: 'bank_markt_b' });
     k.spawn = { x: 25, y: 13 };
+    // Apotheke auf dem Häuserblock südlich des Parks. Nach dem Zufall, damit Kacheln und rng oben gleich bleiben.
+    bauwerk(k, 'apotheke', 2, 40, 6, 3, 4);
+    // Versteckte Fundsachen und ein paar Joints auf der Straße. Eigener Zufall, der Karten-rng bleibt stehen.
+    versteckeFundsachen(k, rng);
     return k;
+  }
+
+  function stationDa(k, x, y) {
+    var i, st;
+    for (i = 0; i < k.stationen.length; i++) {
+      st = k.stationen[i];
+      if (x >= st.x && y >= st.y && x < st.x + st.w && y < st.y + st.h) return true;
+    }
+    return false;
+  }
+  function inTyp(k, x, y, typ) {
+    var i, st;
+    for (i = 0; i < k.stationen.length; i++) {
+      st = k.stationen[i];
+      if (st.typ === typ && x >= st.x && y >= st.y && x < st.x + st.w && y < st.y + st.h) return true;
+    }
+    return false;
+  }
+  function nebenTuer(k, x, y) {
+    var i, st;
+    for (i = 0; i < k.stationen.length; i++) {
+      st = k.stationen[i];
+      if (st.typ !== 'tuer') continue;
+      if (x >= st.x - 1 && x < st.x + st.w + 1 && y >= st.y - 1 && y < st.y + st.h + 1) return true;
+    }
+    return false;
+  }
+  function erreichbarAb(k) {
+    var seen = new Uint8Array(k.w * k.h), q = [k.spawn.x, k.spawn.y], qi = 0, dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    if (k.spawn.x < 0 || k.spawn.y < 0) return seen;
+    seen[k.spawn.y * k.w + k.spawn.x] = 1;
+    while (qi < q.length) {
+      var x = q[qi++], y = q[qi++], d, nx, ny, idx;
+      for (d = 0; d < 4; d++) {
+        nx = x + dirs[d][0]; ny = y + dirs[d][1];
+        if (nx < 0 || ny < 0 || nx >= k.w || ny >= k.h) continue;
+        idx = ny * k.w + nx;
+        if (seen[idx] || k.blockiert(nx, ny)) continue;
+        seen[idx] = 1;
+        q.push(nx, ny);
+      }
+    }
+    return seen;
+  }
+  function legeFund(k, f) {
+    if (f.x < 0 || f.y < 0 || f.x >= k.w || f.y >= k.h) return false;
+    if (k.blockiert(f.x, f.y) || stationDa(k, f.x, f.y)) return false;
+    var label = f.was === 'schnaps' ? 'Schnaps' : f.was === 'joint' ? 'Joint' : 'Bierkasten';
+    var extra = { was: f.was };
+    if (f.strasse) extra.strasse = true;
+    k.station(f.id, 'fund', f.x, f.y, 1, 1, label, extra);
+    return true;
+  }
+  // Feste Verstecke abseits der Türen, plus drei Joints auf begehbaren Straßenkacheln.
+  function versteckeFundsachen(k, rng) {
+    var fest = [
+      { id: 'fund_kasten_west', was: 'kasten', x: 1, y: 20 },
+      { id: 'fund_kasten_ost', was: 'kasten', x: 38, y: 19 },
+      { id: 'fund_kasten_hain', was: 'kasten', x: 9, y: 50 },
+      { id: 'fund_kasten_mxrand', was: 'kasten', x: 35, y: 32 },
+      { id: 'fund_schnaps_reben', was: 'schnaps', x: 4, y: 3 },
+      { id: 'fund_schnaps_bach', was: 'schnaps', x: 39, y: 21 },
+      { id: 'fund_schnaps_sued', was: 'schnaps', x: 17, y: 54 },
+      { id: 'fund_joint_wiese', was: 'joint', x: 2, y: 31 },
+      { id: 'fund_joint_hain', was: 'joint', x: 11, y: 49 }
+    ];
+    fest.forEach(function (f) { legeFund(k, f); });
+    var seen = erreichbarAb(k), strassen = [], y, x, t;
+    for (y = 0; y < k.h; y++) for (x = 0; x < k.w; x++) {
+      t = k.tile(x, y);
+      if (t !== T.STRASSE && t !== T.WEG && t !== T.GEHWEG && t !== T.ASPHALT) continue;
+      if (!seen[y * k.w + x]) continue;
+      if (stationDa(k, x, y) || nebenTuer(k, x, y) || inTyp(k, x, y, 'jointgruppe')) continue;
+      if (Math.abs(x - k.spawn.x) + Math.abs(y - k.spawn.y) <= 4) continue;
+      strassen.push([x, y]);
+    }
+    var wahl = Saufi.RNG.erstelle(((rng && rng.seed) || 1) + 913);
+    var n = Math.min(3, strassen.length), i, j, tmp;
+    for (i = 0; i < n; i++) {
+      j = wahl.int(i, strassen.length - 1);
+      tmp = strassen[i]; strassen[i] = strassen[j]; strassen[j] = tmp;
+      legeFund(k, { id: 'fund_joint_strasse_' + (i + 1), was: 'joint', x: strassen[i][0], y: strassen[i][1], strasse: true });
+    }
   }
 
   // Deterministischer Nachlauf: Gras, Baum und Busch in festen Zonen werden Gehweg, Asphalt oder Haus.
@@ -211,12 +299,14 @@
 
   // Freie Nachbarkachel Ost/West/Sued: Bierkasten als begehbare Station (kein BLOCK)
   function bierkasten(k, bx, by, bankId) {
-    var dirs = [[1, 0], [-1, 0], [0, 1]], i, x, y, id = (bankId || (bx + '_' + by)).replace(/^bank_/, '');
+    var dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]], i, x, y, id = (bankId || (bx + '_' + by)).replace(/^bank_/, '');
     for (i = 0; i < dirs.length; i++) {
       x = bx + dirs[i][0]; y = by + dirs[i][1];
       if (x < 0 || y < 0 || x >= k.w || y >= k.h) continue;
       if (k.blockiert(x, y)) continue;
       if (k.tile(x, y) === T.BANK) continue;
+      // Nicht auf die Parkgruppe: sonst gewinnt der Kasten das E auf Samirs Fleck.
+      if (inTyp(k, x, y, 'jointgruppe')) continue;
       var belegt = false;
       k.stationen.forEach(function (st) {
         if (st.typ === 'bierkasten' && st.x === x && st.y === y) belegt = true;
@@ -336,9 +426,27 @@
     k.setze(1, 10, T.PFLANZE); k.setze(16, 10, T.PFLANZE);
     return k;
   }
+  function erstelleApotheke() {
+    var k = raum('apotheke', 14, 11);
+    ausgang(k, 6);
+    k.rect(2, 3, 6, 1, T.TRESEN);
+    k.station('rezept', 'rezept', 2, 3, 6, 1, 'Rezept');
+    k.stadtvolk.push({ id: 'apotheker', x: 4, y: 2, vorne: { x: 4, y: 4 } });
+    k.belege(4, 2);
+    k.rect(9, 7, 3, 1, T.SOFA);
+    k.station('sofa', 'sofa', 9, 7, 3, 1, 'Wartebank');
+    k.setze(12, 8, T.PFLANZE);
+    return k;
+  }
 
+  // Jeder Eintrag in ORTE bekommt denselben Innenraum-Bau. Kein Haus bleibt aus der Liste.
+  var INNEN_BAU = {
+    hotel: erstelleHotel, restaurant: erstelleRestaurant, kneipe: erstelleKneipe, disko: erstelleDisko, apotheke: erstelleApotheke
+  };
   function erstelleWelt(rng) {
-    var w = { stadt: erstelleStadt(rng), innen: { hotel: erstelleHotel(), restaurant: erstelleRestaurant(), kneipe: erstelleKneipe(), disko: erstelleDisko() } };
+    var innen = {};
+    ORTE.forEach(function (id) { innen[id] = INNEN_BAU[id](); });
+    var w = { stadt: erstelleStadt(rng), innen: innen };
     w.karte = function (id) { return id === 'stadt' ? w.stadt : w.innen[id]; };
     return w;
   }

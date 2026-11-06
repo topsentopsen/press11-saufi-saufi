@@ -6,9 +6,26 @@
   // ---------- Joint ("Dicke Tuete") ----------
   var SCHWAMMIG_SEK = 30, SCHWAMMIG_BEWEGUNG = 0.9;
   var Joint = {
-    erstelle: function () { return { hat: false, gefunden: false, doppelt: false, schwammigBis: 0, t: 0 }; },
+    erstelle: function () { return { hat: false, gefunden: false, doppelt: false, schwammigBis: 0, t: 0, quellen: {} }; },
     update: function (j, dt) { j.t += dt; },
-    nimm: function (j) { if (j.gefunden) return false; j.gefunden = true; j.hat = true; return true; },
+    // quelle leer: die eine Dicke Tüte im Hotel (gefunden bleibt gesetzt).
+    // Mit Quelle (Park, Straßenfund): jede Stelle einmal, solange die Hände frei sind.
+    // Volle Hände setzen die Quelle nicht, der Fund bleibt liegen.
+    nimm: function (j, quelle) {
+      if (!j) return false;
+      if (!j.quellen) j.quellen = {};
+      if (!quelle) {
+        if (j.gefunden || j.hat || j.doppelt) return false;
+        j.gefunden = true;
+        j.quellen.hotel = true;
+        j.hat = true;
+        return true;
+      }
+      if (j.quellen[quelle] || j.hat || j.doppelt) return false;
+      j.quellen[quelle] = true;
+      j.hat = true;
+      return true;
+    },
     benutze: function (j) { if (!j.hat || j.doppelt) return false; j.hat = false; j.doppelt = true; return true; },
     verstaerke: function (j) {
       if (!j.doppelt) return 1;
