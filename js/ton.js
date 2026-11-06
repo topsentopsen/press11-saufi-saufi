@@ -372,6 +372,11 @@
     t.glocke = fx(function (z) { osz('triangle', 880, z, 0.8, 0.25, master); osz('triangle', 1320, z, 0.6, 0.15, master); });
     t.tuer = fx(function (z) { knall(z, 0.12, 0.25, 300, master); osz('sine', 120, z, 0.1, 0.2, master, 70); });
     t.pling = fx(function (z) { osz('square', 988, z, 0.08, 0.08, master); osz('square', 1318, z + 0.07, 0.1, 0.08, master); });
+    // Kurzer Bing nach einer gelungenen Aktion. fx() bleibt still, wenn stumm oder noch kein Kontext.
+    t.bing = fx(function (z) {
+      osz('sine', 880, z, 0.08, 0.11, master);
+      osz('sine', 1318, z + 0.055, 0.11, 0.07, master);
+    });
     t.boostFx = fx(function (z) { for (var i = 0; i < 8; i++) osz('sawtooth', 300 + i * 150, z + i * 0.05, 0.4, 0.08, master); });
     t.fanfare = fx(function (z) { [60, 64, 67, 72, 76].forEach(function (m, i) { osz('square', mtof(m), z + i * 0.12, 0.35, 0.1, master); }); });
     t.verloren = fx(function (z) { [64, 62, 60, 55].forEach(function (m, i) { osz('triangle', mtof(m), z + i * 0.28, 0.5, 0.18, master); }); });

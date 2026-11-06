@@ -112,9 +112,11 @@
     var pr = prostRuf(S);
     sag(S, prostZeile(S, zusatz), dauer || 2.2, 'gross');
     if (T && T.prost) T.prost(pr.ton);
+    erfolgBing(T ? { T: T } : null);
     S.prost = 1.4;
     prostEffekte(S, S.spieler.x, S.spieler.y - 20);
   }
+  function erfolgBing(X) { if (X && X.T && X.T.bing) X.T.bing(); }
   function minispielOpt(E) { return { halten: !!(E && E.halt && E.halt('aktion')) }; }
   function stub(X) {
     X = X || {};
@@ -224,6 +226,7 @@
     Saufi.Pegel.trinke(S.fig, id, f);
     if (def.alk) S.stats.getrunken += 1;
     if (X && X.T) X.T.schluck();
+    erfolgBing(X);
   }
   function startEssen(S, id) {
     var g2 = Saufi.Essen.GERICHTE[id];
@@ -239,7 +242,7 @@
     S.stats.gegessen += 1;
     if (gut) { Saufi.Punkte.add(S.punkte, 20, 'Essen zur rechten Zeit'); }
     sag(S, 'Satt! Pegel ' + Saufi.Pegel.anzeige(S.fig.pegel) + ' ‰, Standfestigkeit ' + Math.round(S.fig.stand) + '.' + (res.voll ? ' Puh, voll gefuttert (langsamer).' : ''), 2.4, 'gut');
-    X.T.pling(); sp.essenId = null;
+    X.T.pling(); erfolgBing(X); sp.essenId = null;
   }
 
   function runde(S, art, X) {
@@ -276,7 +279,7 @@
         sagProst(S, T, 'Niemand hat was gemerkt. +' + res.punkte, 2.4);
         nachRunde(S, res);
       } else {
-        sag(S, 'Heimlich getauscht! Noch ' + res.rest + ' Glas.', 2, 'gut'); T.pling();
+        sag(S, 'Heimlich getauscht! Noch ' + res.rest + ' Glas.', 2, 'gut'); T.pling(); erfolgBing(X);
         stammtisch(S, X);                                  // Menue wieder auf
       }
     } else if (art === 'runde_ablehnen') {
@@ -380,7 +383,7 @@
       case 'essen':
         S.overlay = null; startEssen(S, e.daten); break;
       case 'spender_trinken': S.overlay = null; trinke(S, 'wasser', X); sag(S, 'Wasser. Gut so!', 1.8, 'gut'); break;
-      case 'spender_fuellen': S.overlay = null; S.flaschen = Math.min(flaschenMax(S), S.flaschen + 1); sag(S, 'Flasche aufgefüllt (' + flaschenText(S) + ').', 2, 'gut'); T.pling(); break;
+      case 'spender_fuellen': S.overlay = null; S.flaschen = Math.min(flaschenMax(S), S.flaschen + 1); sag(S, 'Flasche aufgefüllt (' + flaschenText(S) + ').', 2, 'gut'); T.pling(); erfolgBing(X); break;
       case 'runde_trinken': case 'runde_frei': case 'runde_ablehnen': S.overlay = null; runde(S, e.id, X); break;
       case 'spontan_trinken': case 'spontan_ablehnen': S.overlay = null; spontanWahl(S, e.id, X); break;
       case 'playlist': playlistOverlay(S, X); break;
@@ -434,6 +437,7 @@
     sag(S, bel.text || 'Minispiel Ende', 3, mg.erfolg ? 'gut' : 'info');
     S.overlay = null;
     if (X && X.T) X.T.pling();
+    if (mg.erfolg) erfolgBing(X);
   }
   function loeseAktivePanne(S, via, X) {
     var res = Saufi.Ereignisse.loesePanne(S.pannen, via);
@@ -445,6 +449,7 @@
     if (ef.pegel) S.fig.pegel = Math.max(0, Math.min(4, S.fig.pegel + ef.pegel));
     sag(S, res.def.text + ' → erledigt!' + (ef.punkte ? ' +' + ef.punkte : ''), 3, 'gut');
     if (X && X.T) X.T.pling();
+    erfolgBing(X);
     if (S.overlay && S.overlay.art === 'panne') S.overlay = null;
     return true;
   }
@@ -605,7 +610,7 @@
       case 'tanz': tanzen(S, X); break;
       case 'jukebox': playlistOverlay(S, X); break;
       case 'joint':
-        if (Saufi.Ereignisse.Joint.nimm(S.joint)) sag(S, 'Dicke Tüte eingesteckt (Spiel-Item). R: nächster Effekt doppelt, danach 30 s schwammig.', 4, 'info');
+        if (Saufi.Ereignisse.Joint.nimm(S.joint)) { sag(S, 'Dicke Tüte eingesteckt (Spiel-Item). R: nächster Effekt doppelt, danach 30 s schwammig.', 4, 'info'); erfolgBing(X); }
         else sag(S, 'Hier liegt nichts mehr.', 1.5, 'info');
         break;
       case 'jointgruppe':
@@ -614,7 +619,7 @@
         S.parkN += 1;
         break;
       case 'flasche':
-        if (S.flascheGenommen) sag(S, 'Hier liegt nichts mehr.', 1.5, 'info'); else { S.flascheGenommen = true; S.flaschen = Math.min(flaschenMax(S), S.flaschen + 1); sag(S, 'Wasserflasche gefunden (' + flaschenText(S) + ').', 2, 'gut'); T.pling(); }
+        if (S.flascheGenommen) sag(S, 'Hier liegt nichts mehr.', 1.5, 'info'); else { S.flascheGenommen = true; S.flaschen = Math.min(flaschenMax(S), S.flaschen + 1); sag(S, 'Wasserflasche gefunden (' + flaschenText(S) + ').', 2, 'gut'); T.pling(); erfolgBing(X); }
         break;
       case 'tribuene':
         if (!Uhr.offen('motocross', m)) {
@@ -686,7 +691,7 @@
       if (S.flaschen <= 0) { sag(S, 'Keine Flasche zum Wecken. Am Spender auffüllen!', 2.5, 'schlecht'); return; }
       S.flaschen -= 1; Saufi.NPCs.wecke(n); S.stats.geweckt += 1;
       Saufi.Punkte.add(S.punkte, 80, 'Freund geweckt'); Saufi.Runden.teamAendern(S.runden, 1);
-      sag(S, n.char.name + ' ist wieder wach! +80, Team +1', 3, 'gut'); X.T.pling(); return;
+      sag(S, n.char.name + ' ist wieder wach! +80, Team +1', 3, 'gut'); X.T.pling(); erfolgBing(X); return;
     }
     if (S.pannen && S.pannen.aktiv && S.pannen.aktiv.def.loesung === 'wasser' && loeseAktivePanne(S, 'wasser', X)) return;
     if (S.flaschen <= 0) { sag(S, 'Keine Flasche mehr. Am Spender oder an der Bar auffüllen.', 2.5, 'schlecht'); return; }
@@ -702,7 +707,7 @@
       S.boostAktiv = true; musikFuerOrt(S, X);
       return;
     }
-    if (J.benutze(S.joint)) { sag(S, 'Dicke Tüte: der nächste Effekt wirkt doppelt!', 3, 'gut'); X.T.pling(); return; }
+    if (J.benutze(S.joint)) { sag(S, 'Dicke Tüte: der nächste Effekt wirkt doppelt!', 3, 'gut'); X.T.pling(); erfolgBing(X); return; }
     if (S.ort === 'disko') sag(S, S.boost.leiste >= 1 ? 'Boost noch im Cooldown.' : 'Scooter-Leiste noch nicht voll: tanz im Takt (E).', 2.5, 'info');
     else sag(S, 'Gerade kein Item einsetzbar.', 1.5, 'info');
   }

@@ -7,7 +7,9 @@ Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 n
 ## Neu in v34
 
 - Über Jule, Samir und Nico im Südpark steigen kleine Rauchwölkchen auf. Sie sind weich, halb durchsichtig, ziehen nach oben und verblassen. Es bleiben vier Puffs, ohne extra Zufall, damit es auf dem Handy billig bleibt.
-- Wer an die Gruppe herankommt, sieht das Aktionspopup „Joint erhalten“, im selben Stil wie der andere Aktionshinweis. Der Pfeil und der E-Spruch bleiben. HUD, Knöpfe und Rucksack bleiben, wo sie sind.
+- Wer an die Gruppe herankommt, sieht das Aktionspopup „Joint erhalten“, im selben Stil wie der andere Aktionshinweis. Der Pfeil und der E-Spruch bleiben. Knöpfe und Rucksack bleiben, wo sie sind.
+- Die Rundenleiste ist kürzer und flacher und sitzt direkt unter der Uhr. Die Uhr nennt den Tag ausgeschrieben, „Samstag“ oder „Sonntag“.
+- Nach einer gelungenen Aktion (Bier, Joint, Prost, Minispiel und weitere) gibt es einen kurzen Bing. Stumm bleibt still.
 
 ## Neu in v33
 

@@ -6157,9 +6157,12 @@ test('249 Handy: Daumenbogen, volle Bannerbreite, Desktop bleibt', function () {
   var t = neuesSpielTest(D); t.S.zustand = 'spiel';
   t.S.runden.runden[0].status = 'aktiv';
   D.Render.zeichne(R, t.S);
-  gleich(R.hudRunde.x, 0);
-  gleich(R.hudRunde.w, R.W);
-  wahr(R.hudRunde.y >= R.hudUhr.y + R.hudUhr.h - 0.5, 'Banner unter der Uhr');
+  wahr(R.hudRunde.w < R.hudUhr.w, 'Banner kürzer als die Uhr');
+  wahr(R.hudRunde.w < R.W * 0.55, 'Banner nicht mehr über die volle Breite');
+  wahr(R.hudRunde.h <= 10, 'Banner flacher');
+  nah(R.hudRunde.x + R.hudRunde.w / 2, R.hudUhr.x + R.hudUhr.w / 2, 1.5, 'Banner mittig unter der Uhr');
+  wahr(R.hudRunde.y >= R.hudUhr.y + R.hudUhr.h + 1, 'Banner direkt unter der Uhr');
+  wahr(R.hudRunde.y + R.hudRunde.h <= R.hudLinks.y + 0.5, 'Pegel beginnt unter der Rundenleiste');
   D.Render.setzeBildschirm(R, false, {});
   R.touch = false; R.hochkant = false;
   D.Render.zeichne(R, t.S);
@@ -6395,6 +6398,89 @@ test('256 v34: Popup „Joint erhalten“ in Reichweite, Pfeil und E bleiben', f
   D.Render.zeichne(R, t.S);
   gleich(R.aktionsPopups.length, 0, 'kein Popup mehr');
   wahr(!(log.meta || []).some(function (m) { return m.text === 'Joint erhalten'; }), 'Text weg');
+});
+
+test('257 v34: Uhr zeigt den Tag, Rundenleiste sitzt kurz darunter', function () {
+  var D = lade();
+  var src = fs.readFileSync(path.join(ROOT, 'js', 'render.js'), 'utf8');
+  wahr(!/Morgen:\s*'Mo'/.test(src), 'kein Mo für Morgen');
+  function zeichne(hoch, minute) {
+    var log = [], R = D.Render.erstelle(mockCanvas(log), mockCanvas().ownerDocument);
+    if (hoch) {
+      var h = D.Render.berechnePortH(390, 844);
+      D.Render.setzeBildschirm(R, true, { h: h, touch: true });
+      R.touch = true; R.cssW = 390; R.cssH = 844;
+    } else D.Render.setzeBildschirm(R, false, {});
+    var t = neuesSpielTest(D); t.S.zustand = 'spiel';
+    t.S.uhr.minute = minute;
+    t.S.runden.runden[0].status = 'aktiv';
+    D.Render.zeichne(R, t.S);
+    return { log: log, R: R, S: t.S };
+  }
+  var morgen = zeichne(true, 10 * 60 + 25);
+  gleich(D.Uhr.tag(morgen.S.uhr), 'Samstag');
+  gleich(D.Uhr.phase(morgen.S.uhr), 'Morgen');
+  wahr((morgen.log.meta || []).some(function (m) { return m.text === 'Samstag' && !m.stroke; }), 'Tag ausgeschrieben');
+  wahr(!(morgen.log.meta || []).some(function (m) { return m.text === 'Sa · Mo' || m.text === 'Montag'; }), 'kein falsches Montag');
+  var uhr = morgen.R.hudUhr, rund = morgen.R.hudRunde, links = morgen.R.hudLinks;
+  wahr(rund.w < uhr.w && rund.h < 12, 'Rundenleiste kürzer und kleiner');
+  wahr(rund.y >= uhr.y + uhr.h + 1 && rund.y + rund.h <= links.y + 0.5, 'Leiste zwischen Uhr und Pegel');
+  nah(rund.x + rund.w / 2, uhr.x + uhr.w / 2, 1.5, 'unter der Uhr');
+  function schneidet(a, b) { return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y); }
+  wahr(!schneidet(rund, uhr) && !schneidet(rund, links), 'Leiste schneidet Uhr und Pegel nicht');
+  var sonntag = zeichne(false, 26 * 60);
+  gleich(D.Uhr.tag(sonntag.S.uhr), 'Sonntag');
+  wahr((sonntag.log.meta || []).some(function (m) { return m.text === 'Sonntag' && !m.stroke; }), 'nach Mitternacht Sonntag');
+  wahr(sonntag.R.hudRunde.w < sonntag.R.hudUhr.w, 'auch quer kürzer als die Uhr');
+  wahr(sonntag.R.hudUhr.h + sonntag.R.hudRunde.h <= 38.5, 'Uhr plus Leiste bleiben kompakt');
+});
+
+test('258 v34: Bing nach Erfolg, still wenn stumm', function () {
+  var D = lade(), osz = 0;
+  function FakeCtx() {
+    this.state = 'running'; this.sampleRate = 22050; this.currentTime = 0; this.destination = {};
+    this.createGain = function () { return { gain: { value: 1, setValueAtTime: function () {}, setTargetAtTime: function () {}, exponentialRampToValueAtTime: function () {} }, connect: function () {} }; };
+    this.createOscillator = function () { osz += 1; return { type: '', frequency: { setValueAtTime: function () {}, exponentialRampToValueAtTime: function () {} }, connect: function () {}, start: function () {}, stop: function () {} }; };
+    this.createDynamicsCompressor = function () { return { connect: function () {} }; };
+    this.createBiquadFilter = function () { return { type: '', frequency: { value: 0, setValueAtTime: function () {}, setTargetAtTime: function () {} }, connect: function () {} }; };
+    this.createBuffer = function (ch, len) { return { getChannelData: function () { return new Float32Array(len); } }; };
+    this.createBufferSource = function () { return { buffer: null, connect: function () {}, start: function () {} }; };
+    this.resume = function () { return { then: function (ok) { if (ok) ok(); return { catch: function () {} }; }, catch: function () {} }; };
+  }
+  var T = D.Ton.erstelle({ AudioContext: FakeCtx, setInterval: function () { return 1; } });
+  T.entsperre();
+  var vor = osz;
+  T.bing();
+  wahr(osz >= vor + 2, 'Bing ist ein kurzer Zweiklang');
+  T.setzeStumm(true);
+  var still = osz;
+  T.bing();
+  gleich(osz, still, 'Stumm schluckt den Bing');
+  var bing = 0;
+  var spielTon = D.Ton.erstelle(null);
+  spielTon.bing = function () { bing += 1; };
+  var t = neuesSpielTest(D); erledigt(t.S); t.X.T = spielTon;
+  var kasten = t.S.karte.stationen.filter(function (s) { return s.typ === 'bierkasten'; })[0];
+  wahr(t.Sp.geheZuStation(t.S, 'stadt', kasten.id, t.X));
+  t.Sp.aktion(t.S, t.X);
+  gleich(bing, 1, 'Bier');
+  t.Sp.aktion(t.S, t.X);
+  gleich(bing, 1, 'leerer Kasten bleibt still');
+  wahr(t.Sp.geheZuStation(t.S, 'hotel', 'joint', t.X));
+  t.Sp.aktion(t.S, t.X);
+  gleich(bing, 2, 'Joint aufheben');
+  t.Sp.aktion(t.S, t.X);
+  gleich(bing, 2, 'zweiter Griff findet nichts');
+  t.S.runden.runden[0].status = 'aktiv';
+  wahr(t.Sp.geheZuStation(t.S, t.S.runden.runden[0].ort, 'stammtisch', t.X));
+  t.Sp.waehle(t.S, { id: 'runde_trinken' }, t.X);
+  gleich(bing, 3, 'Prost');
+  t.S.overlay = { art: 'minispiel', id: 'prost', fertig: true, erfolg: false, t: 1, dauer: 1, score: 0, ziel: 1, eintraege: [{ label: 'x' }] };
+  t.Sp.update(t.S, 0.02, t.X);
+  gleich(bing, 3, 'verlorenes Minispiel ohne Bing');
+  t.S.overlay = { art: 'minispiel', id: 'prost', fertig: true, erfolg: true, t: 1, dauer: 1, score: 1, ziel: 1, eintraege: [{ label: 'x' }] };
+  t.Sp.update(t.S, 0.02, t.X);
+  gleich(bing, 4, 'gewonnenes Minispiel');
 });
 
 (async function () {
