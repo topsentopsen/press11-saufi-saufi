@@ -1934,8 +1934,8 @@
     return {
       aktion: { x: 0, y: 0, w: 96, h: 96 },
       wasser: { x: 104, y: 0, w: 96, h: 96 },
-      item: { x: 20, y: 104, w: 64, h: 64 },
-      f: { x: 92, y: 104, w: 60, h: 60 }
+      item: { x: 20, y: 100, w: 64, h: 64 },
+      f: { x: 92, y: 100, w: 60, h: 60 }
     };
   }
   function berechneSkala(availW, availH, logW, logH, touch, minSchrift) {
