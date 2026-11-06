@@ -147,8 +147,11 @@
 
   // ---------------------------------------------------------------- Uebergaenge (Tuer, Rauswurf)
   function uebergang(S, fn, dauer) { S.uebergang = { t: 0, dauer: dauer || 0.5, fn: fn, gemacht: false }; S.overlay = null; }
+  // Zoomfahrt nach dem Tuerwechsel: rein = vom Tuer-Nahbild auf den ganzen Raum, raus = von weit zurueck auf Normal. Ruhiger Modus: keine Fahrt.
+  function zoomFahrt(S, art) { S.zoomFahrt = S.ruhig ? null : Saufi.Kamera.starteFahrt(art); }
   function stelleHin(S, tx, ty) {
     var sp = S.spieler; S.tippWeg = null; S.marker = null; Saufi.Spieler.setzeKachel(sp, tx, ty); S.kamera.weltW = S.karte.pxW; S.kamera.weltH = S.karte.pxH;
+    S.kamera.raumHalten = !!S.karte.innen;
     Saufi.Kamera.sofort(S.kamera, sp.x, sp.y - 8);
   }
   function musikFuerOrt(S, X) {
@@ -172,6 +175,7 @@
     S.ortSek = 0; if (S.spontan) S.spontan.aktiv = null;
     if (Saufi.NPCs.ausschwaermen(S.npcs, S.karte) > 0) sag(S, 'Die Truppe schwärmt aus!', 1.6, 'info');
     S.spieler.sitzt = false; X.T.tuer();
+    zoomFahrt(S, 'rein');
     sag(S, Saufi.Karte.NAMEN[ort], 2, 'info');
     if (ort === 'disko' && X.M) X.M.starte('disko');
     musikFuerOrt(S, X);
@@ -190,6 +194,7 @@
       Saufi.NPCs.uebergang(S.npcs, S.karte, S.karte.spawn.x, S.karte.spawn.y);
     }
     X.T.tuer();
+    zoomFahrt(S, 'raus');
     if (von === 'disko' && X.M) X.M.ende();
     musikFuerOrt(S, X);
   }
@@ -1340,6 +1345,7 @@
     X = stub(X);
     var E = X.E;
     S.t += dt;
+    if (S.zoomFahrt) S.zoomFahrt = Saufi.Kamera.fahrtUpdate(S.zoomFahrt, dt);
     Saufi.Hinweise.update(S.hinweise, dt);
     S.effekte = S.effekte.filter(function (e) { e.rest -= dt; return e.rest > 0; });
     if (E && E.neu('stumm') && S.zustand !== 'start') toggleTon(S, X);

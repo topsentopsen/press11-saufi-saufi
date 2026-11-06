@@ -1687,7 +1687,7 @@ test('84 StummHinweis: Flag erst im Timeout, mind. 4 s sichtbar', function () {
   gleich(T.hinweis(), '', 'nach Flag kein Hinweis mehr');
 });
 
-test('85 Disko Hoch: Raum fuellt Weltflaeche (Zoom-Kennzahl / Schwarz < 25%)', function () {
+test('85 Disko Hoch: ganzer Raum sichtbar, weiter raus als draussen', function () {
   var D = lade(), t = neuesSpielTest(D), S = t.S;
   S.ort = 'disko'; S.karte = S.welt.innen.disko;
   S.kamera.weltW = S.karte.pxW; S.kamera.weltH = S.karte.pxH;
@@ -1698,12 +1698,10 @@ test('85 Disko Hoch: Raum fuellt Weltflaeche (Zoom-Kennzahl / Schwarz < 25%)', f
   D.Render.zeichne(R, S);
   var weltH = R.weltH, zoom = R.aktuellerWeltZoom;
   wahr(zoom != null, 'aktuellerWeltZoom gesetzt');
-  var cover = Math.max(R.W / S.karte.pxW, weltH / Math.max(1, S.karte.pxH));
-  nah(zoom, cover, 1e-6, 'Cover-Zoom Disko');
-  wahr(zoom >= weltH / S.karte.pxH - 1e-6 || zoom >= R.W / S.karte.pxW - 1e-6, 'eine Achse gefuellt');
-  // Letterbox-Schwarzanteil bei Cover ≈ 0 (Crop statt Balken)
-  var schwarz = Math.max(0, 1 - Math.min(1, (S.karte.pxW * zoom) / R.W) * Math.min(1, (S.karte.pxH * zoom) / weltH));
-  wahr(schwarz < 0.25, 'Schwarzanteil Welt < 25% (ist ' + schwarz + ')');
+  wahr(zoom < D.Render.WELT_ZOOM, 'innen weiter raus als draussen');
+  wahr(S.karte.pxW * zoom <= R.W + 1e-6 && S.karte.pxH * zoom <= weltH + 1e-6, 'ganzer Raum im Bild');
+  // Raum fuellt die Breite noch gut (kein Briefmarken-Raum)
+  wahr(S.karte.pxW * zoom >= R.W * 0.75, 'Raum nutzt >= 75 % der Breite (ist ' + (S.karte.pxW * zoom / R.W) + ')');
 });
 
 test('86 Zuruf RUNDE! Abstand ≥ 4 px zur Scooter-Leiste', function () {
@@ -6764,6 +6762,258 @@ test('264 v36: Apotheke gibt den Joint auf Rezept', function () {
   zu.Sp.aktion(zu.S, zu.X);
   gleich(zu.S.ort, 'stadt', 'nach 20 Uhr bleibt die Tür zu');
   wahr(zu.S.hinweise.liste.some(function (h) { return /hat zu/.test(h.text); }), 'Hinweis zu');
+});
+
+
+// ---------- Innen/Aussen: Zoom, Blasen, Zoomfahrt (DESIGNER-NOTES.md) ----------
+function hochTouchR(D, log) {
+  var R = D.Render.erstelle(mockCanvas(log), mockCanvas().ownerDocument);
+  var h = D.Render.berechnePortH(390, 844);
+  R.touch = true; R.cssW = 390; R.cssH = 844;
+  D.Render.setzeBildschirm(R, true, { h: h, touch: true, zoomFaktor: 1 });
+  return R;
+}
+function querR(D) {
+  var R = D.Render.erstelle(mockCanvas(), mockCanvas().ownerDocument);
+  R.cssW = 844; R.cssH = 390;
+  D.Render.setzeBildschirm(R, false, { zoomFaktor: 1 });
+  return R;
+}
+function geheRein(t, ort) { t.Sp.betreten(t.S, ort, t.X); t.S.uebergang = null; t.S.zoomFahrt = null; }
+
+test('265 Innen-Zoom: Kamera.innenZoom Werte, Rand und Nutzerfaktor', function () {
+  var D = lade(), Ka = D.Kamera, welt = D.Karte.erstelleWelt(D.RNG.erstelle(1));
+  gleich(Ka.INNEN_RAND, 16, 'eine Kachel Rand'); gleich(Ka.INNEN_RELATIV, 0.9, 'innen 0.9 von draussen');
+  ['hotel', 'restaurant', 'kneipe', 'disko', 'apotheke'].forEach(function (id) {
+    var k = welt.innen[id];
+    // Hochformat-Handy 320 x 692, draussen Basis 1.0
+    var zh = Ka.innenZoom(320, 692, k.pxW, k.pxH, 1, 1);
+    nah(zh, 0.9, 1e-9, id + ' hoch');
+    wahr((k.pxW + 2 * Ka.INNEN_RAND) * zh <= 320 + 1e-6, id + ' Raum + Rand passt in die Breite');
+    // Querformat 320 x 176, draussen Basis 0.5
+    var zq = Ka.innenZoom(320, 176, k.pxW, k.pxH, 0.5, 1);
+    nah(zq, 0.45, 1e-9, id + ' quer');
+    wahr(zq < 0.5, id + ' quer weiter raus');
+    // Nutzer-Zoom ist ein reiner Faktor
+    D.Render.ZOOM_STUFEN.forEach(function (f) {
+      var z = Ka.innenZoom(320, 692, k.pxW, k.pxH, 1, f);
+      nah(z / zh, f, 1e-9, id + ' Faktor ' + f);
+    });
+  });
+  // Kleiner Bildschirm: Raum-Fit gewinnt gegen 0.9, Untergrenze greift
+  var hotel = welt.innen.hotel;
+  nah(Ka.innenZoom(200, 600, hotel.pxW, hotel.pxH, 1, 1), 200 / (hotel.pxW + 32), 1e-9, 'contain gewinnt');
+  gleich(Ka.innenZoom(50, 50, hotel.pxW, hotel.pxH, 1, 0.75), Ka.INNEN_MIN_ZOOM, 'Untergrenze');
+});
+
+test('266 Innen-Zoom: Render draussen normal, drinnen weiter raus, Nutzer-Zoom multipliziert', function () {
+  var D = lade();
+  [['hoch', hochTouchR], ['quer', querR]].forEach(function (lay) {
+    [1, 0.75, 1.45].forEach(function (f) {
+      var t = neuesSpielTest(D), R = lay[1](D);
+      D.Render.setzeBildschirm(R, lay[0] === 'hoch', { h: R.H, touch: R.touch, zoomFaktor: f });
+      t.S.zustand = 'spiel';
+      D.Render.zeichne(R, t.S);
+      var aussen = R.aktuellerWeltZoom;
+      nah(aussen, D.Render.WELT_ZOOM, 1e-9, lay[0] + ' draussen = WELT_ZOOM');
+      nah(aussen, Math.max(D.Render.MIN_WELT_ZOOM, (lay[0] === 'hoch' ? 1 : 0.5) * f), 1e-9, lay[0] + ' draussen unveraendert x' + f);
+      ['hotel', 'restaurant', 'kneipe', 'disko', 'apotheke'].forEach(function (ort) {
+        geheRein(t, ort);
+        D.Render.zeichne(R, t.S);
+        var z = R.aktuellerWeltZoom, basis = lay[0] === 'hoch' ? 1 : 0.5;
+        nah(z, Math.max(D.Kamera.INNEN_MIN_ZOOM, 0.9 * basis * f), 1e-9, lay[0] + ' ' + ort + ' innen x' + f);
+        if (f === 1) {
+          wahr(z < aussen, lay[0] + ' ' + ort + ' innen weiter raus');
+          wahr(t.S.karte.pxW * z <= R.W && t.S.karte.pxH * z <= R.weltH, lay[0] + ' ' + ort + ' ganzer Raum sichtbar');
+        }
+        t.Sp.verlassen(t.S, t.X); t.S.uebergang = null; t.S.zoomFahrt = null;
+        D.Render.zeichne(R, t.S);
+        nah(R.aktuellerWeltZoom, aussen, 1e-9, lay[0] + ' nach ' + ort + ' wieder normal');
+      });
+    });
+  });
+});
+
+test('267 Innen-Kamera: Raum bleibt ganz im Bild, Spieler so mittig wie moeglich', function () {
+  var D = lade(), t = neuesSpielTest(D), R = hochTouchR(D);
+  t.S.zustand = 'spiel'; geheRein(t, 'hotel');
+  var k = t.S.kamera, sp = t.S.spieler;
+  [[1, 1], [14, 10], [8, 6], [1, 10]].forEach(function (p) {
+    D.Spieler.setzeKachel(sp, p[0], p[1]);
+    D.Render.zeichne(R, t.S); D.Kamera.sofort(k, sp.x, sp.y - 8);
+    wahr(k.x <= 1e-6 && k.x + k.viewW >= t.S.karte.pxW - 1e-6, 'Raum horizontal ganz sichtbar bei ' + p);
+    wahr(k.y <= 1e-6 && k.y + k.viewH >= t.S.karte.pxH - 1e-6, 'Raum vertikal ganz sichtbar bei ' + p);
+    // vertikal ist Platz: Spieler exakt auf der Kamera-Hoehe (Daumen-Versatz eingerechnet)
+    nah(sp.y - 8 - k.y, k.viewH * (0.5 - (k.daumenFrei > 0 ? Math.min(0.2, k.daumenFrei) : 0)), 1e-6, 'Spieler vertikal zentriert');
+  });
+  // Draussen unveraendert: Stadt groesser als das Bild, normales Folgen
+  t.Sp.verlassen(t.S, t.X); t.S.uebergang = null; t.S.zoomFahrt = null;
+  D.Render.zeichne(R, t.S);
+  gleich(k.raumHalten, false, 'draussen kein Raumhalten');
+});
+
+test('268 Sprechblasen: draussen normal, drinnen kleiner aber lesbar', function () {
+  var D = lade(), Rn = D.Render;
+  gleich(Rn.BLASE_INNEN, 0.85, 'innen 85 %'); gleich(Rn.BLASE_MIN_CSS, 8.5, 'Mindestschrift 8.5 CSS-px');
+  gleich(Rn.blasenSkalaFuer(1, false, 1.22), 1, 'draussen = Welt-Zoom');
+  gleich(Rn.blasenSkalaFuer(0.5, false, 2.6), 0.5, 'draussen quer = Welt-Zoom');
+  [320, 360, 390, 430].forEach(function (cssW) {
+    var cs = cssW / 320, aussen = 1, innen = Rn.blasenSkalaFuer(aussen, true, cs);
+    wahr(innen <= aussen, cssW + ': innen nie groesser');
+    // Schon draussen unter 8.5 CSS-px (320 CSS breit): innen nicht noch kleiner
+    if (Rn.BLASE_SCHRIFT * aussen * cs < Rn.BLASE_MIN_CSS) gleich(innen, aussen, cssW + ': nicht unter draussen');
+    else wahr(Rn.BLASE_SCHRIFT * innen * cs >= Rn.BLASE_MIN_CSS - 1e-9, cssW + ': Schrift >= 8.5 CSS-px');
+    if (cssW >= 360) wahr(innen < aussen, cssW + ': innen kleiner');
+  });
+  nah(Rn.blasenSkalaFuer(1, true, 430 / 320), 0.85, 1e-9, 'grosses Handy: volle 0.85');
+  // Im Bild: gleiche Blase draussen und drinnen messen
+  function box(innen) {
+    var t = neuesSpielTest(D), R = hochTouchR(D);
+    t.S.zustand = 'spiel';
+    if (innen) geheRein(t, 'kneipe');
+    t.S.npcs.forEach(function (n) { n.blase = null; });
+    var n = t.S.npcs.filter(function (x) { return x.aktiv; })[0];
+    n.karteId = t.S.karte.id; n.liegt = false; n.x = t.S.spieler.x; n.y = t.S.spieler.y + 40;
+    n.blase = { text: 'Prost auf den Abend!', rest: 4 };
+    t.S.stadtvolk = []; t.S.leben = [];
+    Rn.zeichne(R, t.S);
+    return { R: R, b: R.blasenBoxen.filter(function (b) { return b.h > 0; })[0] };
+  }
+  var a = box(false), i = box(true);
+  nah(a.R.blasenSkala, a.R.aktuellerWeltZoom, 1e-9, 'draussen Blase = Welt-Zoom');
+  wahr(i.R.blasenSkala < a.R.blasenSkala, 'drinnen kleinere Skala');
+  wahr(a.b && i.b, 'beide Blasen gemessen');
+  wahr(i.b.h < a.b.h && i.b.w < a.b.w, 'Blase drinnen kleiner auf dem Schirm');
+  wahr(Rn.BLASE_SCHRIFT * i.R.blasenSkala * (390 / i.R.W) >= Rn.BLASE_MIN_CSS - 1e-9, 'drinnen lesbar am Handy');
+  wahr(i.b.x >= 0 && i.b.x + i.b.w <= i.R.W && i.b.y >= 0 && i.b.y + i.b.h <= i.R.weltH, 'Blase drinnen im Bild');
+  // Nutzer-Zoom wirkt auch auf die Blasen
+  var t2 = neuesSpielTest(D), R2 = hochTouchR(D);
+  Rn.setzeBildschirm(R2, true, { h: R2.H, touch: true, zoomFaktor: 1.3 });
+  t2.S.zustand = 'spiel'; geheRein(t2, 'kneipe'); Rn.zeichne(R2, t2.S);
+  wahr(R2.blasenSkala > i.R.blasenSkala, 'Zoom + vergroessert auch Innen-Blasen');
+});
+
+test('269 Zoomfahrt: rein zoomt raus, raus zoomt rein, abbremsend, Spieler bleibt Bezugspunkt', function () {
+  var D = lade(), Ka = D.Kamera;
+  gleich(Ka.FAHRT.rein.von, 1.25); gleich(Ka.FAHRT.rein.dauer, 0.7);
+  gleich(Ka.FAHRT.raus.von, 0.8); gleich(Ka.FAHRT.raus.dauer, 0.55);
+  nah(Ka.easeOutCubic(0), 0, 1e-12); nah(Ka.easeOutCubic(1), 1, 1e-12); nah(Ka.easeOutCubic(0.5), 0.875, 1e-12);
+  var t = neuesSpielTest(D), R = hochTouchR(D), S = t.S;
+  S.zustand = 'spiel';
+  var Rn = D.Render; Rn.zeichne(R, S);
+  var aussen = R.aktuellerWeltZoom;
+  t.Sp.betreten(S, 'hotel', t.X); S.uebergang = null;
+  wahr(S.zoomFahrt && S.zoomFahrt.art === 'rein', 'Fahrt rein gestartet');
+  var ziel = Ka.innenZoom(R.W, R.weltH, S.karte.pxW, S.karte.pxH, 1, 1), zs = [], schritte = 0;
+  while (S.zoomFahrt && schritte < 100) {
+    Rn.zeichne(R, S); zs.push(R.aktuellerWeltZoom);
+    // Spieler bleibt im Bild und vertikal auf seiner Kamera-Hoehe
+    var sy = (S.spieler.y - 8 - S.kamera.y) * R.aktuellerWeltZoom;
+    nah(sy, R.weltH * (0.5 - (S.kamera.daumenFrei > 0 ? Math.min(0.2, S.kamera.daumenFrei) : 0)), 1, 'Spieler vertikal fest');
+    S.zoomFahrt = Ka.fahrtUpdate(S.zoomFahrt, 1 / 30); schritte++;
+  }
+  nah(zs[0], ziel * 1.25, 1e-9, 'Start nah an der Tuer');
+  for (var i = 1; i < zs.length; i++) wahr(zs[i] <= zs[i - 1] + 1e-12, 'zoomt stetig raus');
+  wahr(schritte >= 20 && schritte <= 22, '~0.7 s (' + schritte + ' Frames)');
+  Rn.zeichne(R, S); nah(R.aktuellerWeltZoom, ziel, 1e-9, 'endet auf Innen-Zoom');
+  wahr(ziel < aussen, 'Endwert weiter raus als draussen');
+  // Abbremsend: erste Haelfte deckt den Grossteil
+  wahr((zs[0] - zs[Math.floor(zs.length / 2)]) / (zs[0] - ziel) > 0.8, 'easeOut');
+  // Raus: von weit rein auf normal
+  t.Sp.verlassen(S, t.X); S.uebergang = null;
+  wahr(S.zoomFahrt && S.zoomFahrt.art === 'raus', 'Fahrt raus gestartet');
+  Rn.zeichne(R, S); var z0 = R.aktuellerWeltZoom;
+  nah(z0, aussen * 0.8, 1e-9, 'Start weit');
+  schritt(S, t.Sp, t.X, 0.6);
+  gleich(S.zoomFahrt, null, 'Fahrt laeuft im Spiel-Update ab');
+  Rn.zeichne(R, S); nah(R.aktuellerWeltZoom, aussen, 1e-9, 'zurueck auf normal');
+  // Blasen bleiben waehrend der Fahrt ruhig (keine pumpende Groesse)
+  t.Sp.verlassen(S, t.X); Rn.zeichne(R, S); nah(R.blasenSkala, aussen, 1e-9, 'Blasen-Skala fest waehrend Fahrt');
+  // Ruhiger Modus: keine Fahrt
+  S.ruhig = true; t.Sp.betreten(S, 'disko', t.X); gleich(S.zoomFahrt, null, 'ruhig: kein Zoom');
+});
+
+test('270 Zoomfahrt raus: nie ueber den Stadtrand hinaus (Querformat)', function () {
+  var D = lade(), t = neuesSpielTest(D), R = querR(D), S = t.S;
+  S.zustand = 'spiel'; geheRein(t, 'kneipe');
+  t.Sp.verlassen(S, t.X); S.uebergang = null;
+  D.Render.zeichne(R, S);
+  wahr(S.kamera.viewW <= S.karte.pxW + 1e-6 && S.kamera.viewH <= S.karte.pxH + 1e-6, 'Sicht nicht groesser als die Stadt');
+  wahr(R.aktuellerWeltZoom >= D.Render.MIN_WELT_ZOOM - 1e-9, 'MIN_WELT_ZOOM draussen');
+});
+
+test('271 v36: Apotheke bekommt Innenzoom, kleinere Blasen und die Zoomfahrt', function () {
+  var D = lade(), Ka = D.Kamera, Rn = D.Render;
+  var welt = D.Karte.erstelleWelt(D.RNG.erstelle(1));
+  var apo = welt.innen.apotheke;
+  wahr(D.Karte.ORTE.indexOf('apotheke') >= 0 && apo && apo.innen === true, 'Apotheke in der gemeinsamen Liste');
+  var kamera = fs.readFileSync(path.join(ROOT, 'js/kamera.js'), 'utf8');
+  var render = fs.readFileSync(path.join(ROOT, 'js/render.js'), 'utf8');
+  var zoomFn = render.slice(render.indexOf('function weltZoomFuer'), render.indexOf('function infoAbsaetze'));
+  var blaseFn = render.slice(render.indexOf('function blasenSkalaFuer'), render.indexOf('function weltZoomFuer'));
+  wahr(!/apotheke/.test(kamera) && !/apotheke/.test(zoomFn) && !/apotheke/.test(blaseFn), 'kein Sonderfall, nur das innen-Flag');
+  nah(Ka.innenZoom(320, 692, apo.pxW, apo.pxH, 1, 1), 0.9, 1e-9, 'Hochformat 0,9');
+  nah(Ka.innenZoom(320, 176, apo.pxW, apo.pxH, 0.5, 1), 0.45, 1e-9, 'Querformat 0,45');
+
+  var t = neuesSpielTest(D), R = hochTouchR(D), S = t.S;
+  S.zustand = 'spiel';
+  Rn.zeichne(R, S);
+  var aussen = R.aktuellerWeltZoom;
+  t.Sp.betreten(S, 'apotheke', t.X); S.uebergang = null;
+  wahr(S.ort === 'apotheke' && S.karte.innen === true && S.karte.id === 'apotheke', 'drin');
+  wahr(S.zoomFahrt && S.zoomFahrt.art === 'rein', 'Fahrt rein');
+  var ziel = Ka.innenZoom(R.W, R.weltH, S.karte.pxW, S.karte.pxH, 1, 1);
+  Rn.zeichne(R, S);
+  nah(R.aktuellerWeltZoom, ziel * Ka.FAHRT.rein.von, 1e-9, 'Start nah, dann raus');
+  var blaseInnen = Rn.blasenSkalaFuer(Rn.WELT_ZOOM, true, R.cssW / R.W);
+  nah(R.blasenSkala, blaseInnen, 1e-9, 'Innen-Blasen folgen der gemeinsamen Skala');
+  wahr(R.blasenSkala < aussen, 'Blase drinnen kleiner als draußen');
+  wahr(Rn.BLASE_SCHRIFT * R.blasenSkala * (R.cssW / R.W) >= Rn.BLASE_MIN_CSS - 1e-9, 'Schrift mindestens 8,5 CSS-px');
+  var schritte = 0, zs = [], letzteBlase = R.blasenSkala;
+  while (S.zoomFahrt && schritte < 100) {
+    Rn.zeichne(R, S); zs.push(R.aktuellerWeltZoom);
+    nah(R.blasenSkala, letzteBlase, 1e-9, 'Blasengröße bleibt während der Fahrt');
+    var sy = (S.spieler.y - 8 - S.kamera.y) * R.aktuellerWeltZoom;
+    nah(sy, R.weltH * (0.5 - (S.kamera.daumenFrei > 0 ? Math.min(0.2, S.kamera.daumenFrei) : 0)), 1, 'Spieler bleibt Bezugspunkt');
+    S.zoomFahrt = Ka.fahrtUpdate(S.zoomFahrt, 1 / 30); schritte++;
+  }
+  wahr(schritte >= 20 && schritte <= 22, 'Fahrt dauert etwa 0,7 s');
+  for (var i = 1; i < zs.length; i++) wahr(zs[i] <= zs[i - 1] + 1e-12, 'zoomt stetig raus');
+  Rn.zeichne(R, S);
+  nah(R.aktuellerWeltZoom, ziel, 1e-9, 'endet auf dem Innenzoom');
+  wahr(ziel < aussen, 'weiter raus als draußen');
+  wahr(S.karte.pxW * ziel <= R.W + 1e-6 && S.karte.pxH * ziel <= R.weltH + 1e-6, 'ganzer Raum sichtbar');
+  wahr(S.kamera.raumHalten === true, 'Raum bleibt im Bild');
+  S.npcs.forEach(function (n) { n.blase = null; });
+  var n = S.npcs.filter(function (x) { return x.aktiv; })[0];
+  n.karteId = S.karte.id; n.liegt = false; n.x = S.spieler.x; n.y = S.spieler.y - 36;
+  n.blase = { text: 'Auf Rezept, eine Tüte.', rest: 4 };
+  S.stadtvolk = []; S.leben = [];
+  Rn.zeichne(R, S);
+  var ib = R.blasenBoxen.filter(function (b) { return b.h > 0; })[0];
+  wahr(ib && ib.x >= -1 && ib.y >= -1 && ib.x + ib.w <= R.W + 1 && ib.y + ib.h <= R.weltH + 1, 'Blase im Bild');
+
+  t.Sp.verlassen(S, t.X); S.uebergang = null;
+  wahr(S.ort === 'stadt' && S.zoomFahrt && S.zoomFahrt.art === 'raus', 'Fahrt raus');
+  Rn.zeichne(R, S);
+  nah(R.aktuellerWeltZoom, Math.max(Rn.MIN_WELT_ZOOM, aussen * Ka.FAHRT.raus.von), 1e-9, 'Start weit, dann rein');
+  schritt(S, t.Sp, t.X, 0.6);
+  gleich(S.zoomFahrt, null, 'Fahrt läuft im Spiel-Update ab');
+  Rn.zeichne(R, S);
+  nah(R.aktuellerWeltZoom, aussen, 1e-9, 'draußen wieder normal');
+  nah(R.blasenSkala, aussen, 1e-9, 'Blasen draußen wieder am Welt-Zoom');
+
+  var tq = neuesSpielTest(D), Rq = querR(D);
+  tq.S.zustand = 'spiel';
+  Rn.zeichne(Rq, tq.S);
+  var aussenQ = Rq.aktuellerWeltZoom;
+  tq.Sp.betreten(tq.S, 'apotheke', tq.X); tq.S.uebergang = null; tq.S.zoomFahrt = null;
+  Rn.zeichne(Rq, tq.S);
+  nah(Rq.aktuellerWeltZoom, 0.45, 1e-9, 'quer innen 0,45');
+  wahr(Rq.aktuellerWeltZoom < aussenQ && Rq.blasenSkala < aussenQ, 'quer weiter raus und kleinere Blasen');
+  wahr(tq.S.karte.pxW * Rq.aktuellerWeltZoom <= Rq.W + 1e-6 && tq.S.karte.pxH * Rq.aktuellerWeltZoom <= Rq.weltH + 1e-6, 'quer ganzer Raum');
+  tq.Sp.verlassen(tq.S, tq.X); tq.S.uebergang = null;
+  wahr(tq.S.zoomFahrt && tq.S.zoomFahrt.art === 'raus', 'quer Fahrt raus');
 });
 
 (async function () {
