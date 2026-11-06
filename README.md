@@ -4,6 +4,12 @@ Fiktives Spaß-Spiel für Erwachsene (**ab 18**). Öffentliches Repo, spielbar u
 
 Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 nicht nur durchhalten, sondern noch stehen. Zu jeder Mittrunde musst Du am Stammtisch sein, dazwischen isst Du, holst Wasser und mogelst Dich durch. Das Licht wandert von grün-sonnig bis tiefschwarz mit leuchtenden Fenstern und Neon. Reines JavaScript, Canvas, alles per Code gezeichnet, kein Build, nichts zu installieren.
 
+## Neu in v35
+
+- Sprechblasen bleiben länger stehen: mindestens 7 Sekunden, dazu 60 ms je Zeichen, höchstens 10 Sekunden. Der Shuffle-Bag und das Ausweichen vor Knöpfen bleiben. Es liegen weiter höchstens zwei Zufallsblasen gleichzeitig, und sie überlappen sich nicht.
+- In der Stadt laufen mehr Kinder, zwei Jogger, ein Paar, ein älterer Mann und eine Botin. Keine Autos. Etwa 40 Prozent mehr Stadtleben, ohne extra Zufall.
+- Die Boombox mit den schwebenden Noten ist weg. Die Jukebox in der Kneipe bleibt und öffnet weiter die Playlist.
+
 ## Neu in v34
 
 - Über Jule, Samir und Nico im Südpark steigen kleine Rauchwölkchen auf. Sie sind weich, halb durchsichtig, ziehen nach oben und verblassen. Es bleiben vier Puffs, ohne extra Zufall, damit es auf dem Handy billig bleibt.

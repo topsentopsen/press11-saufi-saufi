@@ -642,19 +642,6 @@
   }
 
   // ---------- Welt zeichnen (in Kamerakoordinaten VW×VH; wird mit WELT_ZOOM auf W×H skaliert) ----------
-  function zeichneBoombox(c, x, y, t, name) {
-    rr(c, x - 9, y - 5, 18, 11, '#2a2342', 2.2, '#ff4fa0', 0.7);
-    kreis(c, x - 3.2, y + 0.6, 2.3, '#1a1530', '#4fe6ff', 0.55);
-    kreis(c, x + 3.4, y + 0.6, 2.3, '#1a1530', '#ffe84f', 0.55);
-    r(c, x - 1, y - 3.2, 2, 3.2, '#c9c3d6');
-    var noten = (Saufi.Musik && Saufi.Musik.noten) ? Saufi.Musik.noten(t, 3) : [];
-    var i;
-    for (i = 0; i < noten.length; i++) {
-      textInBox(c, noten[i].z, x + noten[i].x - 4, y - 18 + noten[i].y, 8, 8, 7, { col: i % 2 ? '#ffe84f' : '#4fe6ff', ausr: 'center', min: 6 });
-    }
-    textInBox(c, name || '', x - 22, y - 18, 44, 8, 6, { col: '#fff8ee', ausr: 'center', kontur: '#2a2342', min: 5, maxZeilen: 1 });
-  }
-
   function zeichneWelt(R, S) {
     var c = R.ctx, karte = S.karte, cam = S.kamera, T = Saufi.Karte.T, sk = R.sk;
     var viewW = cam.viewW || VW, viewH = cam.viewH || VH;
@@ -719,7 +706,6 @@
     }
     schiebeFlecke(S.spieler);
     S.npcs.forEach(function (n) { if (n.karteId === karte.id) schiebeFlecke(n); });
-    if (S.dj && S.dj.name && S.dj.karteId === karte.id && !S.musikAus) dinge.push({ y: S.dj.y - 0.2, art: 'boombox', dj: S.dj });
     if (karte.id === 'stadt' && Saufi.Motocross && Saufi.Motocross.stand) {
       Saufi.Motocross.stand(t).forEach(function (b) {
         dinge.push({ y: b.y, art: 'motorrad', b: b, x: b.x });
@@ -804,7 +790,6 @@
           c.globalAlpha = gaF;
         }
       }
-      else if (d.art === 'boombox') zeichneBoombox(c, d.dj.x - cx + 14, d.dj.y - cy - 8, t, d.dj.name);
       else if (d.art === 'npc') {
         var n = d.n;
         var kotzN = n.kotz && n.kotz.aktiv;

@@ -20,8 +20,16 @@
     'harmlos: der "Joint" ist nur ein Spiel-Item.'
   ];
   var DANKE = 'Danke fürs Spielen, trink Wasser.';
-  // v22: eine Dauer für alle Sprechblasen (vorher 2,5–3,5 s)
-  var BLASE_SEK = 4.5;
+  // v22 war fest 4,5 s. v35: mindestens 7 s, dazu 60 ms je Zeichen, Deckel bei 10 s.
+  var BLASE_MIN = 7, BLASE_MAX = 10, BLASE_JE_ZEICHEN = 0.06;
+  var BLASE_SEK = BLASE_MIN;
+  function blaseDauer(text) {
+    var n = String(text == null ? '' : text).length;
+    var d = BLASE_MIN + n * BLASE_JE_ZEICHEN;
+    if (d < BLASE_MIN) d = BLASE_MIN;
+    if (d > BLASE_MAX) d = BLASE_MAX;
+    return Math.round(d * 1000) / 1000;
+  }
 
   var SHOUTS = ['HYPER HYPER!', 'HOW MUCH IS THE FISH?', 'ONE MORE!', 'WIE VIEL IST DER KESSEL?', 'JIGGA JIGGA!'];
   var PROST = ['PROST!', 'ZUM WOHL!', 'AUF DIE TRUPPE!', 'SCHWABENTROPFEN!', 'UFF DIE KESSELWELLE!'];
@@ -135,7 +143,7 @@
     TITEL: TITEL, HINWEIS_VOLL: HINWEIS_VOLL, HINWEIS_START: HINWEIS_START, DANKE: DANKE,
     SHOUTS: SHOUTS, PROST: PROST, PROST_ORT: PROST_ORT, prostFuer: prostFuer, STAND_WEG: STAND_WEG, SPRUECHE: SPRUECHE, SCOOTER: SCOOTER,
     FIGUR: FIGUR, SITUATION: SITUATION, ORT: ORT, PEGEL: PEGEL,
-    pegelStufe: pegelStufe, lallen: lallen, spruch: spruch, BLASE_SEK: BLASE_SEK,
+    pegelStufe: pegelStufe, lallen: lallen, spruch: spruch, BLASE_SEK: BLASE_SEK, BLASE_MIN: BLASE_MIN, BLASE_MAX: BLASE_MAX, BLASE_JE_ZEICHEN: BLASE_JE_ZEICHEN, blaseDauer: blaseDauer,
     erstelle: erstelle, zeige: zeige, update: update, aktuell: aktuell
   };
 })(globalThis);

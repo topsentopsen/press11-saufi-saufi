@@ -789,7 +789,7 @@ test('39 Teamstimmung 0: eigener Titel statt Umgefallen/Press F', function () {
   gleich(t.S.zustand, 'ende'); gleich(t.S.ende.wertung.titel, 'Feierabend');
   wahr(/weitergezogen/.test(t.S.ende.wertung.kopf)); wahr(/Teamstimmung 0/.test(t.S.ende.grund));
   wahr(t.S.ende.wertung.kopf.indexOf('Press F') < 0);
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   wahr(D.Gfx.MIN_SCHRIFT <= 7);
 });
 
@@ -844,9 +844,9 @@ test('42 DPR-Begrenzung: MAX_DPR = 2, setzeAufloesung und begrenzDpr kappen', fu
   wahr(sk === R.canvas.width / R.W, 'Skala konsistent');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
   wahr(/begrenzDpr|MAX_DPR/.test(main), 'main nutzt DPR-Begrenzung');
-  wahr(/VERSION\s*=\s*['"]0\.34['"]/.test(main), 'VERSION 0.28');
+  wahr(/VERSION\s*=\s*['"]0\.35['"]/.test(main), 'VERSION 0.28');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  wahr(/main\.js\?v=0\.34/.test(html), 'Cache-Buster v=0.25');
+  wahr(/main\.js\?v=0\.35/.test(html), 'Cache-Buster v=0.25');
 });
 
 test('43 Hochformat-Layout: Playlist und Menues passen in PORT_H', function () {
@@ -1361,11 +1361,11 @@ test('72 Quer BASE 320x176: VH == H/zoom, Flaeche >= 3', function () {
 
 test('73 Versionen: VERSION 0.13, ?v=0.13, README v10, Bau-Bericht v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster vorhanden');
-  vs.forEach(function (v) { gleich(v, '?v=0.34', 'Cache-Buster ' + v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.35', 'Cache-Buster ' + v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v13/.test(readme), 'README Neu in v13');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
@@ -1663,11 +1663,11 @@ test('82 Stick: Totzone, cancel=0, zweiter Finger ignoriert, E gleichzeitig', fu
 
 test('83 Versionen: VERSION 0.13, ?v=0.13, README v10, Bau-Bericht v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.34', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.35', v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v13/.test(readme), 'README Neu in v13');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
@@ -2039,10 +2039,10 @@ test('96 Durchspiel-Bot Seeds 1/7/42 Hoch-Touch und Quer', function () {
 
 test('97 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
-  vs.forEach(function (v) { gleich(v, '?v=0.34', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.35', v); });
   var readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v13/.test(readme), 'README Neu in v13');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')), 'bau-bericht-v13.md');
@@ -2269,11 +2269,11 @@ test('106 Bot-Durchspiel Seeds 1/7/42 Hoch+Quer ohne Soft-Lock/…', function ()
 
 test('107 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0);
-  vs.forEach(function (v) { gleich(v, '?v=0.34', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.35', v); });
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
@@ -2631,12 +2631,12 @@ test('117 Bot Seeds 1/7/42 Hoch+Quer, Darstellung ändert Logik nicht', function
 
 test('118 Versionen: VERSION 0.13, ?v=0.13, README v10, bau-bericht-v13', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0);
-  vs.forEach(function (v) { gleich(v, '?v=0.34', v); });
-  wahr(/partikel\.js\?v=0\.34/.test(html), 'partikel eingebunden');
+  vs.forEach(function (v) { gleich(v, '?v=0.35', v); });
+  wahr(/partikel\.js\?v=0\.35/.test(html), 'partikel eingebunden');
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
@@ -3037,9 +3037,9 @@ test('132 Touch-Größen v10 ≥44 / Kreis ≥36', function () {
 
 test('133 Versionen v10', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.34', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.35', v); });
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v13.md')));
 });
@@ -3203,20 +3203,20 @@ function versionMitte(log, W) {
   if (!log.meta) return null;
   for (var i = 0; i < log.meta.length; i++) {
     var m = log.meta[i];
-    if (m.text === 'v0.34' && m.align === 'center' && Math.abs(m.x - W / 2) <= 1 && !m.stroke) return m;
+    if (m.text === 'v0.35' && m.align === 'center' && Math.abs(m.x - W / 2) <= 1 && !m.stroke) return m;
   }
   return null;
 }
 
 test('149 Versionen v14: VERSION, Cache-Buster, README, Bau-Bericht', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
-  wahr(/VERSION\s*=\s*['"]0\.34['"]/.test(main), 'main.js VERSION 0.28');
+  wahr(/VERSION\s*=\s*['"]0\.35['"]/.test(main), 'main.js VERSION 0.28');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.34', v); });
+  vs.forEach(function (v) { gleich(v, '?v=0.35', v); });
   wahr(/Neu in v14/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v14');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v14.md')), 'bau-bericht-v14.md');
   wahr(/Neu in v13/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v13 bleibt');
@@ -3247,7 +3247,7 @@ test('150 Versionsanzeige mittig: Start/Spiel/Ende in drei Layouts', function ()
       else { t.S.zustand = 'start'; }
       D.Render.zeichne(R, t.S);
       if (z === 'start' && !lay.hoch) wahr(R.hudVersion && R.hudVersion.y > 20, 'v16: Version im Quer-Startbild nicht auf dem Titel');
-      else if (!(lay.hoch && lay.touch && z === 'spiel')) wahr(!!versionMitte(log, R.W), 'v0.34 mittig @ ' + z + ' hoch=' + lay.hoch + ' touch=' + !!lay.touch);
+      else if (!(lay.hoch && lay.touch && z === 'spiel')) wahr(!!versionMitte(log, R.W), 'v0.35 mittig @ ' + z + ' hoch=' + lay.hoch + ' touch=' + !!lay.touch);
       var hv = R.hudVersion;
       var schneidet = function (a, b) { return a && b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; };
       if (lay.hoch && lay.touch && z === 'spiel') {
@@ -3900,11 +3900,11 @@ test('181 Starship-Modell bei S21: Prop in propsFuer, Y-sortiert', function () {
 
 test('182 Versionstest v14', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   wahr(/Neu in v14/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')));
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v14.md')));
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  wahr(/motocross\.js\?v=0\.34/.test(html) && /s21\.js\?v=0\.34/.test(html), 'Module in index');
+  wahr(/motocross\.js\?v=0\.35/.test(html) && /s21\.js\?v=0\.35/.test(html), 'Module in index');
   wahr(!!D.Motocross && !!D.S21, 'Module geladen');
 });
 
@@ -3932,14 +3932,14 @@ test('183 Render-Smoke: Kamera S21 und Motocross, drei Layouts', function () {
 // ---------- v15: Elon, Maenner, Bierkasten ----------
 test('184 Version v15: VERSION, Cache-Buster, elon.js, README, Bau-Bericht', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
-  wahr(/VERSION\s*=\s*['"]0\.34['"]/.test(main), 'main.js VERSION 0.28');
+  wahr(/VERSION\s*=\s*['"]0\.35['"]/.test(main), 'main.js VERSION 0.28');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.34', v); });
-  wahr(/elon\.js\?v=0\.34/.test(html), 'elon.js in index');
+  vs.forEach(function (v) { gleich(v, '?v=0.35', v); });
+  wahr(/elon\.js\?v=0\.35/.test(html), 'elon.js in index');
   wahr(/Neu in v15/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v15');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v15.md')), 'bau-bericht-v15.md');
   wahr(!!D.Elon, 'Elon geladen');
@@ -4219,12 +4219,12 @@ test('198 Frech: Zwei-Blasen-Limit, Pool nur bei Sprecher weiter, kurze Raphi-Sa
 // ---------- v16: Auswahl, MxEvent, Himmelsbach, Motiv ----------
 test('199 Versionen 0.20: VERSION, Cache-Buster, README v16-Abschnitt bleibt', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.34', v); });
-  wahr(/mxevent\.js\?v=0\.34/.test(html) && /motiv\.js\?v=0\.34/.test(html), 'neue Module');
+  vs.forEach(function (v) { gleich(v, '?v=0.35', v); });
+  wahr(/mxevent\.js\?v=0\.35/.test(html) && /motiv\.js\?v=0\.35/.test(html), 'neue Module');
   wahr(/Neu in v16/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README Neu in v16');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v16.md')), 'bau-bericht-v16.md');
   wahr(!!D.MxEvent && !!D.Motiv, 'Module geladen');
@@ -4527,9 +4527,9 @@ test('211 Umbenennungen v18: keine alten Namen in js/*.js, ids, Alias, Version',
   gleich(D.Charaktere.holen('schwickendorf').name, 'Schwickendorf');
   wahr(!!D.Hinweise.FIGUR.schwinki && !!D.Hinweise.FIGUR.tobi && !D.Hinweise.FIGUR.bundschuh && !D.Hinweise.FIGUR.buntschuh && !D.Hinweise.FIGUR.kevin, 'FIGUR-Keys');
   wahr(!!D.Frech.RAPHI && !D.Frech.RAFFI, 'Frech RAPHI');
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.34', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.35', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v17/.test(rd) && !/Raffi/.test(rd.split('## Neu in v16')[0]), 'README v17');
   wahr(/Neu in v18/.test(rd), 'README Neu in v18');
@@ -4813,9 +4813,9 @@ test('221 Karten im Spiel: Nachschub, Gas, Trinkspiel, Überblick, Heim', functi
 
 test('222 v20: Zeise heim, Schwinki ohne Bremse, Tobi Elon, Siebold-Spiele, Raphi-Gag', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.34', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.35', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v20/.test(rd) && /Neu in v19/.test(rd), 'README v20 und v19');
   wahr(/Legendäres Gründungsmitglied/.test(rd), 'README Zeise');
@@ -4870,12 +4870,12 @@ test('222 v20: Zeise heim, Schwinki ohne Bremse, Tobi Elon, Siebold-Spiele, Raph
 
 test('224 v21 Versionen', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var vs = html.match(/\?v=([0-9.]+)/g) || [];
   wahr(vs.length > 0, 'Cache-Buster');
-  vs.forEach(function (v) { gleich(v, '?v=0.34', v); });
-  wahr(/stadtvolk\.js\?v=0\.34/.test(html), 'stadtvolk.js im HTML');
+  vs.forEach(function (v) { gleich(v, '?v=0.35', v); });
+  wahr(/stadtvolk\.js\?v=0\.35/.test(html), 'stadtvolk.js im HTML');
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v21/.test(rd) && /Neu in v20/.test(rd) && /Neu in v19/.test(rd), 'README v21, v20, v19');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v21.md')), 'bau-bericht-v21.md');
@@ -5083,10 +5083,11 @@ test('223 v20 Zoom: Hoch+Touch naeher, Quer bleibt 0.5', function () {
 
 test('230 v22: Namensschild weg, Blasen 4,5 s, Zeise Legendär', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.34');
-  gleich(D.Hinweise.BLASE_SEK, 4.5);
+  gleich(D.Spiel.VERSION, '0.35');
+  gleich(D.Hinweise.BLASE_MIN, 7);
+  gleich(D.Hinweise.blaseDauer(''), 7);
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.34', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.35', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v22/.test(rd) && /Namensschild über Raphael entfernt/.test(rd), 'README v22');
   wahr(/Neu in v21/.test(rd), 'README v21 bleibt');
@@ -5099,7 +5100,7 @@ test('230 v22: Namensschild weg, Blasen 4,5 s, Zeise Legendär', function () {
   var npcs = fs.readFileSync(path.join(ROOT, 'js', 'npcs.js'), 'utf8');
   wahr(!/\.blase = \{[^}]*rest:\s*\d/.test(main), 'main ohne feste Blasen-Sekunde');
   wahr(!/rest:\s*\d/.test(npcs.split('function sprechen')[1] || ''), 'sprechen ohne feste Sekunde');
-  wahr(/Hinweise\.BLASE_SEK/.test(main) && /Hinweise\.BLASE_SEK/.test(npcs), 'Konstante genutzt');
+  wahr(/Hinweise\.blaseDauer/.test(main) && /Hinweise\.blaseDauer/.test(npcs), 'Dauer aus dem Text');
   var ze = D.Charaktere.holen('zeise');
   gleich(ze.auswahl.rolle, 'Der Vernünftige');
   gleich(ze.auswahl.plus, 'Legendäres Gründungsmitglied');
@@ -5111,22 +5112,23 @@ test('230 v22: Namensschild weg, Blasen 4,5 s, Zeise Legendär', function () {
   var list = D.NPCs.erstelle('tobi');
   list.forEach(function (n) { if (!n.char.kommtAb) { n.aktiv = true; n.liegt = false; n.karteId = 'stadt'; n.blase = null; } });
   var n = D.NPCs.sprechen(list, D.RNG.erstelle(1), 'stadt', 0);
-  wahr(!!n && n.blase && n.blase.rest === 4.5, 'NPC-Blase 4,5 s');
+  wahr(!!n && n.blase && n.blase.rest === D.Hinweise.blaseDauer(n.blase.text), 'NPC-Blase folgt der Textlänge');
+  wahr(n.blase.rest >= 7 && n.blase.rest <= 10, 'zwischen 7 und 10 s');
   var volk = D.Stadtvolk.erstelle(D.Karte.erstelleWelt(D.RNG.erstelle(1)), 1);
   D.Stadtvolk.sprich(volk[0], null);
-  gleich(volk[0].blase.rest, 4.5);
+  gleich(volk[0].blase.rest, D.Hinweise.blaseDauer(volk[0].blase.text));
 });
 
 test('231 v23 Titel: Press11 - Stuttgart Edition', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   gleich(D.Hinweise.TITEL, 'Press11 - Stuttgart Edition');
   wahr(D.Hinweise.HINWEIS_VOLL.indexOf('Press11 - Stuttgart Edition') === 0, 'Hinweis beginnt mit dem Titel');
   wahr(!/Saufi Saufi/.test(D.Hinweise.HINWEIS_VOLL), 'Hinweis ohne alten Titel');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   wahr(/<title>Press11 - Stuttgart Edition \(18\+\)<\/title>/.test(html), 'Seitentitel');
   wahr(/aria-label="Press11 - Stuttgart Edition"/.test(html), 'Canvas-Name');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.34', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.35', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/^# Press11 - Stuttgart Edition$/m.test(rd), 'README-Ueberschrift');
   wahr(/Neu in v23/.test(rd) && /Neu in v22/.test(rd), 'README v23 und v22');
@@ -5139,7 +5141,7 @@ test('231 v23 Titel: Press11 - Stuttgart Edition', function () {
 
 test('232 v24 PRESSELF-Vorschaubild', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   var bild = 'https://topsentopsen.github.io/press11-saufi-saufi/assets/og-presself.png';
   wahr(/property="og:title" content="Press11 - Stuttgart Edition"/.test(html), 'og:title');
@@ -5210,7 +5212,7 @@ function fakeFeedbackForm(name, text) {
 
 test('233 v25 Feedback-Seite: Formular, Entwurf, keine Schlüssel', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   var spiel = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   wahr(!/feedback\//.test(spiel) && !/Press11 Feedback/.test(spiel), 'Spielseite ohne Feedback-Link');
   ['js/main.js', 'js/render.js', 'js/hinweise.js'].forEach(function (f) {
@@ -5232,9 +5234,9 @@ test('233 v25 Feedback-Seite: Formular, Entwurf, keine Schlüssel', function () 
   wahr(/<textarea id="text" name="text" required/.test(html), 'Feedback Pflicht');
   wahr(/<button type="submit">/.test(html), 'Submit');
   wahr(/id="bestaetigung"/.test(html) && /data-meldung/.test(html) && /data-issue-link/.test(html), 'Bestaetigung');
-  wahr(/src="feedback\.js\?v=0\.34"/.test(html), 'Skript eingebunden');
+  wahr(/src="feedback\.js\?v=0\.35"/.test(html), 'Skript eingebunden');
   wahr(/Press11Feedback\.bind\(/.test(html), 'Submit haengt an bind');
-  wahr(/Press11 0\.34/.test(html), 'Versionszeile');
+  wahr(/Press11 0\.35/.test(html), 'Versionszeile');
   wahr(!/<canvas/.test(html), 'keine Spielflaeche');
   wahr(!/Schwäch|Nubi|neu dabei/.test(html), 'Feedback-Seite ohne Schwächen-Feld und ohne Nubi');
   wahr(!/location\.(href|assign|replace)/.test(js), 'Seite bleibt stehen');
@@ -5482,9 +5484,9 @@ test('236 Feedback: leeres ziel.json faellt auf raw und Worker zurueck', functio
 
 test('237 v27 Gag-Alias, Shot-Train, Prost-Ort, Krug-Halten', function () {
   var D = lade(), M = D.Minispiele, H = D.Hinweise, Ton = D.Ton, K = M.KRUG;
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.34', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.35', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v27/.test(rd) && /Neu in v26/.test(rd), 'README v27 und v26');
   wahr(fs.existsSync(path.join(ROOT, 'docs', 'bau-bericht-v27.md')), 'bau-bericht-v27.md');
@@ -5646,11 +5648,11 @@ test('237 v27 Gag-Alias, Shot-Train, Prost-Ort, Krug-Halten', function () {
 
 test('238 v28 Autos weg, Stadt dichter, Hochformat näher, Zoom', function () {
   var D = lade(), T = D.Karte.T;
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   gleich(D.Render.WELT_FLAECHE_HOCH, 1);
   gleich(D.Render.HUD_SK_HOCH_TOUCH, 0.96);
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.34', v); });
+  (html.match(/\?v=([0-9.]+)/g) || []).forEach(function (v) { gleich(v, '?v=0.35', v); });
   var rd = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   wahr(/Neu in v28/.test(rd) && /Neu in v27/.test(rd), 'README v28 und v27');
   wahr(/WELT_FLAECHE_HOCH` 1\.0/.test(rd) && /0\.96/.test(rd), 'README nennt die Knöpfe');
@@ -5740,7 +5742,7 @@ test('238 v28 Autos weg, Stadt dichter, Hochformat näher, Zoom', function () {
 
 test('239 v29 Hochformat: Overlay, Trinken 80, Sheet, Feierabend', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   gleich(D.Render.UI_RESERVE_HOCH_TOUCH, 0);
   gleich(D.Render.UI_RESERVE_HOCH, 80);
   var R = D.Render.erstelle(mockCanvas(), mockCanvas().ownerDocument);
@@ -5813,7 +5815,7 @@ test('240 Handy-Wecken: Doppeltipp auf die Figur, einzelner Tipp nicht, Q bleibt
 
 test('241 v30 Hochformat: btnBand, Crew, Wasser, zwei Knöpfe', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   gleich(D.Render.btnBandCss(5, 2), 236, 'fünf Knöpfe, Abstand 2');
   gleich(D.Render.btnBandCss(2, 6), 102, 'zwei Knöpfe, Abstand 6');
   gleich(D.Spiel.wasserAnzeige({ label: 'Trinken', an: true, flaschen: 3 }), '💧 Wasser ×3');
@@ -5905,33 +5907,6 @@ test('242 Kotzen neben dem Einschlafen: Pose, Blase, Fleck verblasst', function 
   t.S.zustand = 'spiel';
   D.Render.zeichne(R, t.S);
   wahr(log.some(function (z) { return typeof z === 'string' && /Bäh|Würg|Zu viel/.test(z); }), 'Sprechblase beim Kotzen');
-});
-
-test('243 Boombox: Noten und Name der Figur, die auflegt', function () {
-  var D = lade(), M = D.Musik;
-  var a = M.noten(0, 3), b = M.noten(0.45, 3);
-  gleich(a.length, 3);
-  wahr(a[0].y !== b[0].y, 'Noten bewegen sich');
-  wahr(a.some(function (n) { return n.z === '♪' || n.z === '♩'; }), 'Notenzeichen');
-  gleich(M.macher({ aus: true, spieler: { name: 'Tobi' } }), null);
-  gleich(M.macher({ spieler: { id: 'tobi', name: 'Tobi' } }).name, 'Tobi');
-  gleich(M.macher({ ort: 'kneipe', dj: { id: 'siebold', name: 'Siebold', karteId: 'kneipe' }, spieler: { name: 'Tobi' } }).name, 'Siebold');
-  gleich(M.macher({ ort: 'stadt', dj: { name: 'Siebold', karteId: 'kneipe', liegt: true }, spieler: { name: 'Tobi' } }).name, 'Tobi');
-  var t = neuesSpielTest(D);
-  t.S.zustand = 'spiel';
-  var dj = t.Sp.djAktualisieren(t.S);
-  gleich(dj.name, t.S.char.name);
-  var anJuke = t.S.npcs.filter(function (n) { return n.aktiv && !n.liegt; })[0];
-  anJuke.karteId = t.S.ort; anJuke.laeuft = false; anJuke.schwarm = { typ: 'jukebox', sek: 4 };
-  dj = t.Sp.djAktualisieren(t.S);
-  gleich(dj.name, anJuke.char.name);
-  t.S.musikAus = true;
-  gleich(t.Sp.djAktualisieren(t.S), null);
-  t.S.musikAus = false; t.Sp.djAktualisieren(t.S);
-  var log = [], cv = mockCanvas(log), R = D.Render.erstelle(cv, cv.ownerDocument);
-  D.Render.zeichne(R, t.S);
-  wahr(log.some(function (z) { return z === '♪' || z === '♩'; }), 'Noten gezeichnet');
-  wahr(log.some(function (z) { return z === t.S.dj.name; }), 'Name auf der Boombox');
 });
 
 test('244 Hände hoch in der Stadt, versetzt, ohne Extra-Objekte', function () {
@@ -6131,7 +6106,7 @@ test('248 Mäxle: Rang, Ansage, Lüge, Anzweifeln, Trinkstrafe', function () {
 
 test('249 Handy: Daumenbogen, volle Bannerbreite, Desktop bleibt', function () {
   var D = lade(), E = D.Main.mobilErkannt, B = D.Main.daumenBogen();
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   wahr(/Neu in v32/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')) && /Neu in v30/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')), 'README v32 und v30');
   wahr(/Mäxle/.test(fs.readFileSync(path.join(ROOT, 'docs', 'bau-bericht-v32.md'), 'utf8')), 'Bau-Bericht v32');
   wahr(E({ touch: true, w: 1400, h: 900 }).mobil, 'Touch');
@@ -6175,7 +6150,7 @@ function schneidetBox(a, b) {
 
 test('250 v33: kein E-Hinweis, Aktionsknopf bleibt', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   gleich(D.Spiel.aktionAnzeige('E', true), '✋');
   gleich(D.Spiel.aktionAnzeige('E', false), 'E');
   var t = neuesSpielTest(D);
@@ -6316,7 +6291,7 @@ test('254 v33: Aktionspfeile und Park-Gruppe', function () {
 
 test('255 v34: Rauch über der Parkgruppe steigt, verblasst, bleibt billig', function () {
   var D = lade();
-  gleich(D.Spiel.VERSION, '0.34');
+  gleich(D.Spiel.VERSION, '0.35');
   gleich(D.Partikel.RAUCH_N, 4);
   wahr(D.Partikel.RAUCH_N <= 6, 'wenige Puffs');
   wahr(D.Partikel.RAUCH_ALPHA < 0.55, 'halb durchsichtig');
@@ -6481,6 +6456,96 @@ test('258 v34: Bing nach Erfolg, still wenn stumm', function () {
   t.S.overlay = { art: 'minispiel', id: 'prost', fertig: true, erfolg: true, t: 1, dauer: 1, score: 1, ziel: 1, eintraege: [{ label: 'x' }] };
   t.Sp.update(t.S, 0.02, t.X);
   gleich(bing, 4, 'gewonnenes Minispiel');
+});
+
+test('259 v35: Sprechblasen länger, ohne Stapel und ohne Überlappung', function () {
+  var D = lade(), H = D.Hinweise;
+  gleich(H.BLASE_MIN, 7);
+  gleich(H.BLASE_MAX, 10);
+  gleich(H.BLASE_JE_ZEICHEN, 0.06);
+  gleich(H.blaseDauer('Hi'), 7.12);
+  var lang = '';
+  while (lang.length < 80) lang += 'Scooter ';
+  gleich(H.blaseDauer(lang), 10);
+  wahr(H.blaseDauer('Hyper Hyper!') > 7 && H.blaseDauer('Hyper Hyper!') < 10, 'mittlere Zeile dazwischen');
+  var r1 = D.RNG.erstelle(3), r2 = D.RNG.erstelle(3);
+  var s1 = H.spruch(r1, { id: 'ritzi', pegel: 0 });
+  r2.next(); r2.next();
+  gleich(r1.next(), r2.next(), 'Shuffle-Bag verbraucht weiter genau zwei Züge');
+  wahr(H.SCOOTER.indexOf(s1) >= 0 || s1 === '', 'Spruch bleibt aus dem Beutel');
+  var list = D.NPCs.erstelle('tobi');
+  list.forEach(function (n) { if (!n.char.kommtAb) { n.aktiv = true; n.liegt = false; n.karteId = 'stadt'; n.blase = null; } });
+  var erste = D.NPCs.sprechen(list, D.RNG.erstelle(4), 'stadt', 0);
+  var zweite = D.NPCs.sprechen(list, D.RNG.erstelle(5), 'stadt', 0);
+  wahr(erste && zweite && erste !== zweite, 'zwei Sprecher');
+  gleich(D.NPCs.sprechen(list, D.RNG.erstelle(6), 'stadt', 0), null, 'keine dritte Blase');
+  var log = [], R = D.Render.erstelle(mockCanvas(log), mockCanvas().ownerDocument);
+  var t = neuesSpielTest(D); t.S.zustand = 'spiel';
+  erste.x = t.S.spieler.x; erste.y = t.S.spieler.y;
+  zweite.x = t.S.spieler.x + 6; zweite.y = t.S.spieler.y;
+  erste.karteId = t.S.karte.id; zweite.karteId = t.S.karte.id;
+  t.S.npcs = [erste, zweite];
+  D.Kamera.sofort(t.S.kamera, erste.x, erste.y);
+  D.Render.setzeBildschirm(R, true, { h: D.Render.berechnePortH(390, 844), touch: true });
+  R.touch = true; R.cssW = 390; R.cssH = 844;
+  D.Render.zeichne(R, t.S);
+  wahr(R.blasenBoxen && R.blasenBoxen.length >= 2, 'beide Blasen gemessen');
+  function schneidet(a, b) { return a && b && !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y); }
+  wahr(!schneidet(R.blasenBoxen[0], R.blasenBoxen[1]), 'Blasen überlappen sich nicht');
+  var knoepfe = D.Render.bedienRects(R);
+  R.blasenBoxen.forEach(function (b) {
+    knoepfe.forEach(function (k) { wahr(!schneidet(b, k), 'Blase bleibt neben der Bedienung'); });
+  });
+});
+
+test('260 v35: mehr Passanten, keine Autos', function () {
+  var D = lade(), T = D.Karte.T;
+  var welt = D.Karte.erstelleWelt(D.RNG.erstelle(1));
+  var basis = 18;
+  [1, 2, 9].forEach(function (seed) {
+    var leben = D.Stadtvolk.leben(welt, seed);
+    var quote = (leben.length - basis) / basis;
+    wahr(quote >= 0.30 && quote <= 0.50, '30–50 % mehr Stadtleben, seed ' + seed + ': ' + leben.length);
+    leben.forEach(function (a) { wahr(a.art !== 'auto' && a.id.indexOf('auto') !== 0, 'kein Auto ' + a.id); });
+    ['kind_mira', 'kind_noa', 'jogger_lina', 'jogger_cem', 'paar_anna', 'paar_jonas', 'opa_ernst', 'bote_leila'].forEach(function (id) {
+      wahr(leben.some(function (a) { return a.id === id; }), id);
+    });
+    var lina = leben.filter(function (a) { return a.id === 'jogger_lina'; })[0];
+    var ernst = leben.filter(function (a) { return a.id === 'opa_ernst'; })[0];
+    var anna = leben.filter(function (a) { return a.id === 'paar_anna'; })[0];
+    var jonas = leben.filter(function (a) { return a.id === 'paar_jonas'; })[0];
+    wahr(lina.speed > ernst.speed && lina.speed !== ernst.speed, 'unterschiedliches Tempo');
+    wahr(anna.speed === jonas.speed && anna.px !== jonas.px, 'Paar gleicher Schritt, versetzt');
+    leben.forEach(function (a) {
+      if (a.id.indexOf('kind_') === 0) (a.kacheln || []).forEach(function (k) {
+        gleich(welt.stadt.tile(k[0], k[1]), T.GRAS, a.id + ' auf Gras');
+      });
+      (a.kacheln || []).forEach(function (k) {
+        wahr(!welt.stadt.blockiert(k[0], k[1]) || a.art === 'rad', a.id + ' frei');
+      });
+    });
+    var x0 = lina.px;
+    D.Stadtvolk.bewege(leben, 0.05);
+    D.Stadtvolk.bewege(leben, 0.5);
+    wahr(Math.abs(lina.px - x0) > 8, 'Joggerin kommt voran');
+  });
+});
+
+test('261 v35: Boombox und Noten sind weg, Jukebox bleibt', function () {
+  var D = lade();
+  gleich(D.Musik.noten, undefined);
+  gleich(D.Musik.macher, undefined);
+  gleich(D.Spiel.djAktualisieren, undefined);
+  ['js/render.js', 'js/main.js', 'js/musik.js'].forEach(function (f) {
+    var src = fs.readFileSync(path.join(ROOT, f), 'utf8');
+    wahr(!/boombox|zeichneBoombox|djAktualisieren|function macher\(/.test(src), f + ' ohne Boombox');
+  });
+  var kneipe = D.Karte.erstelleWelt(D.RNG.erstelle(1)).innen.kneipe;
+  wahr(kneipe.stationen.some(function (s) { return s.typ === 'jukebox'; }), 'Jukebox-Station bleibt');
+  var t = neuesSpielTest(D); t.S.zustand = 'spiel';
+  var log = [], R = D.Render.erstelle(mockCanvas(log), mockCanvas().ownerDocument);
+  D.Render.zeichne(R, t.S);
+  wahr(!log.some(function (z) { return z === '♪'; }), 'keine schwebende Note');
 });
 
 (async function () {

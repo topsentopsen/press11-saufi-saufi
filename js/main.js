@@ -3,7 +3,7 @@
 (function (g) {
   'use strict';
   var Saufi = g.Saufi = g.Saufi || {};
-  var K = 16, VERSION = '0.34', MIN_CSS_SCHRIFT = 9;
+  var K = 16, VERSION = '0.35', MIN_CSS_SCHRIFT = 9;
 
   // ---------------------------------------------------------------- Neues Spiel
   function wendeCharStats(S, char) {
@@ -165,30 +165,6 @@
     T.setzeTief(S.ort === 'kneipe');
     if (T.beatDauer) S.beat = T.beatDauer();
   }
-  // Wer die Musik macht: NPC an der Jukebox oder an der Disko-Bar, sonst die Spielfigur. Kein rng.
-  function djAktualisieren(S) {
-    if (!S || S.musikAus) { if (S) S.dj = null; return null; }
-    var npc = null, i, n;
-    for (i = 0; i < S.npcs.length && !npc; i++) {
-      n = S.npcs[i];
-      if (n.aktiv && !n.liegt && n.karteId === S.ort && n.schwarm && n.schwarm.typ === 'jukebox' && !n.laeuft) npc = n;
-    }
-    if (!npc && S.ort === 'disko') {
-      for (i = 0; i < S.npcs.length && !npc; i++) {
-        n = S.npcs[i];
-        if (n.aktiv && !n.liegt && n.karteId === S.ort && n.schwarm && n.schwarm.typ === 'bar_disko' && !n.laeuft) npc = n;
-      }
-    }
-    var wer = npc
-      ? { id: npc.id, name: npc.char.name, x: npc.x, y: npc.y, karteId: S.ort, aktiv: true, liegt: false }
-      : { id: S.char.id, name: S.char.name, x: S.spieler.x, y: S.spieler.y, karteId: S.ort, aktiv: true, liegt: !!S.spieler.liegt };
-    S.dj = (Saufi.Musik && Saufi.Musik.macher) ? (function () {
-      var m = Saufi.Musik.macher({ aus: false, ort: S.ort, dj: npc ? wer : null, spieler: npc ? null : wer });
-      return m ? wer : null;
-    })() : wer;
-    if (S.dj && S.dj.liegt) S.dj = null;
-    return S.dj;
-  }
   function betreten(S, ort, X) {
     X = stub(X);
     S.ort = ort; S.karte = S.welt.innen[ort]; stelleHin(S, S.karte.spawn.x, S.karte.spawn.y);
@@ -268,7 +244,7 @@
         if (schaut) {
           Saufi.Pegel.schaden(S.fig, Saufi.Cheats.PROBST_STAND || 25);
           S.npcs.forEach(function (n) {
-            if (n.id === 'probst' && n.aktiv) n.blase = { text: 'Ich sehe alles.', rest: Saufi.Hinweise.BLASE_SEK };
+            if (n.id === 'probst' && n.aktiv) n.blase = { text: 'Ich sehe alles.', rest: Saufi.Hinweise.blaseDauer('Ich sehe alles.') };
           });
           sag(S, 'PROBST-FALLE! Er hat den Tausch gesehen. Pflichtrunde doppelt, Team -2, Standfestigkeit -' + (Saufi.Cheats.PROBST_STAND || 25) + '.', 4.5, 'schlecht');
         } else sag(S, 'ERWISCHT! Der Wirt hat den Tausch gesehen. Pflichtrunde nachträglich, Team -2.', 4, 'schlecht');
@@ -837,7 +813,7 @@
         if (a.phase === 'angebot' && S.overlay && S.overlay.spontan) { S.overlay = null; if (!feste) sag(S, 'Runde verpufft, ' + n.char.name + ' trinkt sie allein.', 2, 'info'); }
         return;
       }
-      if (a.phase === 'holen' && n.auftrag && n.auftrag.da) { a.phase = 'bringen'; n.blase = { text: 'Runde kommt!', rest: Saufi.Hinweise.BLASE_SEK }; }
+      if (a.phase === 'holen' && n.auftrag && n.auftrag.da) { a.phase = 'bringen'; n.blase = { text: 'Runde kommt!', rest: Saufi.Hinweise.blaseDauer('Runde kommt!') }; }
       if (a.phase === 'bringen') {
         var t = Saufi.NPCs.tileOf(S.spieler); n.auftrag = { x: t.x, y: t.y };
         if (Math.hypot(n.x - S.spieler.x, n.y - S.spieler.y) < 26 && !S.overlay && !S.uebergang) {
@@ -865,7 +841,7 @@
     sp.zuletzt = m; sp.anzahl += 1;
     wer.schwarm = null; wer.auftrag = { x: um[0].x, y: um[0].y };
     sp.aktiv = { npc: wer, phase: 'holen', sek: 0, getraenk: gt };
-    wer.blase = { text: 'Ich hol \'ne Runde!', rest: Saufi.Hinweise.BLASE_SEK };
+    wer.blase = { text: 'Ich hol \'ne Runde!', rest: Saufi.Hinweise.blaseDauer('Ich hol \'ne Runde!') };
     sag(S, wer.char.name + ' holt eine Runde!', 2.5, 'info');
   }
   function spontanWahl(S, id, X) {
@@ -908,7 +884,7 @@
     S.gm.n += 1;
     S.gm.id = e.id;
     var label = String(e.label || 'Trinkspiel').replace(/^Minispiel:\s*/, '');
-    if (npc && !npc.blase) npc.blase = { text: 'Trinkspiel: ' + label + '!', rest: Saufi.Hinweise.BLASE_SEK };
+    if (npc && !npc.blase) npc.blase = { text: 'Trinkspiel: ' + label + '!', rest: Saufi.Hinweise.blaseDauer('Trinkspiel: ' + label + '!') };
     sag(S, 'Siebold initiiert ein Trinkspiel: ' + label + '.', 3.2, 'info');
   }
   function bundschuhDa(S) {
@@ -1042,7 +1018,7 @@
         S.s21.zuletzt = S.spielSek;
         sag(S, spr, 4.5, 'info');
         var freund = S.npcs.filter(function (n) { return n.aktiv && !n.liegt && n.karteId === 'stadt' && Math.hypot(n.x - sp.x, n.y - sp.y) < 60; })[0];
-        if (freund && !freund.blase) freund.blase = { text: spr, rest: Saufi.Hinweise.BLASE_SEK };
+        if (freund && !freund.blase) freund.blase = { text: spr, rest: Saufi.Hinweise.blaseDauer(spr) };
       }
     }
     // Elon-Spruch (Tobi, kein rng). Als Spieler Hinweis, als NPC nur Elon-Blase, nie Scooter.
@@ -1080,7 +1056,7 @@
           var eTxt = Saufi.Elon.naechster(elonState, eKon);
           elonState.zuletzt = S.spielSek;
           if (tobiSelbst) sag(S, 'Tobi: ' + eTxt, 3.5, 'info');
-          else tobiFreund.blase = { text: eTxt, rest: Saufi.Hinweise.BLASE_SEK };
+          else tobiFreund.blase = { text: eTxt, rest: Saufi.Hinweise.blaseDauer(eTxt) };
         }
       }
     }
@@ -1090,7 +1066,7 @@
       if (S.spielSek - S.frech.zuletzt >= Saufi.Frech.intervall(S.frech.n)) {
         var fe = Saufi.Frech.vorschau(S.frech);
         var fn = Saufi.Frech.sprecher(S.npcs, S.ort, fe, (S.frech.n | 0) + 1);
-        if (fn) { Saufi.Frech.naechster(S.frech); S.frech.zuletzt = S.spielSek; fn.blase = { text: fe.text, rest: Saufi.Hinweise.BLASE_SEK }; }   // nur weiterschieben, wenn wirklich gesprochen
+        if (fn) { Saufi.Frech.naechster(S.frech); S.frech.zuletzt = S.spielSek; fn.blase = { text: fe.text, rest: Saufi.Hinweise.blaseDauer(fe.text) }; }   // nur weiterschieben, wenn wirklich gesprochen
       }
     }
     // v16: Motivatoren (eigener Zaehler, kein rng)
@@ -1100,8 +1076,9 @@
         var mn = Saufi.Motiv.sprecher(S.npcs, S.ort, (S.motiv.n | 0) + 1);
         if (mn) {
           var nr = Saufi.Runden.naechste(S.runden);
-          mn.blase = { text: Saufi.Motiv.text(mn.id, nr, m), rest: Saufi.Hinweise.BLASE_SEK };
-          if (S.char && S.char.id === 'tobi' && m >= 26 * 60) mn.blase.text = 'Tobi, nach 2 Uhr? Keine Chance.';   // v18: Tobi nach 2 Uhr schwer zu motivieren
+          var motivText = Saufi.Motiv.text(mn.id, nr, m);
+          if (S.char && S.char.id === 'tobi' && m >= 26 * 60) motivText = 'Tobi, nach 2 Uhr? Keine Chance.';   // v18: Tobi nach 2 Uhr schwer zu motivieren
+          mn.blase = { text: motivText, rest: Saufi.Hinweise.blaseDauer(motivText) };
           S.motiv.n = (S.motiv.n | 0) + 1; S.motiv.zuletzt = S.spielSek;
         }
       }
@@ -1173,7 +1150,6 @@
     }
     S.tanzBeat = S.ort === 'disko' && (S.boostAktiv || sp.tanzt > 0);
     if (T.beatDauer) S.beat = T.beatDauer();
-    djAktualisieren(S);
     // Kamera, Hilfe, Pfeil, Musik (auch in der Disko, sonst bleibt das Tempo stehen)
     Saufi.Kamera.update(S.kamera, sp.x, sp.y - 8, dt);
     S.hilfe = S.overlay ? '' : hilfeText(S); S.pfeil = berechnePfeil(S);
@@ -1397,7 +1373,7 @@
   Saufi.Spiel = {
     VERSION: VERSION, neu: neuesSpiel, update: update, beende: beende, aktion: aktion, waehle: waehle, runde: runde, wasserTrinken: wasserTrinken, itemNutzen: itemNutzen, kontext: kontext, hilfeText: hilfeText, aktionsPunkte: aktionsPunkte, aktionsPopup: aktionsPopup, toggleMusik: toggleMusik, spontanePruefen: spontanePruefen, tippeWelt: tippeWelt, weltPunkt: weltPunkt, tippZiel: tippZiel, spontanWahl: spontanWahl, betreten: betreten,
     wasserAnzeige: wasserAnzeige, aktionAnzeige: aktionAnzeige, tonIcon: tonIcon,
-    betreten: betreten, verlassen: verlassen, schnappschuss: schnappschuss, geheZuStation: geheZuStation, setze: setze, starteSpiel: starteSpiel, stationDe: stationDe, waehleFigur: waehleFigur, djAktualisieren: djAktualisieren, probstAbgelenkt: probstAbgelenkt, probstSchaut: probstSchaut,
+    betreten: betreten, verlassen: verlassen, schnappschuss: schnappschuss, geheZuStation: geheZuStation, setze: setze, starteSpiel: starteSpiel, stationDe: stationDe, waehleFigur: waehleFigur, probstAbgelenkt: probstAbgelenkt, probstSchaut: probstSchaut,
     pauseMenue: pauseMenue, playlistOverlay: playlistOverlay, infoOverlay: infoOverlay, stammtisch: stammtisch, tanzen: tanzen, stub: stub,
     schliesse: schliesse, minispielMenue: minispielMenue
   };
