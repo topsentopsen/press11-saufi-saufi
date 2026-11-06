@@ -601,6 +601,9 @@
           } else if (S.joint && (S.joint.hat || S.joint.doppelt)) sag(S, 'Du hast schon eine Tüte. Erst benutzen (R).', 2.2, 'info');
         }
         break;
+      case 'rezept':
+        rezeptGeben(S, X);
+        break;
       case 'fund':
         nimmFund(S, st, X);
         break;
@@ -745,12 +748,23 @@
     }
     var t = { tuer: 'E: ' + (st.label || 'Tür'), ausgang: 'E: Hinaus', buffet: 'E: Frühstück', kueche: 'E: Essen bestellen', spender: 'E: Wasser', tresen_restaurant: 'E: Bestellen', tresen_kneipe: 'E: Bestellen',
       bar_disko: 'E: Bestellen', stammtisch: Saufi.Runden.aktive(S.runden) && Saufi.Runden.aktive(S.runden).ort === S.ort ? 'E: PROST!' : 'E: Stammtisch', sofa: 'E: Ausruhen', bank: 'E: Ausruhen', tanz: 'E: Tanzen (im Takt!)',
-      jukebox: 'E: Musik', joint: 'E: Aufheben', jointgruppe: 'E: Quatschen', flasche: 'E: Aufheben', tribuene: 'E: Bier auf der Tribüne', bierkasten: 'E: Bier', rezeption: 'E: Rezeption' }[st.typ];
+      jukebox: 'E: Musik', joint: 'E: Aufheben', jointgruppe: 'E: Quatschen', flasche: 'E: Aufheben', tribuene: 'E: Bier auf der Tribüne', bierkasten: 'E: Bier', rezeption: 'E: Rezeption', rezept: 'E: Rezept' }[st.typ];
     if (S.gm && S.gm.id && /^(tresen_|bar_)/.test(st.typ)) return 'E: Siebolds Trinkspiel';
     return t || '';
   }
   function fundWeg(S, st) { return !!(S.funde && st && S.funde[st.id]); }
   function parkGegeben(S) { return !!(S.joint && S.joint.quellen && S.joint.quellen.park); }
+  function rezeptGegeben(S) { return !!(S.joint && S.joint.quellen && S.joint.quellen.rezept); }
+  function rezeptGeben(S, X) {
+    var apo = Saufi.Stadtvolk.fuerId(S.stadtvolk, 'apotheker');
+    if (apo && apo.karteId === S.karte.id) Saufi.Stadtvolk.sprich(apo, 'rezept');
+    if (rezeptGegeben(S)) { sag(S, 'Das Rezept ist aufgebraucht.', 2, 'info'); return; }
+    if (S.joint && (S.joint.hat || S.joint.doppelt)) { sag(S, 'Du hast schon eine Tüte. Erst benutzen (R).', 2.2, 'info'); return; }
+    if (Saufi.Ereignisse.Joint.nimm(S.joint, 'rezept')) {
+      sag(S, 'Auf Rezept: Dicke Tüte eingesteckt. R: nächster Effekt doppelt, danach 30 s schwammig.', 4, 'info');
+      erfolgBing(X);
+    }
+  }
   function fundText(st) {
     if (st.was === 'schnaps') return 'Schnaps holen';
     if (st.was === 'joint') return 'Joint erhalten';
@@ -782,6 +796,9 @@
     if (!st) return null;
     if (st.typ === 'fund' && !fundWeg(S, st)) {
       return { id: st.id, text: fundText(st), x: (st.x + 0.5) * K, y: st.y * K };
+    }
+    if (st.typ === 'rezept' && !rezeptGegeben(S)) {
+      return { id: st.id, text: 'auf Rezept', x: (st.x + st.w / 2) * K, y: st.y * K };
     }
     if (st.typ !== 'jointgruppe' || parkGegeben(S)) return null;
     var list = S.leben || [], i, a, ax = 0, ay = 0, n = 0;

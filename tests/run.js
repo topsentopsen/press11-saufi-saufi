@@ -337,7 +337,7 @@ test('15 Karte: Tueren per A* erreichbar, keine eingesperrten Orte, alle vier Or
   for (var seed = 1; seed <= 30; seed++) {
     var w = D.Karte.erstelleWelt(D.RNG.erstelle(seed)), st = w.stadt;
     wahr(!st.blockiert(st.spawn.x, st.spawn.y), 'Spawn frei');
-    gleich(st.tueren.length, 4, 'vier Tueren');
+    gleich(st.tueren.length, 5, 'fuenf Tueren');
     ['hotel', 'restaurant', 'kneipe', 'disko'].forEach(function (id) {
       var td = st.tueren.filter(function (x) { return x.id === id; })[0]; wahr(td, id + ' hat Tuer');
       wahr(!st.blockiert(td.aussen.x, td.aussen.y), id + ' Vorplatz frei');
@@ -1278,7 +1278,7 @@ test('67 Stadtkarte 40x60: Suedstreifen begehbar, Tueren/Stationen wie v04', fun
     gleich(td.x, tuere[id][0], id + ' Tuer-x');
     gleich(td.y, tuere[id][1], id + ' Tuer-y');
   });
-  var geb = { hotel: [22, 7, 8, 5], restaurant: [2, 8, 7, 5], kneipe: [30, 17, 7, 4], disko: [27, 25, 9, 4] };
+  var geb = { hotel: [22, 7, 8, 5], restaurant: [2, 8, 7, 5], kneipe: [30, 17, 7, 4], disko: [27, 25, 9, 4], apotheke: [2, 40, 6, 3] };
   st.gebaeude.forEach(function (b) {
     var g = geb[b.id]; wahr(g, b.id + ' Gebaeude');
     gleich(b.x, g[0]); gleich(b.y, g[1]); gleich(b.w, g[2]); gleich(b.h, g[3]);
@@ -2155,7 +2155,7 @@ test('102 Nacht-Helligkeit: Tint 02:30 ≥ 0.10; 20 Uhr warm; Monotonie', functi
 test('103 Hoch-Zoom/Karte: 60/960, VW 350–420, Schrift ≥8 CSS', function () {
   var D = lade(), st = D.Karte.erstelleWelt(D.RNG.erstelle(1)).stadt;
   gleich(st.h, 60); gleich(st.pxH, 960); gleich(D.Render.STADT_PX_H, 960);
-  var geb = { hotel: [22, 7, 8, 5], restaurant: [2, 8, 7, 5], kneipe: [30, 17, 7, 4], disko: [27, 25, 9, 4] };
+  var geb = { hotel: [22, 7, 8, 5], restaurant: [2, 8, 7, 5], kneipe: [30, 17, 7, 4], disko: [27, 25, 9, 4], apotheke: [2, 40, 6, 3] };
   st.gebaeude.forEach(function (b) {
     var g = geb[b.id]; gleich(b.x, g[0]); gleich(b.y, g[1]); gleich(b.w, g[2]); gleich(b.h, g[3]);
   });
@@ -4905,7 +4905,7 @@ test('225 v21 Stadt-Look', function () {
     var td = full.tueren.filter(function (t) { return t.id === id; })[0];
     gleich(td.x, tuere[id][0], id + ' x'); gleich(td.y, tuere[id][1], id + ' y');
   });
-  var geb = { hotel: [22, 7, 8, 5], restaurant: [2, 8, 7, 5], kneipe: [30, 17, 7, 4], disko: [27, 25, 9, 4] };
+  var geb = { hotel: [22, 7, 8, 5], restaurant: [2, 8, 7, 5], kneipe: [30, 17, 7, 4], disko: [27, 25, 9, 4], apotheke: [2, 40, 6, 3] };
   full.gebaeude.forEach(function (b) {
     var g = geb[b.id];
     gleich(b.x, g[0]); gleich(b.y, g[1]); gleich(b.w, g[2]); gleich(b.h, g[3]);
@@ -4959,8 +4959,8 @@ test('227 v21 Stadtvolk-Daten', function () {
   var D = lade(), T = D.Karte.T, V = D.Stadtvolk;
   var welt = D.Karte.erstelleWelt(D.RNG.erstelle(1));
   var list = V.erstelle(welt, 1);
-  var pflicht = { wirt: 'kneipe', penner: 'stadt', rezeption: 'hotel' };
-  gleich(list.length, 3, 'drei Figuren');
+  var pflicht = { wirt: 'kneipe', penner: 'stadt', rezeption: 'hotel', apotheker: 'apotheke' };
+  gleich(list.length, 4, 'vier Figuren');
   Object.keys(pflicht).forEach(function (id) {
     var v = list.filter(function (x) { return x.id === id; })[0];
     wahr(v, id); gleich(v.karteId, pflicht[id], id + ' Karte');
@@ -4970,7 +4970,7 @@ test('227 v21 Stadtvolk-Daten', function () {
   Object.keys(V.LISTE).forEach(function (id) {
     var def = V.LISTE[id];
     wahr(def.sprueche.length >= 6 && def.sprueche.length <= 12, id + ' Pool ' + def.sprueche.length);
-    def.sprueche.concat(def.reaktion.bestellen || [], def.reaktion.sitzen || [], def.reaktion.rezeption || []).forEach(function (text) {
+    def.sprueche.concat(def.reaktion.bestellen || [], def.reaktion.sitzen || [], def.reaktion.rezeption || [], def.reaktion.rezept || []).forEach(function (text) {
       wahr(text.length <= 60, 'zu lang: ' + text);
       wahr(!verboten.test(text), 'Strich: ' + text);
       wahr(!kinder.test(text), 'kein Kind: ' + text);
@@ -5384,7 +5384,9 @@ test('234 v26 Hecke nur nachts, Himmelsbach alter Hase, Stadtleben', function ()
   D.Stadtvolk.bewege(leben, 0.05);
   D.Stadtvolk.bewege(leben, 1.2);
   wahr(Math.abs(rad.px - x0) > 5, 'Rad faehrt');
-  gleich(D.Stadtvolk.erstelle(welt, 1).length, 3, 'redende Stadtvolk bleiben drei');
+  var rede = D.Stadtvolk.erstelle(welt, 1);
+  gleich(rede.length, 4, 'redende Stadtvolk: Wirt, Kalle, Rezeption, Apotheker');
+  wahr(rede.some(function (v) { return v.id === 'apotheker' && v.karteId === 'apotheke'; }), 'Apotheker im Haus');
 });
 
 test('235 v26 Auswahl-Musik: eigener Hardstyle-Loop, kein Track-File', function () {
@@ -6693,6 +6695,75 @@ test('263 v36: versteckte Kästen, Schnaps, Joints und Straßenjoints', function
   wahr(t.S.joint.hat && t.S.funde[sj.id], 'Straßenjoint als Ersatz');
   t.Sp.aktion(t.S, t.X);
   wahr(t.S.funde[sj.id], 'liegt nicht doppelt');
+});
+
+test('264 v36: Apotheke gibt den Joint auf Rezept', function () {
+  var D = lade();
+  var welt = D.Karte.erstelleWelt(D.RNG.erstelle(1));
+  wahr(D.Karte.ORTE.indexOf('apotheke') >= 0, 'Apotheke in ORTE');
+  D.Karte.ORTE.forEach(function (id) {
+    var k = welt.innen[id];
+    wahr(k && k.innen === true && k.id === id, id + ' ist Innenraum');
+    wahr(k.stationen.some(function (s) { return s.typ === 'ausgang'; }), id + ' Ausgang');
+  });
+  var apo = welt.innen.apotheke;
+  gleich(apo.w, 14); gleich(apo.h, 11);
+  wahr(apo.stationen.some(function (s) { return s.id === 'rezept' && s.typ === 'rezept'; }), 'Rezept-Tresen');
+  var tuer = welt.stadt.tueren.filter(function (td) { return td.id === 'apotheke'; })[0];
+  wahr(tuer && tuer.y >= 30, 'Haus im Süden');
+  wahr(!welt.stadt.blockiert(tuer.aussen.x, tuer.aussen.y), 'Vorplatz frei');
+  wahr(D.Pfad.suche(welt.stadt, welt.stadt.spawn.x, welt.stadt.spawn.y, tuer.aussen.x, tuer.aussen.y), 'Tür erreichbar');
+  wahr(D.Uhr.offen('apotheke', 8 * 60) && !D.Uhr.offen('apotheke', 20 * 60), '08 bis 20');
+  var kamera = fs.readFileSync(path.join(ROOT, 'js/kamera.js'), 'utf8');
+  var render = fs.readFileSync(path.join(ROOT, 'js/render.js'), 'utf8');
+  wahr(!/apotheke/.test(kamera), 'Kamera ohne Apotheken-Sonderfall');
+  var zoomFn = render.slice(render.indexOf('function weltZoomFuer'), render.indexOf('function infoAbsaetze'));
+  wahr(/karte\.innen/.test(zoomFn) && !/apotheke/.test(zoomFn), 'Innenzoom nur über das innen-Flag');
+  var blaseFn = render.slice(render.indexOf('function blasenRahmen'), render.indexOf('function zeichneAktionsPopup'));
+  wahr(!/apotheke/.test(blaseFn), 'Blasen ohne Apotheken-Sonderfall');
+
+  function ton(bing) {
+    return {
+      bing: function () { bing.n += 1; }, tuer: function () {}, setzeTief: function () {}, setzeEbene: function () {},
+      schluck: function () {}, pling: function () {}, umfall: function () {}, glocke: function () {}, prost: function () {}
+    };
+  }
+  var bing = { n: 0 };
+  var t = neuesSpielTest(D); erledigt(t.S); t.S.zustand = 'spiel'; t.X.T = ton(bing);
+  wahr(t.Sp.geheZuStation(t.S, 'apotheke', 'rezept', t.X), 'kommt an den Tresen');
+  gleich(t.S.ort, 'apotheke');
+  gleich(t.S.karte.innen, true);
+  var pop = t.Sp.aktionsPopup(t.S);
+  wahr(pop && pop.id === 'rezept' && pop.text === 'auf Rezept', 'Popup auf Rezept');
+  gleich(t.Sp.hilfeText(t.S), 'E: Rezept');
+  wahr(!t.S.joint.hat && !t.S.joint.gefunden, 'vorher keine Tüte');
+  t.Sp.aktion(t.S, t.X);
+  wahr(t.S.joint.hat && t.S.joint.quellen.rezept && !t.S.joint.gefunden, 'Rezept-Tüte, Hotel-Fund bleibt');
+  gleich(bing.n, 1, 'Bing');
+  var apoN = t.S.stadtvolk.filter(function (v) { return v.id === 'apotheker'; })[0];
+  wahr(apoN && apoN.blase && /Rezept|Tüte/.test(apoN.blase.text), 'Apotheker spricht');
+  gleich(t.Sp.aktionsPopup(t.S), null, 'Popup weg');
+  t.Sp.aktion(t.S, t.X);
+  gleich(bing.n, 1, 'kein zweites Rezept');
+  wahr(t.S.joint.quellen.rezept && t.S.joint.hat);
+  var log = [], R = D.Render.erstelle(mockCanvas(log), mockCanvas().ownerDocument);
+  D.Render.zeichne(R, t.S);
+  wahr(log.length > 20, 'Innenraum wird gezeichnet');
+  wahr(t.S.leben.every(function (a) { return a.art !== 'auto'; }), 'keine Autos');
+
+  var voll = neuesSpielTest(D); erledigt(voll.S); voll.S.zustand = 'spiel';
+  voll.S.joint.hat = true; voll.X.T = ton({ n: 0 });
+  wahr(voll.Sp.geheZuStation(voll.S, 'apotheke', 'rezept', voll.X));
+  voll.Sp.aktion(voll.S, voll.X);
+  wahr(!voll.S.joint.quellen.rezept, 'volle Hände lassen das Rezept liegen');
+  gleich(voll.Sp.aktionsPopup(voll.S).text, 'auf Rezept');
+
+  var zu = neuesSpielTest(D); erledigt(zu.S); zu.S.zustand = 'spiel'; zu.X.T = ton({ n: 0 });
+  wahr(zu.Sp.geheZuStation(zu.S, 'stadt', 'tuer_apotheke', zu.X));
+  zu.S.uhr.minute = 20 * 60;
+  zu.Sp.aktion(zu.S, zu.X);
+  gleich(zu.S.ort, 'stadt', 'nach 20 Uhr bleibt die Tür zu');
+  wahr(zu.S.hinweise.liste.some(function (h) { return /hat zu/.test(h.text); }), 'Hinweis zu');
 });
 
 (async function () {

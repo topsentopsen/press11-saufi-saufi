@@ -16,9 +16,10 @@
   [T.WASSER, T.MAUER, T.REBEN, T.BAUM, T.LATERNE, T.BRUNNEN, T.BANK, T.GEB, T.TUER, T.BUSCH, T.HAUS, T.WAND, T.TRESEN, T.TISCH, T.SOFA, T.BUFFET,
     T.SPENDER, T.DJ, T.JUKEBOX, T.PFLANZE, T.KUECHE, T.AUSGANG, T.KICKER, T.TRIBUENE, T.ABSPERR, T.BAUZAUN, T.BAUGRUBE].forEach(function (t) { BLOCK[t] = true; });
 
-  var ORTE = ['hotel', 'restaurant', 'kneipe', 'disko'];
-  var NAMEN = { hotel: 'Jaz', restaurant: 'Gasthaus Maultäschle', kneipe: 'Sophies Brauhaus', disko: 'Untergrund 07', motocross: 'Motocross-Park' };
-  var KURZ = { hotel: 'Jaz', restaurant: 'Maultäschle', kneipe: 'Sophie', disko: 'Untergrund', motocross: 'Motocross' };
+  // Gemeinsame Innenraum-Liste. Zoom und Blasen hängen an karte.innen bzw. an ORTE, nicht an einem einzelnen Haus.
+  var ORTE = ['hotel', 'restaurant', 'kneipe', 'disko', 'apotheke'];
+  var NAMEN = { hotel: 'Jaz', restaurant: 'Gasthaus Maultäschle', kneipe: 'Sophies Brauhaus', disko: 'Untergrund 07', apotheke: 'Apotheke am Kessel', motocross: 'Motocross-Park' };
+  var KURZ = { hotel: 'Jaz', restaurant: 'Maultäschle', kneipe: 'Sophie', disko: 'Untergrund', apotheke: 'Apotheke', motocross: 'Motocross' };
 
   function neueKarte(id, w, h, fill, innen) {
     var k = {
@@ -171,6 +172,8 @@
     });
     k.stadtvolk.push({ id: 'penner', x: 18, y: 9, vorne: { x: 18, y: 10 }, bank: 'bank_markt_b' });
     k.spawn = { x: 25, y: 13 };
+    // Apotheke auf dem Häuserblock südlich des Parks. Nach dem Zufall, damit Kacheln und rng oben gleich bleiben.
+    bauwerk(k, 'apotheke', 2, 40, 6, 3, 4);
     // Versteckte Fundsachen und ein paar Joints auf der Straße. Eigener Zufall, der Karten-rng bleibt stehen.
     versteckeFundsachen(k, rng);
     return k;
@@ -423,9 +426,27 @@
     k.setze(1, 10, T.PFLANZE); k.setze(16, 10, T.PFLANZE);
     return k;
   }
+  function erstelleApotheke() {
+    var k = raum('apotheke', 14, 11);
+    ausgang(k, 6);
+    k.rect(2, 3, 6, 1, T.TRESEN);
+    k.station('rezept', 'rezept', 2, 3, 6, 1, 'Rezept');
+    k.stadtvolk.push({ id: 'apotheker', x: 4, y: 2, vorne: { x: 4, y: 4 } });
+    k.belege(4, 2);
+    k.rect(9, 7, 3, 1, T.SOFA);
+    k.station('sofa', 'sofa', 9, 7, 3, 1, 'Wartebank');
+    k.setze(12, 8, T.PFLANZE);
+    return k;
+  }
 
+  // Jeder Eintrag in ORTE bekommt denselben Innenraum-Bau. Kein Haus bleibt aus der Liste.
+  var INNEN_BAU = {
+    hotel: erstelleHotel, restaurant: erstelleRestaurant, kneipe: erstelleKneipe, disko: erstelleDisko, apotheke: erstelleApotheke
+  };
   function erstelleWelt(rng) {
-    var w = { stadt: erstelleStadt(rng), innen: { hotel: erstelleHotel(), restaurant: erstelleRestaurant(), kneipe: erstelleKneipe(), disko: erstelleDisko() } };
+    var innen = {};
+    ORTE.forEach(function (id) { innen[id] = INNEN_BAU[id](); });
+    var w = { stadt: erstelleStadt(rng), innen: innen };
     w.karte = function (id) { return id === 'stadt' ? w.stadt : w.innen[id]; };
     return w;
   }

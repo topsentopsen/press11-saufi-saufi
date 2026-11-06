@@ -852,7 +852,7 @@
     });
     // Nähe-Popup über der Parkgruppe, gleicher Zeichenstil wie „Q = wecken“.
     R.aktionsPopups = [];
-    if (S.zustand === 'spiel' && karte.id === 'stadt' && Saufi.Spiel && Saufi.Spiel.aktionsPopup) {
+    if (S.zustand === 'spiel' && Saufi.Spiel && Saufi.Spiel.aktionsPopup) {
       var pop = Saufi.Spiel.aktionsPopup(S);
       if (pop) {
         var popX = pop.x - cx - 32, popY = pop.y - cy - 16;
@@ -1038,7 +1038,8 @@
     hotel: { haupt: 'JAZ', hauptCol: '#ffe9a8', nebenCol: '#ffe9a8' },
     restaurant: { haupt: 'GASTHAUS MAULTÄSCHLE', hauptCol: '#ffe9a8', nebenCol: '#ffe9a8' },
     kneipe: { haupt: 'SOPHIES BRAUHAUS', hauptCol: '#ffe9a8', nebenCol: '#ffe9a8' },
-    disko: { haupt: 'UNTERGRUND 07', hauptCol: '#7ff6ff', nebenCol: '#7ff6ff' }
+    disko: { haupt: 'UNTERGRUND 07', hauptCol: '#7ff6ff', nebenCol: '#7ff6ff' },
+    apotheke: { haupt: 'APOTHEKE', hauptCol: '#d8ffe4', nebenCol: '#d8ffe4' }
   };
   function schildNachtSprite(R, key, w, h, text, col, size) {
     var sk = R.spSk || 1, cacheKey = 'sn_' + key + '_' + sk.toFixed(2) + '_' + w + 'x' + h;

@@ -525,6 +525,10 @@
       plan.neon.push({ x: x0 + 10, y: y0 + h - 2, w: w - 20, h: 2, farbe: P.neonLila });
       plan.fenster.push({ x: x0 + 12, y: y0 + 34, w: 10, h: 18 }); plan.fenster.push({ x: x0 + w - 22, y: y0 + 34, w: 10, h: 18 });
       plan.schildHaupt = { x: x0 + w / 2, y: y0 - 1, w: w - 12, h: 12, text: 'UNTERGRUND 07' };
+    } else if (b.id === 'apotheke') {
+      plan.fenster.push({ x: x0 + 8, y: y0 + 26, w: 12, h: 12 });
+      plan.fenster.push({ x: x0 + w - 20, y: y0 + 26, w: 12, h: 12 });
+      plan.schildHaupt = { x: x0 + w / 2, y: y0 + 8, w: Math.min(w - 8, 88), h: 12, text: 'APOTHEKE' };
     }
     // Alias: Tests/Nacht lesen schild; Werte so, dass Tag = Nacht (Oberkante)
     if (plan.schildHaupt) plan.schild = { x: plan.schildHaupt.x, y: plan.schildHaupt.y };
@@ -664,6 +668,15 @@
     var kneipeSchild = p.schildNeben;
     if (kneipeSchild) schild(c, kneipeSchild.x + kneipeSchild.w / 2, kneipeSchild.y, kneipeSchild.w, kneipeSchild.h, '#2a2a30', '#fff8ee', kneipeSchild.text, 7);
   }
+  function apothekeFassade(c, p) {
+    var x0 = p.x0, y0 = p.y0, w = p.w, h = p.h, d = p.tuer, cx = d.x + d.w / 2, cy = d.y - 8;
+    vlauf(c, x0, y0 + 12, w, h - 12, '#f7f4ee', '#e4efe6');
+    poly(c, [[x0 - 4, y0 + 14], [x0 + w / 2, y0 - 6], [x0 + w + 4, y0 + 14]], '#e8f2ea', '#8aa898', 0.8);
+    p.fenster.forEach(function (f) { fensterV(c, f, '#d7f3e4', null, false); });
+    r(c, cx - 1.3, cy - 5, 2.6, 10, '#1f7a42');
+    r(c, cx - 5, cy - 1.3, 10, 2.6, '#1f7a42');
+    if (p.schildHaupt) schildGeb(c, p.schildHaupt.x, p.schildHaupt.y, p.schildHaupt.w, p.schildHaupt.h, '#1f7a42', '#f4fff6', p.schildHaupt.text, 9, '#d9b86a');
+  }
   function diskoFassade(c, p) {
     var x0 = p.x0, y0 = p.y0, w = p.w, h = p.h, i;
     vlauf(c, x0, y0 + 10, w, h - 10, '#40346a', '#2e2450');
@@ -705,7 +718,8 @@
     if (b.id === 'hotel') hotelFassade(c, p);
     else if (b.id === 'restaurant') restaurantFassade(c, p);
     else if (b.id === 'kneipe') kneipeFassade(c, p);
-    else diskoFassade(c, p);
+    else if (b.id === 'disko') diskoFassade(c, p);
+    else if (b.id === 'apotheke') apothekeFassade(c, p);
     tuerBild(c, p, b.id);
     c.restore();
   }

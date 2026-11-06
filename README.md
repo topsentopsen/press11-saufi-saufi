@@ -9,6 +9,7 @@ Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 n
 - Im Stadtbild liegen extra versteckte Sachen: Bierkästen, Schnapsflaschen und Joints. Kein Pfeil darüber. Wer drankommt, sieht das bekannte Popup, hebt sie mit E auf und hört den Bing. Bier und Schnaps wirken wie das jeweilige Getränk, der Joint bleibt das Spiel-Item (nächster Effekt doppelt, danach kurz schwammig).
 - Die Parkgruppe gibt den Joint jetzt wirklich ab, wenn man mit ihr redet. Vorher stand nur der Text „Joint erhalten“ da.
 - Zusätzlich liegen ein paar Joints irgendwo auf der Straße. Gleicher Seed, gleiche Stellen.
+- Die Apotheke am Kessel ist ein weiteres Haus, betretbar wie die anderen. Drinnen gibt der Apotheker eine Tüte auf Rezept: kurzer Dialog, das bekannte Popup und der Bing.
 
 ## Neu in v35
 

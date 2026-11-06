@@ -19,3 +19,7 @@ Vier Bierkästen, drei Schnapsflaschen und zwei Joints liegen fest in Ecken und 
 Drei weitere Joints liegen auf Straße, Weg, Gehweg oder Asphalt. Der Karten-Zufall bleibt unangetastet, die Stellen hängen an einem eigenen Seed. Dieselbe Runde findet sie immer an denselben Flecken. Nicht direkt vor der Haustür und nicht auf einer Türschwelle.
 
 Keine Autos. Zoom und HUD bleiben, wo sie sind.
+
+## Apotheke
+
+Die Apotheke am Kessel steht auf dem Häuserblock südlich vom Park, Tür nach Süden auf den Gehweg. Sie hängt in derselben Innenraum-Liste wie Hotel, Gasthaus, Kneipe und Disko (`ORTE` baut `welt.innen`) und trägt dasselbe `innen`-Flag. Rein und raus geht über Tür und Ausgang, ohne eigenen Kamera- oder Blasen-Code. Drinnen steht der Apotheker am Tresen. E spricht eine kurze Zeile und legt eine Tüte auf Rezept in den Rucksack, mit dem Popup „auf Rezept“ und dem Bing. Die Tüte aus dem Hotel und die vom Park bleiben eigene Funde. Geöffnet ist von 08:00 bis 20:00, über die normale Öffnungszeiten-Prüfung.
