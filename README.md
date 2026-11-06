@@ -11,8 +11,8 @@ Samstag, 08:00, Stuttgart im Kessel. Du bist Tobi und willst bis Sonntag 04:00 n
 - In der Stadt werfen laufende Figuren versetzt die Hände hoch. Kein Extra-Objekt und kein zusätzlicher Zufall, damit das Handy ruhig bleibt.
 - Sprechblasen kommen aus einem Shuffle-Bag: jede Zeile einmal, dann neu gemischt, ohne Naht-Wiederholung. Der Spiel-Zufall bleibt bei zwei Zügen pro Spruch.
 - Reaktions-Prost: ein Treffer bleibt ein Treffer und zeigt den Ortsruf. Ein Druck vor dem Fenster ist ein Fehlstart und zählt nicht. Der Druck im Frame, in dem das Fenster aufgeht, zählt.
-- Probst-Falle: sitzt er mit am Tisch, sagt das Menü die höhere Entdeckungschance, bevor man tauscht. Fliegt es auf, gibt es die doppelte Runde, Team −2 und 25 Standfestigkeit weniger. Ohne ihn bleibt es der Wirt, ohne den Extra-Abzug.
-- Mäxle ist ein Würfelspiel mit zwei Würfeln. Mäxle 21 schlägt alles, dann die Pasche, dann der Rest. Ansagen, lügen und anzweifeln gegen Siebold. Wer verliert, hat eine Trinkstrafe. Dampfhammer und Sinnlos bleiben Gag-Aliase.
+- Im Reaktions-Prost steht in drei von zehn Fenstern PROBST! statt dem Ruf. Wer dann drückt, verliert einen Punkt: „Des war dr Probst, ned s'Prost!“ Solange Probst in der Hecke steckt, gilt der Tausch ohne ihn, mit dem Hinweis, jetzt für die Gruppe zu tauschen.
+- Mäxle ist ein Würfelspiel mit zwei Würfeln. Rang: 31 bis 65, dann Pasch 11 bis 66, dann Mäxle 21. Menü: ansagen, bluffen, anzweifeln. Wer beim Aufdecken falschliegt, trinkt. Wer Mäxle würfelt, lässt alle trinken. Siebold blufft nie, Himmelsbach immer, Probst sagt Mäxle und guckt auf den Boden. Dampfhammer und Sinnlos bleiben Gag-Aliase.
 - Auf dem Handy (Touch, grober Zeiger oder Telefon-Format) liegen E und Wasser als großer Daumenbogen unten rechts. Das Rundenbanner geht über die volle Breite, unter den Knöpfen oben. Desktop bleibt, wie er war.
 
 ## Neu in v30

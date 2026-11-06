@@ -67,11 +67,22 @@
     if (rang >= 100) return true;
     return rang >= 70 + (wurf || 0) * 30;
   }
+  // Siebold blufft nie, Himmelsbach immer. Probst behauptet Mäxle und verrät sich.
+  var BLUFF_RATE = { siebold: 0, himmelsbach: 1, probst: 1 };
+  var PROBST_BLUFF = 'Probst sagt ‚Mäxle‘ und guckt dabei auf den Boden.';
+  function bluffRate(id) {
+    if (id && BLUFF_RATE[id] != null) return BLUFF_RATE[id];
+    return 0;
+  }
+  // Drei von zehn Rufen, also 30 %. nr ist der 0-basierte Fensterzähler.
+  var PROBST_ANTEIL = 3, PROBST_WORT = 'PROBST!', PROBST_BLASE = 'Des war dr Probst, ned s\'Prost!';
+  function istProbstFalle(nr) { return (nr % 10) < PROBST_ANTEIL; }
   function maexleStart(rng, ort) {
     return {
       id: 'maexle', art: 'minispiel', titel: 'Mäxle', t: 0, dauer: 40, score: 0, ziel: 1, phase: 'wurf',
-      rng: rng, ort: ort || '', wuerfel: null, wert: null, ansage: null, gelogen: false, npc: null, strafePegel: 0.15,
-      hinweis: 'Zwei Würfel. Mäxle 21 ist das höchste, dann Pasche, dann der Rest. Ansagen, lügen oder anzweifeln.',
+      rng: rng, ort: ort || '', gegner: 'siebold', wuerfel: null, wert: null, ansage: null, gelogen: false, npc: null,
+      strafePegel: 0.15, alleTrinken: false,
+      hinweis: 'Zwei Würfel. 31 bis 65, dann Pasch 11 bis 66, dann Mäxle 21. Ansagen, bluffen, anzweifeln.',
       index: 0,
       eintraege: [{ label: 'Würfeln (E)', id: 'mx_wurf' }, { label: 'Abbrechen', id: 'zurueck' }]
     };
@@ -84,22 +95,43 @@
   function maexleAnsagenMenue(mg) {
     var e = [{ label: 'Wahrheit: ' + mg.wert.name, id: 'mx_ansage', daten: mg.wert }];
     var nxt = maexleNaechstes(mg.wert.rang);
-    if (nxt) e.push({ label: 'Lügen: ' + nxt.name, id: 'mx_ansage', daten: nxt });
-    if (mg.wert.rang < 100 && (!nxt || nxt.rang < 100)) e.push({ label: 'Mäxle behaupten', id: 'mx_ansage', daten: maexleWert(2, 1) });
+    if (nxt) e.push({ label: 'Bluffen: ' + nxt.name, id: 'mx_ansage', daten: nxt });
+    if (mg.wert.rang < 100 && (!nxt || nxt.rang < 100)) e.push({ label: 'Bluffen: Mäxle 21', id: 'mx_ansage', daten: maexleWert(2, 1) });
     e.push({ label: 'Abbrechen', id: 'zurueck' });
     mg.eintraege = e; mg.index = 0; mg.phase = 'ansage';
     mg.hinweis = 'Du hast ' + mg.wuerfel[0] + ' und ' + mg.wuerfel[1] + ' (' + mg.wert.name + '). Hohe Ansagen zweifelt Siebold eher an.';
   }
   function maexleNpc(mg) {
+    var id = mg.gegner || 'siebold';
+    var rate = bluffRate(id);
     var a = wuerfelZahl(mg.rng), b = wuerfelZahl(mg.rng), wert = maexleWert(a, b);
-    var ansage = wert.rang > mg.ansage.rang ? wert : maexleNaechstes(mg.ansage.rang);
-    if (!ansage) {
-      return maexleEnde(mg, !mg.gelogen, mg.gelogen ? 'Nichts ist höher. Siebold deckt die Lüge auf. Trinkstrafe.' : 'Nichts ist höher als Mäxle. Siebold trinkt.');
+    if (wert.rang >= 100) {
+      mg.alleTrinken = true;
+      return maexleEnde(mg, false, 'Mäxle 21 beim Gegner. Alle trinken.');
     }
-    mg.npc = { wuerfel: [a, b], wert: wert, ansage: ansage, gelogen: ansage.rang > wert.rang };
+    var ansage, gelogen, hinweis;
+    if (id === 'probst') {
+      ansage = maexleWert(2, 1);
+      gelogen = ansage.rang > wert.rang;
+      hinweis = PROBST_BLUFF;
+    } else if (rate <= 0) {
+      if (wert.rang > (mg.ansage ? mg.ansage.rang : 0)) {
+        ansage = wert;
+        gelogen = false;
+        hinweis = 'Siebold sagt „' + ansage.name + '“. Er blufft nicht.';
+      } else {
+        return maexleEnde(mg, true, 'Siebold blufft nie und kommt nicht höher. Er trinkt.');
+      }
+    } else {
+      ansage = maexleNaechstes(wert.rang) || maexleWert(2, 1);
+      if (mg.ansage && ansage.rang <= mg.ansage.rang) ansage = maexleNaechstes(mg.ansage.rang) || maexleWert(2, 1);
+      gelogen = ansage.rang > wert.rang;
+      hinweis = 'Himmelsbach blufft: „' + ansage.name + '“.';
+    }
+    mg.npc = { id: id, wuerfel: [a, b], wert: wert, ansage: ansage, gelogen: gelogen };
     mg.phase = 'gegen';
-    mg.hinweis = 'Siebold sagt „' + ansage.name + '“. Anzweifeln oder glauben?';
-    mg.feedback = 'Seine Würfel bleiben zu.';
+    mg.hinweis = hinweis;
+    mg.feedback = id === 'probst' ? PROBST_BLUFF : 'Seine Würfel bleiben zu.';
     mg.index = 0;
     mg.eintraege = [
       { label: 'Anzweifeln', id: 'mx_zweifel' },
@@ -113,6 +145,10 @@
     if (id === 'mx_wurf' && mg.phase === 'wurf') {
       var a = wuerfelZahl(mg.rng), b = wuerfelZahl(mg.rng);
       mg.wuerfel = [a, b]; mg.wert = maexleWert(a, b);
+      if (mg.wert.rang >= 100) {
+        mg.alleTrinken = true;
+        return maexleEnde(mg, true, 'Mäxle 21. Alle trinken.');
+      }
       maexleAnsagenMenue(mg);
       return mg;
     }
@@ -169,7 +205,8 @@
       var pr = prostRuf(ort);
       return { id: id, art: 'minispiel', titel: 'Reaktions-Prost', t: 0, dauer: 14, score: 0, ziel: 4, phase: 'warte', next: 0.8 + rng.next() * 0.8, fenster: 0,
         ruf: pr.ruf, ton: pr.ton, ort: ort || '',
-        hinweis: 'Wenn „' + pr.ruf + '“ kommt: sofort E / Tippen.', index: 0,
+        rufNr: 0,
+        hinweis: 'Wenn „' + pr.ruf + '“ kommt: sofort E / Tippen. Steht PROBST!, nicht drücken.', index: 0,
         eintraege: [{ label: 'Wart…', id: 'mg_aktion' }, { label: 'Abbrechen', id: 'zurueck' }] };
     }
     if (id === 'krug') {
@@ -254,15 +291,30 @@
       var getroffen = false;
       if (mg.phase === 'warte') {
         mg.next -= dt;
-        if (mg.next <= 0) { mg.phase = 'jetzt'; mg.fenster = 0.7; mg.eintraege[0].label = ruf + ' JETZT (E)'; }
+        if (mg.next <= 0) {
+          mg.phase = 'jetzt'; mg.fenster = 0.7;
+          mg.rufNr = mg.rufNr || 0;
+          mg.falle = istProbstFalle(mg.rufNr);
+          mg.rufNr += 1;
+          mg.gezeigt = mg.falle ? PROBST_WORT : ruf;
+          mg.eintraege[0].label = mg.gezeigt + ' JETZT (E)';
+        }
       }
       if (mg.phase === 'jetzt') {
         if (aktion) {
-          mg.score += 1; mg.feedback = ruf; mg.phase = 'warte';
-          mg.next = 0.7 + ((mg.score * 37) % 100) / 100 * 1.1;
+          if (mg.falle || mg.gezeigt === PROBST_WORT) {
+            mg.score -= 1;
+            mg.feedback = PROBST_BLASE;
+            mg.blase = PROBST_BLASE;
+            mg.falle = false;
+          } else {
+            mg.score += 1; mg.feedback = ruf;
+            if (mg.score >= mg.ziel) { mg.fertig = true; mg.erfolg = true; }
+          }
+          mg.phase = 'warte';
+          mg.next = 0.7 + ((Math.abs(mg.score) * 37) % 100) / 100 * 1.1;
           mg.eintraege[0].label = 'Wart…';
           getroffen = true;
-          if (mg.score >= mg.ziel) { mg.fertig = true; mg.erfolg = true; }
         } else {
           mg.fenster -= dt;
           if (mg.fenster <= 0) {
@@ -311,8 +363,8 @@
   function belohnung(mg) {
     var b;
     if (mg && mg.id === 'maexle') {
-      if (mg.erfolg) b = { punkte: 80, pegel: 0, team: 1, text: mg.feedback || 'Mäxle gewonnen. Der andere trinkt.' };
-      else b = { punkte: 10, pegel: mg.strafePegel || 0.15, team: 0, text: mg.feedback || 'Trinkstrafe.' };
+      if (mg.erfolg) b = { punkte: 80, pegel: 0, team: 1, alle: !!mg.alleTrinken, text: mg.feedback || 'Mäxle gewonnen. Der andere trinkt.' };
+      else b = { punkte: 10, pegel: mg.strafePegel || 0.15, team: 0, alle: !!mg.alleTrinken, text: mg.feedback || 'Trinkstrafe.' };
     }
     else if (!mg || !mg.erfolg) b = { punkte: 5, pegel: 0.02, team: 0, text: 'Abgebrochen/daneben. Trost-Schluck mental.' };
     else if (mg.id === 'deckel') b = { punkte: 80, pegel: 0.05, team: 1, text: 'Bierdeckel-König! Team +1' };
@@ -327,6 +379,8 @@
   Saufi.Minispiele = {
     IDEEN: IDEEN, KRUG: KRUG, SHOT: SHOT, GAG: SIEBOLD_ALIAS, KERN_NAME: KERN_NAME,
     eintraegeFuerOrt: eintraegeFuerOrt, starte: starte, update: update, belohnung: belohnung, wahl: maexleWahl,
-    wert: maexleWert, naechstes: maexleNaechstes, leiter: maexleLeiter, npcZweifelt: npcZweifelt
+    wert: maexleWert, naechstes: maexleNaechstes, leiter: maexleLeiter, npcZweifelt: npcZweifelt,
+    bluffRate: bluffRate, BLUFF_RATE: BLUFF_RATE, PROBST_BLUFF: PROBST_BLUFF,
+    istProbstFalle: istProbstFalle, PROBST_WORT: PROBST_WORT, PROBST_BLASE: PROBST_BLASE, PROBST_ANTEIL: PROBST_ANTEIL
   };
 })(globalThis);

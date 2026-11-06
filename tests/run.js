@@ -5977,7 +5977,7 @@ test('245 Sprechblasen: Shuffle-Bag ohne Wiederholung, rng bleibt bei 2', functi
 test('246 Prost: Treffer bleibt Treffer, Fehlstart zählt nicht, Ortsruf bleibt', function () {
   var D = lade(), M = D.Minispiele, H = D.Hinweise;
   var hit = M.starte('prost', D.RNG.erstelle(1), 'hotel');
-  hit.next = 0.05;
+  hit.next = 0.05; hit.rufNr = 3;
   M.update(hit, 0.1, true);
   gleich(hit.score, 1, 'Druck im Öffnungsframe zählt');
   wahr(hit.feedback.indexOf(H.prostFuer('hotel').ruf) >= 0, 'Ortsruf: ' + hit.feedback);
@@ -5994,6 +5994,20 @@ test('246 Prost: Treffer bleibt Treffer, Fehlstart zählt nicht, Ortsruf bleibt'
   M.update(langsam, 0.2, false);
   gleich(langsam.score, 0);
   wahr(/Zu langsam/.test(langsam.feedback));
+  var i;
+  for (i = 0; i < 10; i++) wahr(M.istProbstFalle(i) === (i < 3), '30 % Fenster ' + i);
+  var falle = M.starte('prost', D.RNG.erstelle(4), 'stadt');
+  falle.next = 0.01; falle.rufNr = 0; falle.score = 2;
+  M.update(falle, 0.05, true);
+  gleich(falle.gezeigt, M.PROBST_WORT);
+  gleich(falle.score, 1, 'PROBST! kostet einen Punkt');
+  gleich(falle.blase, M.PROBST_BLASE);
+  gleich(falle.feedback, 'Des war dr Probst, ned s\'Prost!');
+  var echt = M.starte('prost', D.RNG.erstelle(5), 'stadt');
+  echt.next = 0.01; echt.rufNr = 3;
+  M.update(echt, 0.05, true);
+  gleich(echt.gezeigt, 'PROST!');
+  gleich(echt.score, 1);
 });
 
 test('247 Probst-Falle: Warnung vorher, härtere Folge nur wenn er da ist', function () {
@@ -6028,6 +6042,20 @@ test('247 Probst-Falle: Warnung vorher, härtere Folge nur wenn er da ist', func
   u.Sp.waehle(u.S, u.S.overlay.eintraege[1], u.X);
   gleich(u.S.fig.stand, stand1, 'ohne ihn keine Extra-Standfestigkeit');
   wahr(/Wirt/.test(D.Hinweise.aktuell(u.S.hinweise).text));
+  var h = neuesSpielTest(D);
+  h.Sp.setze(h.S, { minute: 10 * 60 });
+  schritt(h.S, h.Sp, h.X, 0.1);
+  h.S.hecke = { start: 0, aktivBis: 999, n: 1, naechste: 2000 };
+  h.S.spielSek = 1;
+  wahr(h.Sp.probstAbgelenkt(h.S) && !h.Sp.probstSchaut(h.S), 'Hecke schaltet Probst ab');
+  h.Sp.geheZuStation(h.S, 'hotel', 'stammtisch', h.X);
+  h.Sp.aktion(h.S, h.X);
+  wahr(h.S.overlay.kopf.join(' ').indexOf('Probst steckt in der Hecke. Himmelsbach filmt. Jetzt tauschen, für die Gruppe.') >= 0, h.S.overlay.kopf.join(' '));
+  h.S.rng = { next: function () { return 0.30; }, pick: function (a) { return a[0]; } };
+  var pegelH = h.S.fig.pegel;
+  h.Sp.waehle(h.S, h.S.overlay.eintraege[1], h.X);
+  gleich(h.S.fig.pegel, pegelH, '0,30 liegt über 25 % und unter 40 %: ohne Probst kein Erwischt');
+  wahr(h.S.overlay && /Noch 1 Glas/.test(h.S.overlay.kopf[0]), 'Tausch zählt, Menü bleibt');
 });
 
 test('248 Mäxle: Rang, Ansage, Lüge, Anzweifeln, Trinkstrafe', function () {
@@ -6069,6 +6097,36 @@ test('248 Mäxle: Rang, Ansage, Lüge, Anzweifeln, Trinkstrafe', function () {
   wahr(gegen.fertig);
   if (gegen.npc.gelogen) wahr(gegen.erfolg);
   else wahr(!gegen.erfolg && M.belohnung(gegen).pegel >= 0.1);
+  gleich(M.bluffRate('siebold'), 0);
+  gleich(M.bluffRate('himmelsbach'), 1);
+  gleich(M.bluffRate('probst'), 1);
+  var alle = M.starte('maexle', rngAus([0.2, 0]), 'kneipe');
+  M.wahl(alle, 'mx_wurf');
+  wahr(alle.fertig && alle.erfolg && alle.alleTrinken, alle.feedback);
+  wahr(M.belohnung(alle).alle && M.belohnung(alle).pegel === 0, 'Wer Mäxle würfelt, lässt die anderen trinken');
+  var sie = M.starte('maexle', rngAus([0.99, 0.99, 0.99, 0, 0]), 'kneipe');
+  sie.gegner = 'siebold';
+  M.wahl(sie, 'mx_wurf');
+  M.wahl(sie, 'mx_ansage', sie.wert);
+  wahr(sie.fertig && sie.erfolg && /blufft nie/.test(sie.feedback), sie.feedback);
+  var him = M.starte('maexle', rngAus([0.5, 0.5, 0.99, 0, 0]), 'kneipe');
+  him.gegner = 'himmelsbach';
+  M.wahl(him, 'mx_wurf');
+  M.wahl(him, 'mx_ansage', him.wert);
+  gleich(him.phase, 'gegen');
+  wahr(him.npc.gelogen && /blufft/.test(him.hinweis), him.hinweis);
+  M.wahl(him, 'mx_zweifel');
+  wahr(him.erfolg && /Trinkstrafe/.test(him.feedback) === false, 'Aufdecken: der Bluff trinkt');
+  var pr = M.starte('maexle', rngAus([0.5, 0.5, 0.99, 0, 0]), 'kneipe');
+  pr.gegner = 'probst';
+  M.wahl(pr, 'mx_wurf');
+  M.wahl(pr, 'mx_ansage', pr.wert);
+  gleich(pr.feedback, M.PROBST_BLUFF);
+  gleich(pr.npc.ansage.name, 'Mäxle 21');
+  wahr(pr.npc.gelogen, 'Probst hat kein Mäxle');
+  M.wahl(pr, 'mx_zweifel');
+  wahr(pr.erfolg, 'Wer beim Aufdecken falschliegt, trinkt: Probst');
+  wahr(pr.eintraege.length >= 1 || pr.fertig, 'Menü Ansage/Bluff/Zweifel');
 });
 
 test('249 Handy: Daumenbogen, volle Bannerbreite, Desktop bleibt', function () {
