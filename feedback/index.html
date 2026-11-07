@@ -17,7 +17,20 @@
     font-size: 1rem; line-height: 1.45;
     padding: calc(1.25rem + env(safe-area-inset-top, 0px)) calc(1rem + env(safe-area-inset-right, 0px)) calc(2rem + env(safe-area-inset-bottom, 0px)) calc(1rem + env(safe-area-inset-left, 0px));
   }
-  .seite { width: min(100%, 34rem); margin: 0 auto; }
+  body::before {
+    content: "";
+    position: fixed;
+    z-index: 0;
+    left: 50%;
+    top: 50%;
+    width: min(80vw, 650px);
+    height: min(80vw, 650px);
+    transform: translate(-50%, -50%);
+    background: url("../assets/presself-logo.png") center / contain no-repeat;
+    opacity: 0.18;
+    pointer-events: none;
+  }
+  .seite { position: relative; z-index: 1; width: min(100%, 34rem); margin: 0 auto; }
   a { color: #ffd36e; }
   a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible {
     outline: 3px solid #ffd36e; outline-offset: 2px;
@@ -26,7 +39,7 @@
   h1 { margin: 0 0 0.6rem; font-size: 1.75rem; line-height: 1.15; letter-spacing: -0.02em; }
   .lead { margin: 0 0 1.25rem; color: #fff8ee; }
   form {
-    background: #2a2342; border-radius: 14px; padding: 1.1rem 1rem 1.15rem;
+    background: rgba(42, 35, 66, 0.92); border-radius: 14px; padding: 1.1rem 1rem 1.15rem;
     box-shadow: 0 0 0 3px #ff4fa0, 0 0 0 6px #4fe6ff;
   }
   label, legend { display: block; font-weight: 700; margin: 0 0 0.35rem; }
